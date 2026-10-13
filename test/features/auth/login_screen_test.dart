@@ -15,6 +15,14 @@ void main() {
     await pumpScreen(tester, const LoginScreen(), overrides: [authRepositoryProvider.overrideWithValue(auth)]);
   }
 
+  testWidgets('shows the app logo', (tester) async {
+    await pumpLogin(tester);
+
+    final logo = tester.widget<Image>(find.byType(Image));
+    expect((logo.image as AssetImage).assetName, 'assets/branding/app_icon.png');
+    expect(find.bySemanticsLabel('Logo do Ranking Beach Tennis'), findsOneWidget);
+  });
+
   testWidgets('validates e-mail and password before calling the provider', (tester) async {
     await pumpLogin(tester);
 

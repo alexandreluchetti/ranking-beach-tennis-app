@@ -95,8 +95,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(Icons.sports_tennis, size: 64, color: theme.colorScheme.primary),
-                    const SizedBox(height: 12),
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: Image.asset(
+                          'assets/branding/app_icon.png',
+                          width: 96,
+                          height: 96,
+                          semanticLabel: 'Logo do Ranking Beach Tennis',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Text('Ranking Beach Tennis',
                         style: theme.textTheme.headlineSmall, textAlign: TextAlign.center),
                     const SizedBox(height: 32),

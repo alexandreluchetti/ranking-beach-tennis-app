@@ -59,6 +59,21 @@ default `API_BASE_URL` already reaches the development machine.
 
 Plain HTTP is allowed only in debug builds (`android/app/src/debug/AndroidManifest.xml`).
 
+## App icon
+
+The logo lives in `assets/branding/`: SVG sources (`app_icon.svg` for the full icon,
+`app_icon_foreground.svg` and `app_icon_background.svg` for the Android adaptive icon) and the
+1024×1024 PNGs rendered from them. The login screen shows `app_icon.png`. After changing the
+PNGs, regenerate the Android and iOS launcher icons:
+
+```bash
+dart run flutter_launcher_icons
+```
+
+The tool also rewrites `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS` in
+`ios/Runner.xcodeproj/project.pbxproj` to an invalid value; discard that change
+(`git checkout -- ios/Runner.xcodeproj/project.pbxproj`).
+
 ## Tests
 
 ```bash
