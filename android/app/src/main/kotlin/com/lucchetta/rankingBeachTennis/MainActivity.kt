@@ -1,4 +1,4 @@
-package com.lucchetta.ranking_beach_tennis
+package com.lucchetta.rankingBeachTennis
 
 import io.flutter.embedding.android.FlutterActivity
 
