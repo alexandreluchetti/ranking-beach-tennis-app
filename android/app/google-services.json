@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "780647009353-4jfi031dhpl3k4nduom15j27s9s6n22p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lucchetta.rankingBeachTennis",
+            "certificate_hash": "9ced5793dde1ee0e666b51324e930b3c245526ea"
+          }
+        },
+        {
           "client_id": "780647009353-5djdp387v5p8jf9m7f6mn23s7b3be4tu.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

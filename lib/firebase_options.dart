@@ -59,7 +59,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '780647009353',
     projectId: 'ranking-beach-tennis',
     storageBucket: 'ranking-beach-tennis.firebasestorage.app',
-    androidClientId: '780647009353-5djdp387v5p8jf9m7f6mn23s7b3be4tu.apps.googleusercontent.com',
+    androidClientId: '780647009353-4jfi031dhpl3k4nduom15j27s9s6n22p.apps.googleusercontent.com',
     iosClientId: '780647009353-9789d1ron61samqb6bl421b1b8h1finc.apps.googleusercontent.com',
     iosBundleId: 'com.lucchetta.rankingBeachTennis',
   );

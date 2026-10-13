@@ -89,6 +89,27 @@ flutter build web --release --dart-define=API_BASE_URL=https://<backend> --dart-
 `FIREBASE_AUTH_DOMAIN` (web only, optional) serves the sign-in pages from the site domain when it is
 hosted on Firebase Hosting.
 
+## Production
+
+API: `https://api.ranking-beach-tennis.tech` (CORS allows the two Firebase Hosting domains).
+
+**Web** (Firebase Hosting, configured in `firebase.json`):
+
+```bash
+flutter build web --release --dart-define=API_BASE_URL=https://api.ranking-beach-tennis.tech
+firebase deploy --only hosting --project ranking-beach-tennis
+```
+
+**Android** (Firebase App Distribution). Release builds are signed with the key referenced by
+`android/key.properties` (git-ignored; the keystore lives outside the repository). Its SHA-1 must be
+registered in the Firebase Android app, or Google Sign-In fails. Raise `version` in `pubspec.yaml`
+for every release.
+
+```bash
+flutter build apk --release --dart-define=API_BASE_URL=https://api.ranking-beach-tennis.tech --dart-define=GOOGLE_SERVER_CLIENT_ID=780647009353-jkckmv4ct9lu93o7utqbalafcanqeboi.apps.googleusercontent.com
+firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk --app 1:780647009353:android:dd9cd215836edc11f44398 --testers "<emails>" --release-notes "<notes>"
+```
+
 ## App icon
 
 The logo lives in `assets/branding/`: SVG sources (`app_icon.svg` for the full icon,
