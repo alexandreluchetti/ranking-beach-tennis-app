@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/widgets/async_states.dart';
+import '../admin/match_admin_actions.dart';
 import 'match_card.dart';
 import 'match_models.dart';
 import 'match_repository.dart';
@@ -20,7 +21,10 @@ class MatchDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final match = ref.watch(matchProvider(matchId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Partida')),
+      appBar: AppBar(
+        title: const Text('Partida'),
+        actions: [if (match.value case final loaded?) MatchAdminMenu(match: loaded)],
+      ),
       body: match.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(matchProvider(matchId))),

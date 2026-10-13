@@ -1,0 +1,74 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/network/api_client.dart';
+import '../matches/match_draft.dart';
+import '../matches/match_models.dart';
+import '../ranking/ranking_models.dart';
+
+/// Administrator-only operations. The backend checks the permission; the app
+/// only hides them from other players.
+class AdminRepository {
+  AdminRepository(this._dio);
+
+  final Dio _dio;
+
+  static String _date(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<Season> createSeason({required String name, required DateTime startDate, required DateTime endDate}) =>
+      apiCall(() async {
+        final response = await _dio.post<Map<String, dynamic>>('/api/admin/seasons', data: {
+          'name': name,
+          'startDate': _date(startDate),
+          'endDate': _date(endDate),
+        });
+        return Season.fromJson(response.data!);
+      });
+
+  /// Partial update: only the given fields change.
+  Future<Season> updateSeason(String id, {String? name, DateTime? startDate, DateTime? endDate}) =>
+      apiCall(() async {
+        final response = await _dio.patch<Map<String, dynamic>>('/api/admin/seasons/$id', data: {
+          'name': ?name,
+          if (startDate != null) 'startDate': _date(startDate),
+          if (endDate != null) 'endDate': _date(endDate),
+        });
+        return Season.fromJson(response.data!);
+      });
+
+  /// Full replacement of the match, based on [version] as last read. Throws
+  /// [ApiException] with code `MATCH_MODIFIED` if it changed meanwhile.
+  Future<MatchView> correctMatch(String id, {required int version, required MatchDraft draft, String? reason}) =>
+      apiCall(() async {
+        final body = draft.toJson()
+          ..remove('id')
+          ..remove('confirmPossibleDuplicate');
+        final response = await _dio.put<Map<String, dynamic>>('/api/admin/matches/$id', data: {
+          ...body,
+          'version': version,
+          'reason': ?reason,
+        });
+        return MatchView.fromJson(response.data!);
+      });
+
+  Future<MatchView> voidMatch(String id, String reason) => apiCall(() async {
+        final response = await _dio.post<Map<String, dynamic>>('/api/admin/matches/$id/void', data: {'reason': reason});
+        return MatchView.fromJson(response.data!);
+      });
+
+  Future<MatchView> revertVoid(String id, String reason) => apiCall(() async {
+        final response =
+            await _dio.post<Map<String, dynamic>>('/api/admin/matches/$id/revert-void', data: {'reason': reason});
+        return MatchView.fromJson(response.data!);
+      });
+}
+
+final adminRepositoryProvider = Provider<AdminRepository>((ref) => AdminRepository(ref.watch(dioProvider)));
+
+/// Today's date on the phone (approved: the backend checks it again in the
+/// São Paulo time zone). Overridden in tests.
+final todayProvider = Provider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+});

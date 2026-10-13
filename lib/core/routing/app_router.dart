@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/admin/admin_screen.dart';
+import '../../features/admin/match_admin_actions.dart';
+import '../../features/admin/season_form_screen.dart';
 import '../../features/auth/auth_providers.dart';
 import '../../features/auth/login_screen.dart';
-import '../../features/home/coming_soon_screen.dart';
 import '../../features/home/home_shell.dart';
 import '../../features/matches/match_detail_screen.dart';
 import '../../features/matches/match_history_screen.dart';
@@ -49,6 +51,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+      // Full screen over any area; guarded by the /admin prefix above.
+      GoRoute(
+        path: '/admin/matches/:id/correct',
+        builder: (_, state) => CorrectMatchScreen(matchId: state.pathParameters['id']!),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(navigationShell: shell),
         branches: [
@@ -106,7 +113,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/admin',
-              builder: (_, _) => const ComingSoonScreen(title: 'Administração', icon: Icons.admin_panel_settings),
+              builder: (_, _) => const AdminScreen(),
+              routes: [
+                GoRoute(path: 'seasons/new', builder: (_, _) => const SeasonFormScreen()),
+                GoRoute(
+                  path: 'seasons/:id',
+                  builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['id']!),
+                ),
+              ],
             ),
           ]),
         ],

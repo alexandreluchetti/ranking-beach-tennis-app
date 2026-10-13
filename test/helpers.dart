@@ -10,6 +10,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/local_store.dart';
 import 'package:ranking_beach_tennis/core/theme/app_theme.dart';
+import 'package:ranking_beach_tennis/features/admin/admin_repository.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
 import 'package:ranking_beach_tennis/features/sync/sync_controller.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
@@ -155,7 +156,13 @@ class FakeMatchRepository implements MatchRepository {
   }
 
   @override
-  Future<MatchView> byId(String id) async => matches.firstWhere((m) => m.id == id, orElse: () => sampleMatch(id: id));
+  Future<MatchView> byId(String id) async {
+    loaded.add(id);
+    return matches.firstWhere((m) => m.id == id, orElse: () => sampleMatch(id: id));
+  }
+
+  /// Ids passed to [byId], in order.
+  final loaded = <String>[];
 
   @override
   Future<List<AuditEntry>> audit(String id) async => const [];
@@ -300,3 +307,52 @@ AppNotification sampleNotification({String id = 'n1', bool read = false, String?
       createdAt: DateTime(2026, 10, 11, 10),
       read: read,
     );
+
+/// Records administrator calls as maps; throws what is queued in [errors].
+class FakeAdminRepository implements AdminRepository {
+  final calls = <Map<String, dynamic>>[];
+  final errors = <Exception>[];
+
+  Future<void> _record(Map<String, dynamic> call) async {
+    calls.add(call);
+    if (errors.isNotEmpty) {
+      throw errors.removeAt(0);
+    }
+  }
+
+  @override
+  Future<Season> createSeason({required String name, required DateTime startDate, required DateTime endDate}) async {
+    await _record({'op': 'create', 'name': name, 'startDate': startDate, 'endDate': endDate});
+    return Season(id: 'new', name: name, startDate: startDate, endDate: endDate, status: SeasonStatus.planned);
+  }
+
+  @override
+  Future<Season> updateSeason(String id, {String? name, DateTime? startDate, DateTime? endDate}) async {
+    await _record({
+      'op': 'update',
+      'id': id,
+      'name': ?name,
+      'startDate': ?startDate,
+      'endDate': ?endDate,
+    });
+    return primavera;
+  }
+
+  @override
+  Future<MatchView> correctMatch(String id, {required int version, required MatchDraft draft, String? reason}) async {
+    await _record({'op': 'correct', 'id': id, 'version': version, 'draft': draft.toJson(), 'reason': reason});
+    return sampleMatch(id: id);
+  }
+
+  @override
+  Future<MatchView> voidMatch(String id, String reason) async {
+    await _record({'op': 'void', 'id': id, 'reason': reason});
+    return sampleMatch(id: id, voided: true, counted: false, reason: 'VOIDED');
+  }
+
+  @override
+  Future<MatchView> revertVoid(String id, String reason) async {
+    await _record({'op': 'revert', 'id': id, 'reason': reason});
+    return sampleMatch(id: id);
+  }
+}

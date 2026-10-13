@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
+import '../admin/admin_repository.dart';
+import '../admin/match_admin_actions.dart';
 import '../sync/pending_match.dart';
 import '../sync/sync_controller.dart';
 import 'match_draft.dart';
@@ -16,9 +19,12 @@ import 'match_repository.dart';
 /// guest) and the final score. Built for quick use between games.
 class RegisterMatchScreen extends ConsumerStatefulWidget {
   /// [pendingId]: edits a match saved on the phone and not sent yet (D-016).
-  const RegisterMatchScreen({super.key, this.pendingId});
+  /// [correcting]: the administrator corrects a match already on the server;
+  /// online only, based on the version that was read.
+  const RegisterMatchScreen({super.key, this.pendingId, this.correcting});
 
   final String? pendingId;
+  final MatchView? correcting;
 
   @override
   ConsumerState<RegisterMatchScreen> createState() => _RegisterMatchScreenState();
@@ -34,6 +40,7 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
   final _teamBGames = TextEditingController();
   final _tiebreakA = TextEditingController();
   final _tiebreakB = TextEditingController();
+  final _reason = TextEditingController();
   bool _busy = false;
   String? _error;
 
@@ -43,7 +50,18 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     final pending = widget.pendingId == null
         ? null
         : ref.read(syncControllerProvider).where((p) => p.id == widget.pendingId).firstOrNull;
-    _id = pending?.id ?? const Uuid().v4();
+    final correcting = widget.correcting;
+    _id = correcting?.id ?? pending?.id ?? const Uuid().v4();
+    if (correcting != null) {
+      _playedAt = correcting.playedAt;
+      _format = correcting.format;
+      final participants = [...([...correcting.teamA]..sort(_bySlot)), ...([...correcting.teamB]..sort(_bySlot))];
+      _positions.setAll(0, participants.map(_position));
+      _teamAGames.text = '${correcting.teamAGames}';
+      _teamBGames.text = '${correcting.teamBGames}';
+      _tiebreakA.text = correcting.tiebreakTeamAPoints?.toString() ?? '';
+      _tiebreakB.text = correcting.tiebreakTeamBPoints?.toString() ?? '';
+    }
     if (pending != null) {
       final draft = pending.draft;
       _playedAt = draft.playedAt;
@@ -57,11 +75,19 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     }
   }
 
+  static int _bySlot(MatchParticipant a, MatchParticipant b) => a.slot.compareTo(b.slot);
+
+  static DraftPosition _position(MatchParticipant p) => p.guest
+      ? DraftPosition.guest(p.guestName)
+      : DraftPosition.player(PlayerSummary(id: p.playerId!, displayName: p.displayName ?? 'Jogador'));
+
   static final _dateTime = DateFormat("dd/MM/yyyy 'às' HH:mm", 'pt_BR');
+
+  bool get _correcting => widget.correcting != null;
 
   @override
   void dispose() {
-    for (final c in [_teamAGames, _teamBGames, _tiebreakA, _tiebreakB]) {
+    for (final c in [_teamAGames, _teamBGames, _tiebreakA, _tiebreakB, _reason]) {
       c.dispose();
     }
     super.dispose();
@@ -84,7 +110,13 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     final draft = _draft;
     final winner = draft.winner;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.pendingId == null ? 'Registrar partida' : 'Editar partida pendente')),
+      appBar: AppBar(
+        title: Text(_correcting
+            ? 'Corrigir partida'
+            : widget.pendingId == null
+                ? 'Registrar partida'
+                : 'Editar partida pendente'),
+      ),
       body: players.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),
@@ -148,6 +180,21 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
                 ),
               ),
             ],
+            if (_correcting) ...[
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('correctionReason'),
+                controller: _reason,
+                maxLength: 500,
+                maxLines: 3,
+                minLines: 1,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Justificativa (opcional)',
+                  helperText: 'Os participantes serão notificados da correção.',
+                ),
+              ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -157,7 +204,7 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
               onPressed: _busy ? null : _save,
               child: _busy
                   ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Salvar partida'),
+                  : Text(_correcting ? 'Salvar correção' : 'Salvar partida'),
             ),
           ],
         ),
@@ -309,8 +356,12 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
           'Partida com convidado',
           'Como há convidado entre os participantes, esta partida não atribuirá pontos a nenhum dos quatro '
               'jogadores. Ela ficará no histórico e contará nas estatísticas.',
-          'Registrar mesmo assim',
+          _correcting ? 'Salvar mesmo assim' : 'Registrar mesmo assim',
         )) {
+      return;
+    }
+    if (_correcting) {
+      await _saveCorrection(draft);
       return;
     }
     setState(() {
@@ -365,6 +416,49 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
         _leave();
       case SyncStatus.failed:
         setState(() => _error = pending.message);
+    }
+  }
+
+  Future<void> _saveCorrection(MatchDraft draft) async {
+    final match = widget.correcting!;
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = _reason.text.trim();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .correctMatch(match.id, version: match.version, draft: draft, reason: reason.isEmpty ? null : reason);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      if (e.code == 'MATCH_MODIFIED') {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Partida alterada'),
+            content: const Text(
+              'A partida foi alterada enquanto você a corrigia. Os dados atuais serão carregados; '
+              'revise e salve a correção novamente.',
+            ),
+            actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+          ),
+        );
+        // The form reopens with the current version (keyed by version).
+        refreshAfterMatchChange(ref, match.id);
+      } else {
+        setState(() => _error = e.message);
+      }
+      return;
+    }
+    refreshAfterMatchChange(ref, match.id);
+    messenger.showSnackBar(const SnackBar(content: Text('Partida corrigida.')));
+    if (mounted) {
+      _leave();
     }
   }
 
