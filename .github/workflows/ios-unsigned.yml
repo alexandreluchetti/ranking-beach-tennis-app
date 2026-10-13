@@ -1,0 +1,72 @@
+# Builds an unsigned iOS app (.ipa) to install on a personal iPhone with a free
+# Apple ID (Sideloadly/AltStore sign it on the Windows machine). Manual only, to
+# keep within the free macOS minutes of GitHub Actions.
+name: iOS build (unsigned)
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: Backend URL baked into the app (HTTPS, or http://<PC IP>:8080 with the option below)
+        required: true
+      allow_http:
+        description: Local test only - allow plain HTTP to the backend on the Wi-Fi network
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      API_BASE_URL: ${{ inputs.api_base_url }}
+      # Web OAuth client of the Firebase project (not a secret).
+      GOOGLE_SERVER_CLIENT_ID: 780647009353-jkckmv4ct9lu93o7utqbalafcanqeboi.apps.googleusercontent.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the backend URL
+        run: |
+          case "$API_BASE_URL" in
+            http://*|https://*) ;;
+            *) echo "api_base_url must start with http:// or https://"; exit 1 ;;
+          esac
+
+      # Test builds only: the committed Info.plist keeps App Transport Security on.
+      - name: Allow plain HTTP on the local network
+        if: ${{ inputs.allow_http }}
+        run: |
+          plist=ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" "$plist"
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" "$plist"
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$plist"
+          /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string O app acessa o servidor de testes na sua rede Wi-Fi." "$plist"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.9
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build (no code signing)
+        run: >
+          flutter build ios --release --no-codesign
+          --dart-define=API_BASE_URL="$API_BASE_URL"
+          --dart-define=GOOGLE_SERVER_CLIENT_ID="$GOOGLE_SERVER_CLIENT_ID"
+
+      - name: Package as .ipa
+        run: |
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry ranking-beach-tennis.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ranking-beach-tennis-ios
+          path: ranking-beach-tennis.ipa
+          retention-days: 7

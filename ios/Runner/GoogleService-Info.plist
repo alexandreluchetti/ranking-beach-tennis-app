@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>780647009353-9789d1ron61samqb6bl421b1b8h1finc.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.780647009353-9789d1ron61samqb6bl421b1b8h1finc</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>780647009353-5djdp387v5p8jf9m7f6mn23s7b3be4tu.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyASaEMes41GwhVKVZIJ5UM36CD0c25uukY</string>
+	<key>GCM_SENDER_ID</key>
+	<string>780647009353</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.lucchetta.rankingBeachTennis</string>
+	<key>PROJECT_ID</key>
+	<string>ranking-beach-tennis</string>
+	<key>STORAGE_BUCKET</key>
+	<string>ranking-beach-tennis.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:780647009353:ios:9ab1ca78f27cc467f44398</string>
+</dict>
+</plist>

@@ -89,9 +89,11 @@ flutter run -d <id do aparelho> --dart-define=API_BASE_URL=http://localhost:8080
   Para ter admin localmente, defina `ADMIN_AUTH_SUBJECT` com o UID Firebase do usuário
   (consulte `select auth_subject, email from app_user` no Postgres local).
 - Firebase: projeto `ranking-beach-tennis`, app Android `com.lucchetta.rankingBeachTennis`
-  configurado (`lib/firebase_options.dart`, `android/app/google-services.json`, `firebase.json`).
-  O app iOS ainda não está registrado no Firebase. O FlutterFire CLI não está no PATH: use
+  e iOS configurados (`lib/firebase_options.dart`, `android/app/google-services.json`, `firebase.json`,
+  `ios/Runner/Info.plist` com `GIDClientID` e URL scheme; alvo iOS 15.0). O FlutterFire CLI não está no PATH: use
   `dart pub global run flutterfire_cli:flutterfire configure ...` (comando completo no README).
+- iPhone sem Mac: workflow manual `.github/workflows/ios-unsigned.yml` gera um `.ipa` sem assinatura,
+  instalado pelo usuário com Sideloadly e Apple ID gratuito (expira em 7 dias, sem push).
 - Push está desligado no backend até o usuário configurar a chave do Firebase; as
   notificações dentro do app funcionam.
 

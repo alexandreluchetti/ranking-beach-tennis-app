@@ -22,6 +22,20 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Google Sign-In callback: REVERSED_CLIENT_ID of GoogleService-Info.plist -->
+				<string>com.googleusercontent.apps.780647009353-9789d1ron61samqb6bl421b1b8h1finc</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>780647009353-9789d1ron61samqb6bl421b1b8h1finc.apps.googleusercontent.com</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>

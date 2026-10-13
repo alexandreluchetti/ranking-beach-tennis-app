@@ -37,6 +37,13 @@
             {
               "client_id": "780647009353-jkckmv4ct9lu93o7utqbalafcanqeboi.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "780647009353-9789d1ron61samqb6bl421b1b8h1finc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.lucchetta.rankingBeachTennis"
+              }
             }
           ]
         }

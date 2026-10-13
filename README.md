@@ -22,17 +22,20 @@ Feature-first, with Riverpod for state, go_router for navigation and Dio for HTT
 
 ## Firebase setup
 
-Android is configured for the Firebase project `ranking-beach-tennis`: `lib/firebase_options.dart`,
+Android and iOS are configured for the Firebase project `ranking-beach-tennis`: `lib/firebase_options.dart`,
 `android/app/google-services.json` (with the OAuth clients) and `firebase.json` are committed.
 Google and e-mail/password sign-in are enabled and the SHA-1 of the debug key is registered.
-**iOS is not registered in Firebase yet**; `DefaultFirebaseOptions` throws on iOS until it is.
+iOS reads its Firebase settings from `firebase_options.dart`; `ios/Runner/GoogleService-Info.plist`
+is kept for reference and is not part of the Xcode project. Google Sign-In on iOS uses `GIDClientID`
+and the reversed client ID URL scheme in `ios/Runner/Info.plist`. The iOS deployment target is 15.0
+(required by the Firebase plugins).
 
 To regenerate the files (e.g. after adding a SHA-1 or registering iOS), with the
 [Firebase CLI](https://firebase.google.com/docs/cli) logged in and `flutterfire_cli` activated
 (`dart pub global activate flutterfire_cli`; the `run` form below avoids changing PATH):
 
 ```bash
-dart pub global run flutterfire_cli:flutterfire configure --project=ranking-beach-tennis --platforms=android --android-package-name=com.lucchetta.rankingBeachTennis --yes --overwrite-firebase-options
+dart pub global run flutterfire_cli:flutterfire configure --project=ranking-beach-tennis --platforms=android,ios --android-package-name=com.lucchetta.rankingBeachTennis --ios-bundle-id=com.lucchetta.rankingBeachTennis --yes --overwrite-firebase-options
 ```
 
 Building on another machine requires adding that machine's debug SHA-1
@@ -58,6 +61,17 @@ default `API_BASE_URL` already reaches the development machine.
 | `GOOGLE_SERVER_CLIENT_ID` | Web OAuth client ID of the Firebase project (Authentication → Google → Web SDK configuration) | empty |
 
 Plain HTTP is allowed only in debug builds (`android/app/src/debug/AndroidManifest.xml`).
+
+## iPhone without a Mac (free Apple ID)
+
+The workflow `.github/workflows/ios-unsigned.yml` (run it manually in GitHub Actions) builds an
+unsigned `ranking-beach-tennis.ipa` on a macOS runner and keeps it as a 7-day artifact. Install it
+on your own iPhone from Windows with [Sideloadly](https://sideloadly.io/), signing with a free Apple
+ID (keep the original bundle ID, or Google Sign-In fails). Limits of a free Apple ID: the app expires
+after 7 days, at most 3 such apps per device, and no push notifications (in-app notifications still
+work). The backend must be reachable from the iPhone over HTTPS; for a local test only, tick
+`allow_http` and use `http://<PC IP on the Wi-Fi>:8080` (the Windows firewall must allow inbound TCP
+8080 on the private network, and the iPhone asks for local network access).
 
 ## App icon
 

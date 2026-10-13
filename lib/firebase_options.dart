@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -58,5 +55,15 @@ class DefaultFirebaseOptions {
     messagingSenderId: '780647009353',
     projectId: 'ranking-beach-tennis',
     storageBucket: 'ranking-beach-tennis.firebasestorage.app',
+  );
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyASaEMes41GwhVKVZIJ5UM36CD0c25uukY',
+    appId: '1:780647009353:ios:9ab1ca78f27cc467f44398',
+    messagingSenderId: '780647009353',
+    projectId: 'ranking-beach-tennis',
+    storageBucket: 'ranking-beach-tennis.firebasestorage.app',
+    androidClientId: '780647009353-5djdp387v5p8jf9m7f6mn23s7b3be4tu.apps.googleusercontent.com',
+    iosClientId: '780647009353-9789d1ron61samqb6bl421b1b8h1finc.apps.googleusercontent.com',
+    iosBundleId: 'com.lucchetta.rankingBeachTennis',
   );
 }
