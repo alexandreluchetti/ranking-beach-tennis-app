@@ -68,7 +68,7 @@ Regras:
 - "Hoje" para limites de temporada usa a data do celular (o backend confere no fuso de
   São Paulo). Atalho "Encerrar hoje" com confirmação.
 - Aba Admin só tem Temporadas; corrigir, anular e reverter ficam no menu do detalhe da partida.
-- Ícone do app: "raquete campeã" (raquete branca com o "1" sobre fundo laranja).
+- Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro; fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)
 
