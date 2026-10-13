@@ -12,7 +12,20 @@
           "package_name": "com.lucchetta.rankingBeachTennis"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "780647009353-5djdp387v5p8jf9m7f6mn23s7b3be4tu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lucchetta.rankingBeachTennis",
+            "certificate_hash": "27b3d86c4e4d662bfa80884f0748178727f5187c"
+          }
+        },
+        {
+          "client_id": "780647009353-jkckmv4ct9lu93o7utqbalafcanqeboi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAMRZg8UhZkbZSOAFwoFHvig4SGN9HwlEc"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "780647009353-jkckmv4ct9lu93o7utqbalafcanqeboi.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

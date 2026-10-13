@@ -16,37 +16,42 @@ Feature-first, with Riverpod for state, go_router for navigation and Dio for HTT
 | `lib/features/home/` | Bottom navigation with the five areas |
 | `lib/features/settings/` | Theme choice and sign-out |
 
-## One-time Firebase setup
+## Firebase setup
 
-The app needs the Firebase project `ranking-beach-tennis` configured for Android and iOS. With
-the [Firebase CLI](https://firebase.google.com/docs/cli) and FlutterFire CLI installed and
-logged in:
+Android is configured for the Firebase project `ranking-beach-tennis`: `lib/firebase_options.dart`,
+`android/app/google-services.json` (with the OAuth clients) and `firebase.json` are committed.
+Google and e-mail/password sign-in are enabled and the SHA-1 of the debug key is registered.
+**iOS is not registered in Firebase yet**; `DefaultFirebaseOptions` throws on iOS until it is.
+
+To regenerate the files (e.g. after adding a SHA-1 or registering iOS), with the
+[Firebase CLI](https://firebase.google.com/docs/cli) logged in and `flutterfire_cli` activated
+(`dart pub global activate flutterfire_cli`; the `run` form below avoids changing PATH):
 
 ```bash
-flutterfire configure --project=ranking-beach-tennis --platforms=android,ios
+dart pub global run flutterfire_cli:flutterfire configure --project=ranking-beach-tennis --platforms=android --android-package-name=com.lucchetta.rankingBeachTennis --yes --overwrite-firebase-options
 ```
 
-This replaces `lib/firebase_options.dart` and adds `android/app/google-services.json` and
-`ios/Runner/GoogleService-Info.plist`. Then, in the Firebase console:
-
-1. Authentication → Sign-in method: enable **Google** and **E-mail/senha**.
-2. Project settings → your Android app: add the **SHA-1** of the debug key
-   (`cd android && ./gradlew signingReport`), required by Google Sign-In.
-3. Copy the **Web client ID** (Authentication → Google → Web SDK configuration) and pass it as
-   `GOOGLE_SERVER_CLIENT_ID` (below).
+Building on another machine requires adding that machine's debug SHA-1
+(`cd android && ./gradlew signingReport`) in Project settings → Android app, otherwise Google
+Sign-In fails.
 
 ## Run
 
-Start the backend locally, then (Android emulator):
+Start the backend locally. On a phone connected by USB (USB debugging on), forward the
+backend port through the cable and point the app to `localhost`:
 
 ```bash
-flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>
+adb reverse tcp:8080 tcp:8080
+flutter run --dart-define=API_BASE_URL=http://localhost:8080 --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>
 ```
+
+`adb reverse` is lost when the cable is unplugged; run it again. On the Android emulator the
+default `API_BASE_URL` already reaches the development machine.
 
 | Define | Description | Default |
 |---|---|---|
 | `API_BASE_URL` | Backend URL | `http://10.0.2.2:8080` (backend on the dev machine, seen from the Android emulator) |
-| `GOOGLE_SERVER_CLIENT_ID` | Web OAuth client ID of the Firebase project | empty |
+| `GOOGLE_SERVER_CLIENT_ID` | Web OAuth client ID of the Firebase project (Authentication → Google → Web SDK configuration) | empty |
 
 Plain HTTP is allowed only in debug builds (`android/app/src/debug/AndroidManifest.xml`).
 
