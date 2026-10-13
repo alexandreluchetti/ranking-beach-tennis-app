@@ -5,18 +5,20 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
-import '../ranking/ranking_repository.dart';
+import '../sync/pending_match.dart';
+import '../sync/sync_controller.dart';
 import 'match_draft.dart';
-import 'match_history.dart';
 import 'match_models.dart';
 import 'match_repository.dart';
 
 /// Registers a finished match: date, format, the four positions (player or
 /// guest) and the final score. Built for quick use between games.
 class RegisterMatchScreen extends ConsumerStatefulWidget {
-  const RegisterMatchScreen({super.key});
+  /// [pendingId]: edits a match saved on the phone and not sent yet (D-016).
+  const RegisterMatchScreen({super.key, this.pendingId});
+
+  final String? pendingId;
 
   @override
   ConsumerState<RegisterMatchScreen> createState() => _RegisterMatchScreenState();
@@ -24,7 +26,7 @@ class RegisterMatchScreen extends ConsumerStatefulWidget {
 
 class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
   /// Kept for the whole form: retries after a failure never create a second match.
-  final String _id = const Uuid().v4();
+  late final String _id;
   DateTime _playedAt = DateTime.now();
   MatchFormat _format = MatchFormat.standard;
   final List<DraftPosition?> _positions = [null, null, null, null];
@@ -34,6 +36,26 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
   final _tiebreakB = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final pending = widget.pendingId == null
+        ? null
+        : ref.read(syncControllerProvider).where((p) => p.id == widget.pendingId).firstOrNull;
+    _id = pending?.id ?? const Uuid().v4();
+    if (pending != null) {
+      final draft = pending.draft;
+      _playedAt = draft.playedAt;
+      _format = draft.format;
+      _positions.setAll(0, draft.positions);
+      _teamAGames.text = draft.teamAGames?.toString() ?? '';
+      _teamBGames.text = draft.teamBGames?.toString() ?? '';
+      _tiebreakA.text = draft.tiebreakTeamAPoints?.toString() ?? '';
+      _tiebreakB.text = draft.tiebreakTeamBPoints?.toString() ?? '';
+      _error = pending.status == SyncStatus.failed ? pending.message : null;
+    }
+  }
 
   static final _dateTime = DateFormat("dd/MM/yyyy 'às' HH:mm", 'pt_BR');
 
@@ -62,7 +84,7 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     final draft = _draft;
     final winner = draft.winner;
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar partida')),
+      appBar: AppBar(title: Text(widget.pendingId == null ? 'Registrar partida' : 'Editar partida pendente')),
       body: players.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),
@@ -295,39 +317,82 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
       _busy = true;
       _error = null;
     });
-    final repository = ref.read(matchRepositoryProvider);
-    try {
-      MatchView saved;
-      try {
-        saved = await repository.register(draft);
-      } on ApiException catch (e) {
-        if (e.code != 'POSSIBLE_DUPLICATE_MATCH' || !mounted) {
-          rethrow;
-        }
-        setState(() => _busy = false);
-        final differentMatch = await _confirm(
-          'Possível partida repetida',
-          'Já existe uma partida com as mesmas duplas neste dia. Se é outra partida, confirme para registrar.',
-          'É outra partida',
-        );
-        if (!differentMatch || !mounted) {
-          return;
-        }
-        setState(() => _busy = true);
-        saved = await repository.register(draft, confirmPossibleDuplicate: true);
-      }
-      ref.invalidate(currentRankingProvider);
-      ref.invalidate(matchHistoryProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Partida registrada.')));
-        context.pushReplacement('/matches/${saved.id}');
-      }
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+    // Saved on the phone first, then sent: nothing is lost without a connection.
+    final result = await ref.read(syncControllerProvider.notifier).submit(draft);
+    if (mounted) {
+      setState(() => _busy = false);
+      await _handle(result);
     }
   }
+
+  Future<void> _handle(SubmitResult result) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final sync = ref.read(syncControllerProvider.notifier);
+    final sent = result.match;
+    if (sent != null) {
+      messenger.showSnackBar(const SnackBar(content: Text('Partida registrada.')));
+      context.pushReplacement('/matches/${sent.id}');
+      return;
+    }
+    final pending = result.pending!;
+    switch (pending.status) {
+      case SyncStatus.needsConfirmation:
+        final decision = await showDuplicateDialog(context);
+        if (!mounted) {
+          return;
+        }
+        if (decision == DuplicateDecision.differentMatch) {
+          setState(() => _busy = true);
+          final next = await sync.confirmDuplicate(pending.id);
+          if (mounted) {
+            setState(() => _busy = false);
+            await _handle(next);
+          }
+        } else if (decision == DuplicateDecision.sameMatch) {
+          await sync.discard(pending.id);
+          messenger.showSnackBar(const SnackBar(content: Text('Registro descartado.')));
+          _leave();
+        } else {
+          messenger.showSnackBar(const SnackBar(content: Text('A partida ficou aguardando sua confirmação.')));
+          _leave();
+        }
+      case SyncStatus.pending || SyncStatus.sending:
+        messenger.showSnackBar(SnackBar(
+          content: Text(result.offline
+              ? 'Sem conexão: a partida foi salva no celular e será enviada automaticamente.'
+              : 'A partida foi salva no celular e será enviada assim que possível.'),
+        ));
+        _leave();
+      case SyncStatus.failed:
+        setState(() => _error = pending.message);
+    }
+  }
+
+  void _leave() => context.canPop() ? context.pop() : context.go('/matches');
 }
+
+enum DuplicateDecision { differentMatch, sameMatch }
+
+/// Asks whether a possible duplicate is really another match (D-012). Returns
+/// null when the user decides later.
+Future<DuplicateDecision?> showDuplicateDialog(BuildContext context) => showDialog<DuplicateDecision>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Possível partida repetida'),
+        content: const Text(
+          'Já existe uma partida com as mesmas duplas neste dia. '
+          'Se for a mesma partida, descarte este registro. Se for outra, confirme para registrar.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Decidir depois')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, DuplicateDecision.sameMatch),
+            child: const Text('É a mesma (descartar)'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, DuplicateDecision.differentMatch),
+            child: const Text('É outra partida'),
+          ),
+        ],
+      ),
+    );

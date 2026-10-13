@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/widgets/async_states.dart';
 import '../me/me_repository.dart';
@@ -10,6 +11,8 @@ import 'ranking_table.dart';
 /// Home screen: ranking of the active season.
 class RankingScreen extends ConsumerWidget {
   const RankingScreen({super.key});
+
+  static final _savedAt = DateFormat("dd/MM 'às' HH:mm", 'pt_BR');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,16 +41,37 @@ class RankingScreen extends ConsumerWidget {
           error: (error, _) => _Scrollable(
             child: ErrorRetry(error: error, onRetry: () => ref.invalidate(currentRankingProvider)),
           ),
-          data: (ranking) => ranking == null
-              ? const _Scrollable(
-                  child: EmptyMessage(
-                    icon: Icons.emoji_events_outlined,
-                    title: 'Nenhuma temporada ativa no momento',
-                    message: 'As partidas registradas ficam no histórico. '
-                        'Os pontos voltam a contar quando o administrador criar a próxima temporada.',
+          data: (cached) {
+            final ranking = cached.value;
+            final content = ranking == null
+                ? const _Scrollable(
+                    child: EmptyMessage(
+                      icon: Icons.emoji_events_outlined,
+                      title: 'Nenhuma temporada ativa no momento',
+                      message: 'As partidas registradas ficam no histórico. '
+                          'Os pontos voltam a contar quando o administrador criar a próxima temporada.',
+                    ),
+                  )
+                : RankingTable(ranking: ranking, highlightPlayerId: me?.id);
+            if (!cached.fromCache) {
+              return content;
+            }
+            return Column(children: [
+              MaterialBanner(
+                leading: const Icon(Icons.cloud_off),
+                content: Text(
+                  'Sem conexão. Ranking de ${_savedAt.format(cached.savedAt!)}; pode estar desatualizado.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => ref.invalidate(currentRankingProvider),
+                    child: const Text('Atualizar'),
                   ),
-                )
-              : RankingTable(ranking: ranking, highlightPlayerId: me?.id),
+                ],
+              ),
+              Expanded(child: content),
+            ]);
+          },
         ),
       ),
     );

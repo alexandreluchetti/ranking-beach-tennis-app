@@ -60,7 +60,13 @@ class MatchCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_date.format(match.playedAt), style: theme.textTheme.bodySmall),
+              Row(children: [
+                Expanded(child: Text(_date.format(match.playedAt), style: theme.textTheme.bodySmall)),
+                Tooltip(
+                  message: 'Sincronizada',
+                  child: Icon(Icons.cloud_done_outlined, size: 16, color: theme.colorScheme.outline),
+                ),
+              ]),
               const SizedBox(height: 6),
               Row(
                 children: [

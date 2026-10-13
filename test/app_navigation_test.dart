@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ranking_beach_tennis/app.dart';
 import 'package:ranking_beach_tennis/core/storage/preferences.dart';
-import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
+import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
@@ -22,9 +22,9 @@ void main() {
       retry: (_, _) => null,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(preferences),
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository(session: session)),
+        ...deviceOverrides(FakeAuthRepository(session: session), MemoryLocalStore()),
         meProvider.overrideWith((ref) async => me),
-        currentRankingProvider.overrideWith((ref) async => sampleRanking()),
+        currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
         seasonsProvider.overrideWith((ref) async => [primavera]),
         matchRepositoryProvider.overrideWithValue(FakeMatchRepository(matches: [sampleMatch()])),
       ],

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../ranking/ranking_repository.dart';
+import '../sync/pending_matches_sliver.dart';
 import 'match_history.dart';
 import 'match_models.dart';
 import 'match_repository.dart';
@@ -92,6 +93,7 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
                 ),
               ),
             ),
+            const PendingMatchesSliver(),
             MatchHistorySliver(filter: _filter),
             const SliverToBoxAdapter(child: SizedBox(height: 88)),
           ],

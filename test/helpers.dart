@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,13 +7,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:ranking_beach_tennis/core/network/api_exception.dart';
+import 'package:ranking_beach_tennis/core/storage/local_store.dart';
 import 'package:ranking_beach_tennis/core/theme/app_theme.dart';
+import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
+import 'package:ranking_beach_tennis/features/sync/sync_controller.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
 import 'package:ranking_beach_tennis/features/matches/match_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
+
+/// JSON round-trip in memory, like the file store but safe in widget tests.
+class MemoryLocalStore implements LocalStore {
+  final documents = <String, String>{};
+
+  @override
+  Object? readSync(String name) => documents[name] == null ? null : jsonDecode(documents[name]!);
+
+  @override
+  Future<void> write(String name, Object? value) async => documents[name] = jsonEncode(value);
+}
+
+/// Signed-in user, in-memory device storage and no connectivity events.
+List<Override> deviceOverrides(FakeAuthRepository auth, LocalStore store) => [
+      authRepositoryProvider.overrideWithValue(auth),
+      localStoreProvider.overrideWithValue(store),
+      connectivityChangesProvider.overrideWith((ref) => const Stream.empty()),
+    ];
 
 /// Pumps [child] inside a pt-BR MaterialApp with the given provider overrides.
 Future<void> pumpScreen(WidgetTester tester, Widget child, {List<Override> overrides = const []}) async {
@@ -99,9 +122,15 @@ class FakeMatchRepository implements MatchRepository {
   final searches = <MatchFilter>[];
   final registerErrors = <Exception>[];
 
+  /// While true, every registration fails as if there were no connection.
+  bool offline = false;
+
   @override
   Future<MatchView> register(MatchDraft draft, {bool confirmPossibleDuplicate = false}) async {
     registered.add(draft.toJson(confirmPossibleDuplicate: confirmPossibleDuplicate));
+    if (offline) {
+      throw const ApiException('Sem conexão com o servidor. Verifique sua internet.');
+    }
     if (registerErrors.isNotEmpty) {
       throw registerErrors.removeAt(0);
     }

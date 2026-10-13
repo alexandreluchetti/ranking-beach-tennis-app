@@ -70,6 +70,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (_, _) => const MatchHistoryScreen(),
               routes: [
                 GoRoute(path: 'new', builder: (_, _) => const RegisterMatchScreen()),
+                GoRoute(
+                  path: 'pending/:id/edit',
+                  builder: (_, state) => RegisterMatchScreen(pendingId: state.pathParameters['id']),
+                ),
                 GoRoute(path: ':id', builder: (_, state) => MatchDetailScreen(matchId: state.pathParameters['id']!)),
               ],
             ),

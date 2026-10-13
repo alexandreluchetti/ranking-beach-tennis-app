@@ -22,6 +22,17 @@ class Season {
   final DateTime startDate;
   final DateTime endDate;
   final SeasonStatus status;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'startDate': _date(startDate),
+        'endDate': _date(endDate),
+        'status': status.name.toUpperCase(),
+      };
+
+  static String _date(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 class RankingEntry {
@@ -55,6 +66,17 @@ class RankingEntry {
   final int losses;
   final int matchesPlayed;
   final int gameDifference;
+
+  Map<String, dynamic> toJson() => {
+        'position': position,
+        'playerId': playerId,
+        'displayName': displayName,
+        'points': points,
+        'wins': wins,
+        'losses': losses,
+        'matchesPlayed': matchesPlayed,
+        'gameDifference': gameDifference,
+      };
 }
 
 class SeasonRanking {
@@ -69,4 +91,9 @@ class SeasonRanking {
 
   final Season season;
   final List<RankingEntry> entries;
+
+  Map<String, dynamic> toJson() => {
+        'season': season.toJson(),
+        'entries': entries.map((e) => e.toJson()).toList(),
+      };
 }

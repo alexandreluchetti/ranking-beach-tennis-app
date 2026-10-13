@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
+import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
 import 'package:ranking_beach_tennis/features/matches/match_history_screen.dart';
 import 'package:ranking_beach_tennis/features/matches/match_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
+import 'package:ranking_beach_tennis/features/sync/pending_match.dart';
+import 'package:ranking_beach_tennis/features/sync/sync_controller.dart';
 
 import '../../helpers.dart';
 
@@ -15,6 +19,7 @@ void main() {
       sampleMatch(id: 'm3', voided: true, counted: false, reason: 'VOIDED'),
     ]);
     await pumpScreen(tester, const MatchHistoryScreen(), overrides: [
+      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
       matchRepositoryProvider.overrideWithValue(repository),
       seasonsProvider.overrideWith((ref) async => [primavera]),
     ]);
@@ -30,6 +35,7 @@ void main() {
   testWidgets('outcome filters are sent to the backend', (tester) async {
     final repository = FakeMatchRepository();
     await pumpScreen(tester, const MatchHistoryScreen(), overrides: [
+      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
       matchRepositoryProvider.overrideWithValue(repository),
       seasonsProvider.overrideWith((ref) async => [primavera]),
     ]);
@@ -42,6 +48,47 @@ void main() {
 
     expect(repository.searches.last.outcomes, {MatchOutcome.voided});
     expect(find.text('Limpar'), findsOneWidget);
+  });
+
+  testWidgets('pending matches of the user appear on top with their sync status', (tester) async {
+    final store = MemoryLocalStore();
+    PendingMatch pending(String id, String owner, SyncStatus status, {String? message}) => PendingMatch(
+          draft: MatchDraft(
+            id: id,
+            playedAt: DateTime(2026, 10, 11, 9, 30),
+            format: MatchFormat.standard,
+            positions: const [
+              DraftPosition.player(PlayerSummary(id: 'p-ana', displayName: 'Ana')),
+              DraftPosition.player(PlayerSummary(id: 'p-beto', displayName: 'Beto')),
+              DraftPosition.player(PlayerSummary(id: 'p-caio', displayName: 'Caio')),
+              DraftPosition.guest(),
+            ],
+            teamAGames: 6,
+            teamBGames: 2,
+          ),
+          ownerUid: owner,
+          status: status,
+          message: message,
+        );
+    await store.write(SyncController.storageKey, [
+      pending('a', 'u-ana', SyncStatus.pending).toStorage(),
+      pending('b', 'u-ana', SyncStatus.failed, message: 'Placar inválido para o formato escolhido.').toStorage(),
+      pending('c', 'u-beto', SyncStatus.pending).toStorage(),
+    ]);
+    final repository = FakeMatchRepository(matches: [sampleMatch()])..offline = true;
+    await pumpScreen(tester, const MatchHistoryScreen(), overrides: [
+      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), store),
+      matchRepositoryProvider.overrideWithValue(repository),
+      seasonsProvider.overrideWith((ref) async => [primavera]),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pendentes de envio (2)'), findsOneWidget);
+    expect(find.textContaining('Pendente de sincronização'), findsOneWidget);
+    expect(find.textContaining('Erro de sincronização'), findsOneWidget);
+    expect(find.textContaining('Placar inválido para o formato escolhido.'), findsOneWidget);
+    expect(find.text('Contabilizada'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox()); // disposes the scope and its retry timer
   });
 
   test('parses the backend match and its void information', () {

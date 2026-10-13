@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
+import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
@@ -10,7 +11,7 @@ import '../../helpers.dart';
 void main() {
   testWidgets('shows the active season ranking with shared positions', (tester) async {
     await pumpScreen(tester, const RankingScreen(), overrides: [
-      currentRankingProvider.overrideWith((ref) async => sampleRanking()),
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
       meProvider.overrideWith((ref) async => anaMe),
     ]);
     await tester.pumpAndSettle();
@@ -26,7 +27,7 @@ void main() {
 
   testWidgets('explains when there is no active season', (tester) async {
     await pumpScreen(tester, const RankingScreen(), overrides: [
-      currentRankingProvider.overrideWith((ref) async => null),
+      currentRankingProvider.overrideWith((ref) async => const Cached(null)),
       meProvider.overrideWith((ref) async => anaMe),
     ]);
     await tester.pumpAndSettle();
@@ -42,7 +43,7 @@ void main() {
         if (attempts == 1) {
           throw const ApiException('Sem conexão com o servidor. Verifique sua internet.');
         }
-        return sampleRanking();
+        return Cached(sampleRanking());
       }),
       meProvider.overrideWith((ref) async => anaMe),
     ]);
@@ -55,6 +56,25 @@ void main() {
 
     expect(attempts, 2);
     expect(find.text('Beto'), findsOneWidget);
+  });
+
+  testWidgets('without connection shows the last ranking and warns it may be outdated', (tester) async {
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking(), savedAt: DateTime(2026, 10, 11, 18, 5))),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sem conexão. Ranking de 11/10 às 18:05; pode estar desatualizado.'), findsOneWidget);
+    expect(find.text('Beto'), findsOneWidget);
+  });
+
+  test('ranking survives the offline copy round trip', () {
+    final copy = SeasonRanking.fromJson(sampleRanking().toJson());
+
+    expect(copy.season.name, 'Primavera');
+    expect(copy.season.status, SeasonStatus.active);
+    expect(copy.entries.map((e) => e.points), [19, 15, 15, 0]);
   });
 
   test('parses the backend ranking payload', () {

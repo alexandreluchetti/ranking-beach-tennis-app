@@ -21,6 +21,15 @@ class DraftPosition {
   Map<String, dynamic> toJson() => guest
       ? {'guest': true, if (guestName != null && guestName!.trim().isNotEmpty) 'guestName': guestName!.trim()}
       : {'playerId': player!.id};
+
+  /// Includes the player's name, so a pending match can be shown offline.
+  Map<String, dynamic> toStorage() =>
+      guest ? {'guest': true, 'guestName': guestName} : {'playerId': player!.id, 'displayName': player!.displayName};
+
+  static DraftPosition fromStorage(Map<String, dynamic> json) => json['guest'] == true
+      ? DraftPosition.guest(json['guestName'] as String?)
+      : DraftPosition.player(
+          PlayerSummary(id: json['playerId'] as String, displayName: json['displayName'] as String));
 }
 
 /// The match being registered. The checks below only give quick feedback in the
@@ -107,6 +116,30 @@ class MatchDraft {
     }
     return null;
   }
+
+  Map<String, dynamic> toStorage() => {
+        'id': id,
+        'playedAt': playedAt.toUtc().toIso8601String(),
+        'format': format.apiValue,
+        'positions': positions.map((p) => p!.toStorage()).toList(),
+        'teamAGames': teamAGames,
+        'teamBGames': teamBGames,
+        'tiebreakTeamAPoints': tiebreakTeamAPoints,
+        'tiebreakTeamBPoints': tiebreakTeamBPoints,
+      };
+
+  static MatchDraft fromStorage(Map<String, dynamic> json) => MatchDraft(
+        id: json['id'] as String,
+        playedAt: DateTime.parse(json['playedAt'] as String).toLocal(),
+        format: MatchFormat.fromApi(json['format'] as String),
+        positions: (json['positions'] as List)
+            .map((p) => DraftPosition.fromStorage(p as Map<String, dynamic>))
+            .toList(),
+        teamAGames: json['teamAGames'] as int?,
+        teamBGames: json['teamBGames'] as int?,
+        tiebreakTeamAPoints: json['tiebreakTeamAPoints'] as int?,
+        tiebreakTeamBPoints: json['tiebreakTeamBPoints'] as int?,
+      );
 
   Map<String, dynamic> toJson({bool confirmPossibleDuplicate = false}) => {
         'id': id,
