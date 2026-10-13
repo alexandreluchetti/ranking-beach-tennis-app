@@ -41,6 +41,9 @@ class PushRegistration extends Notifier<String?> {
   /// offline) are ignored; it is tried again when the app returns to the
   /// foreground.
   Future<void> register() async {
+    if (kIsWeb) {
+      return; // No push on the web (see NoPushMessaging).
+    }
     final preferences = ref.read(sharedPreferencesProvider);
     final messaging = ref.read(pushMessagingProvider);
     if (!(preferences.getBool(permissionAskedKey) ?? false)) {

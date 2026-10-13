@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
+import 'package:ranking_beach_tennis/core/storage/file_local_store.dart';
 import 'package:ranking_beach_tennis/core/storage/local_store.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers.dart';
 
@@ -30,6 +32,27 @@ void main() {
     File('${directory.path}${Platform.pathSeparator}outbox.json').writeAsStringSync('{not json');
 
     expect(FileLocalStore(directory).readSync('outbox'), isNull);
+  });
+
+  test('web store keeps documents in the browser storage and survives a reload', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = PreferencesLocalStore(await SharedPreferences.getInstance());
+
+    expect(store.readSync('outbox'), isNull);
+    await store.write('outbox', [
+      {'id': 'm1', 'teamAGames': 6},
+    ]);
+
+    final reloaded = PreferencesLocalStore(await SharedPreferences.getInstance());
+    expect(reloaded.readSync('outbox'), [
+      {'id': 'm1', 'teamAGames': 6},
+    ]);
+  });
+
+  test('a corrupted web document reads as empty', () async {
+    SharedPreferences.setMockInitialValues({'store.outbox': '{not json'});
+
+    expect(PreferencesLocalStore(await SharedPreferences.getInstance()).readSync('outbox'), isNull);
   });
 
   group('offline copy', () {

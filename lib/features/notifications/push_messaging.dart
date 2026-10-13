@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A push message the user tapped, with the data sent by the backend.
@@ -77,5 +78,30 @@ class FirebasePushMessaging implements PushMessaging {
   }
 }
 
-final pushMessagingProvider =
-    Provider<PushMessaging>((ref) => FirebasePushMessaging(FirebaseMessaging.instance));
+/// No push on the web for now: the backend only knows Android and iOS devices.
+/// In-app notifications work the same.
+class NoPushMessaging implements PushMessaging {
+  const NoPushMessaging();
+
+  @override
+  Future<void> requestPermission() async {}
+
+  @override
+  Future<String?> token() async => null;
+
+  @override
+  Stream<String> get tokenRefreshes => const Stream.empty();
+
+  @override
+  Stream<void> get foregroundMessages => const Stream.empty();
+
+  @override
+  Stream<PushOpened> get openedMessages => const Stream.empty();
+
+  @override
+  Future<PushOpened?> initialMessage() async => null;
+}
+
+final pushMessagingProvider = Provider<PushMessaging>(
+  (ref) => kIsWeb ? const NoPushMessaging() : FirebasePushMessaging(FirebaseMessaging.instance),
+);

@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -65,5 +62,14 @@ class DefaultFirebaseOptions {
     androidClientId: '780647009353-5djdp387v5p8jf9m7f6mn23s7b3be4tu.apps.googleusercontent.com',
     iosClientId: '780647009353-9789d1ron61samqb6bl421b1b8h1finc.apps.googleusercontent.com',
     iosBundleId: 'com.lucchetta.rankingBeachTennis',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBgdS28MLXpWbV72rxPiaoAnDbH9ScyvPk',
+    appId: '1:780647009353:web:8eddee247766b36af44398',
+    messagingSenderId: '780647009353',
+    projectId: 'ranking-beach-tennis',
+    authDomain: 'ranking-beach-tennis.firebaseapp.com',
+    storageBucket: 'ranking-beach-tennis.firebasestorage.app',
+    measurementId: 'G-YZV3N2Y6P2',
   );
 }

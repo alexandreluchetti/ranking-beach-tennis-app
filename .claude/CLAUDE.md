@@ -1,6 +1,6 @@
 # ranking-beach-tennis-app — Instruções para Claude
 
-App Flutter (Android e iOS) do ranking individual de beach tennis de um grupo de amigos.
+App Flutter (Android, iOS e web/PWA) do ranking individual de beach tennis de um grupo de amigos.
 O backend vive em repositório separado (`C:\Users\luche\IdeaProjects\ranking-beach-tennis`),
 mantido por outra sessão: **não altere o repositório do backend** (somente leitura). Se o app
 precisar de mudança na API, descreva a necessidade para o usuário levar à sessão do backend.
@@ -32,7 +32,7 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/core/config` | `AppConfig` (`--dart-define`: `API_BASE_URL`, `GOOGLE_SERVER_CLIENT_ID`) |
 | `lib/core/network` | Dio com o ID token do Firebase; erros viram `ApiException` |
 | `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Admin) |
-| `lib/core/storage` | `LocalStore` (JSON atômico em arquivo), `Cached<T>` (cópia offline), SharedPreferences |
+| `lib/core/storage` | `LocalStore` (arquivo JSON atômico no celular; SharedPreferences/localStorage na web, via `openLocalStore`), `Cached<T>` (cópia offline), SharedPreferences |
 | `lib/features/auth` | `AuthRepository` (Firebase + google_sign_in 7), login, `signOutProvider` |
 | `lib/features/me` | `/api/me` (perfil, flag admin, nome de exibição) |
 | `lib/features/ranking` | Ranking atual, temporadas passadas |
@@ -94,6 +94,9 @@ flutter run -d <id do aparelho> --dart-define=API_BASE_URL=http://localhost:8080
   `dart pub global run flutterfire_cli:flutterfire configure ...` (comando completo no README).
 - iPhone sem Mac: workflow manual `.github/workflows/ios-unsigned.yml` gera um `.ipa` sem assinatura,
   instalado pelo usuário com Sideloadly e Apple ID gratuito (expira em 7 dias, sem push).
+- Web: `flutter run -d chrome --web-port 5000`; login com Google por popup do Firebase Auth; sem push na
+  web (`NoPushMessaging`). Exige CORS no backend e HTTPS em produção (Firebase Hosting planejado:
+  `ranking-beach-tennis.web.app`, publicar só com aprovação).
 - Push está desligado no backend até o usuário configurar a chave do Firebase; as
   notificações dentro do app funcionam.
 

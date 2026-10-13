@@ -1,6 +1,6 @@
 # ranking-beach-tennis-app
 
-Flutter app (Android and iOS) of the beach tennis individual ranking. The backend lives in its
+Flutter app (Android, iOS and web) of the beach tennis individual ranking. The backend lives in its
 own repository (`ranking-beach-tennis`). The user interface is in Brazilian Portuguese.
 
 ## Structure
@@ -22,7 +22,7 @@ Feature-first, with Riverpod for state, go_router for navigation and Dio for HTT
 
 ## Firebase setup
 
-Android and iOS are configured for the Firebase project `ranking-beach-tennis`: `lib/firebase_options.dart`,
+Android, iOS and web are configured for the Firebase project `ranking-beach-tennis`: `lib/firebase_options.dart`,
 `android/app/google-services.json` (with the OAuth clients) and `firebase.json` are committed.
 Google and e-mail/password sign-in are enabled and the SHA-1 of the debug key is registered.
 iOS reads its Firebase settings from `firebase_options.dart`; `ios/Runner/GoogleService-Info.plist`
@@ -35,7 +35,7 @@ To regenerate the files (e.g. after adding a SHA-1 or registering iOS), with the
 (`dart pub global activate flutterfire_cli`; the `run` form below avoids changing PATH):
 
 ```bash
-dart pub global run flutterfire_cli:flutterfire configure --project=ranking-beach-tennis --platforms=android,ios --android-package-name=com.lucchetta.rankingBeachTennis --ios-bundle-id=com.lucchetta.rankingBeachTennis --yes --overwrite-firebase-options
+dart pub global run flutterfire_cli:flutterfire configure --project=ranking-beach-tennis --platforms=android,ios,web --android-package-name=com.lucchetta.rankingBeachTennis --ios-bundle-id=com.lucchetta.rankingBeachTennis --yes --overwrite-firebase-options
 ```
 
 Building on another machine requires adding that machine's debug SHA-1
@@ -58,6 +58,7 @@ default `API_BASE_URL` already reaches the development machine.
 | Define | Description | Default |
 |---|---|---|
 | `API_BASE_URL` | Backend URL | `http://10.0.2.2:8080` (backend on the dev machine, seen from the Android emulator) |
+| `FIREBASE_AUTH_DOMAIN` | Web only: Firebase Auth domain (e.g. the Hosting domain) | `ranking-beach-tennis.firebaseapp.com` |
 | `GOOGLE_SERVER_CLIENT_ID` | Web OAuth client ID of the Firebase project (Authentication → Google → Web SDK configuration) | empty |
 
 Plain HTTP is allowed only in debug builds (`android/app/src/debug/AndroidManifest.xml`).
@@ -72,6 +73,21 @@ after 7 days, at most 3 such apps per device, and no push notifications (in-app 
 work). The backend must be reachable from the iPhone over HTTPS; for a local test only, tick
 `allow_http` and use `http://<PC IP on the Wi-Fi>:8080` (the Windows firewall must allow inbound TCP
 8080 on the private network, and the iPhone asks for local network access).
+
+## Web (PWA)
+
+The same app runs in the browser and can be added to the home screen (Safari on iPhone included),
+with no store or signing. Differences on the web: local data lives in the browser storage
+(`PreferencesLocalStore`), Google sign-in uses a Firebase Auth popup, and there is no push (in-app
+notifications still work). The backend must allow the site origin (CORS) and be served over HTTPS.
+
+```bash
+flutter run -d chrome --web-port 5000 --dart-define=API_BASE_URL=http://localhost:8080
+flutter build web --release --dart-define=API_BASE_URL=https://<backend> --dart-define=FIREBASE_AUTH_DOMAIN=ranking-beach-tennis.web.app
+```
+
+`FIREBASE_AUTH_DOMAIN` (web only, optional) serves the sign-in pages from the site domain when it is
+hosted on Firebase Hosting.
 
 ## App icon
 

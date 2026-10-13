@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/config/app_config.dart';
@@ -22,6 +23,9 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithGoogle() async {
+    if (kIsWeb) {
+      return _signInWithGoogleOnWeb();
+    }
     _googleReady ??= _google.initialize(
       serverClientId: AppConfig.googleServerClientId.isEmpty ? null : AppConfig.googleServerClientId,
     );
@@ -37,6 +41,19 @@ class FirebaseAuthRepository implements AuthRepository {
     }
     final idToken = account.authentication.idToken;
     await _guard(() => _auth.signInWithCredential(GoogleAuthProvider.credential(idToken: idToken)));
+  }
+
+  /// google_sign_in has no programmatic flow on the web; Firebase Auth opens
+  /// the Google account chooser in a popup instead.
+  Future<void> _signInWithGoogleOnWeb() async {
+    try {
+      await _auth.signInWithPopup(GoogleAuthProvider());
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') {
+        throw const AuthCancelled();
+      }
+      throw AuthFailure(messageFor(e.code));
+    }
   }
 
   @override
@@ -56,6 +73,10 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {
+    if (kIsWeb) {
+      await _auth.signOut();
+      return;
+    }
     try {
       await _google.signOut();
     } catch (_) {
@@ -85,6 +106,7 @@ class FirebaseAuthRepository implements AuthRepository {
         'user-disabled' => 'Esta conta foi desativada.',
         'too-many-requests' => 'Muitas tentativas. Aguarde um pouco e tente novamente.',
         'network-request-failed' => 'Sem conexão. Verifique sua internet.',
+        'popup-blocked' => 'O navegador bloqueou a janela de login. Permita pop-ups para este site e tente novamente.',
         _ => 'Não foi possível entrar. Tente novamente.',
       };
 }

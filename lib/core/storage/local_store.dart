@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Small JSON documents kept on the device (pending matches, offline caches).
 abstract class LocalStore {
@@ -10,23 +10,23 @@ abstract class LocalStore {
   Future<void> write(String name, Object? value);
 }
 
-/// One file per document. Writes go to a temporary file first and are then
-/// renamed, so an interrupted write never leaves a half-written document.
-class FileLocalStore implements LocalStore {
-  FileLocalStore(this.directory);
+/// One SharedPreferences entry per document. Used on the web, where it is
+/// backed by the browser's local storage.
+class PreferencesLocalStore implements LocalStore {
+  PreferencesLocalStore(this._preferences);
 
-  final Directory directory;
+  static const _prefix = 'store.';
 
-  File _file(String name) => File('${directory.path}${Platform.pathSeparator}$name.json');
+  final SharedPreferences _preferences;
 
   @override
   Object? readSync(String name) {
-    final file = _file(name);
-    if (!file.existsSync()) {
+    final raw = _preferences.getString('$_prefix$name');
+    if (raw == null) {
       return null;
     }
     try {
-      return jsonDecode(file.readAsStringSync());
+      return jsonDecode(raw);
     } on FormatException {
       return null;
     }
@@ -34,15 +34,11 @@ class FileLocalStore implements LocalStore {
 
   @override
   Future<void> write(String name, Object? value) async {
-    await directory.create(recursive: true);
-    final target = _file(name);
-    final temporary = File('${target.path}.tmp');
-    await temporary.writeAsString(jsonEncode(value), flush: true);
-    await temporary.rename(target.path);
+    await _preferences.setString('$_prefix$name', jsonEncode(value));
   }
 }
 
-/// Created in `main` (app support directory) and injected with an override.
+/// Created in `main` (see [openLocalStore]) and injected with an override.
 final localStoreProvider = Provider<LocalStore>(
   (ref) => throw UnimplementedError('Override localStoreProvider in main'),
 );

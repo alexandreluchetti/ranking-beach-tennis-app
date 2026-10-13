@@ -14,4 +14,8 @@ class AppConfig {
   static const googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
   );
+
+  /// Web only: Firebase Auth domain to use instead of the default
+  /// `ranking-beach-tennis.firebaseapp.com` (e.g. the Firebase Hosting domain).
+  static const firebaseAuthDomain = String.fromEnvironment('FIREBASE_AUTH_DOMAIN');
 }
