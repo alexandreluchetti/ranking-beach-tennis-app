@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_controller.dart';
+import 'features/notifications/notification_triggers.dart';
 import 'features/sync/sync_triggers.dart';
 
 class RankingBeachTennisApp extends ConsumerWidget {
@@ -22,7 +23,7 @@ class RankingBeachTennisApp extends ConsumerWidget {
       supportedLocales: const [Locale('pt', 'BR')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(appRouterProvider),
-      builder: (context, child) => SyncTriggers(child: child!),
+      builder: (context, child) => SyncTriggers(child: NotificationTriggers(child: child!)),
     );
   }
 }

@@ -10,6 +10,7 @@ import '../../features/matches/match_detail_screen.dart';
 import '../../features/matches/match_history_screen.dart';
 import '../../features/matches/register_match_screen.dart';
 import '../../features/me/me_repository.dart';
+import '../../features/notifications/notifications_screen.dart';
 import '../../features/players/players_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
@@ -93,7 +94,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/notifications',
-              builder: (_, _) => const ComingSoonScreen(title: 'Notificações', icon: Icons.notifications),
+              builder: (_, _) => const NotificationsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'matches/:id',
+                  builder: (_, state) => MatchDetailScreen(matchId: state.pathParameters['id']!),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [

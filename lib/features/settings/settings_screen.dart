@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/theme_mode_controller.dart';
-import '../auth/auth_providers.dart';
+import '../auth/sign_out.dart';
 import '../me/me_repository.dart';
+import 'display_name_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -21,6 +22,8 @@ class SettingsScreen extends ConsumerWidget {
               leading: const Icon(Icons.person_outline),
               title: Text(me.displayName),
               subtitle: Text(me.email ?? ''),
+              trailing: const Icon(Icons.edit),
+              onTap: () => _editName(context, me.displayName),
             ),
           const Divider(),
           Padding(
@@ -44,10 +47,21 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sair'),
-            onTap: () => ref.read(authRepositoryProvider).signOut(),
+            onTap: () => ref.read(signOutProvider)(),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _editName(BuildContext context, String current) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => DisplayNameDialog(current: current),
+    );
+    if (saved ?? false) {
+      messenger.showSnackBar(const SnackBar(content: Text('Nome atualizado.')));
+    }
   }
 }

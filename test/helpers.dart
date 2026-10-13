@@ -17,6 +17,8 @@ import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
 import 'package:ranking_beach_tennis/features/matches/match_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
+import 'package:ranking_beach_tennis/features/notifications/notification_repository.dart';
+import 'package:ranking_beach_tennis/features/notifications/push_messaging.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
 
 /// JSON round-trip in memory, like the file store but safe in widget tests.
@@ -30,11 +32,20 @@ class MemoryLocalStore implements LocalStore {
   Future<void> write(String name, Object? value) async => documents[name] = jsonEncode(value);
 }
 
-/// Signed-in user, in-memory device storage and no connectivity events.
-List<Override> deviceOverrides(FakeAuthRepository auth, LocalStore store) => [
+/// Signed-in user, in-memory device storage, no connectivity events and fake
+/// notifications and push (never Firebase or the network).
+List<Override> deviceOverrides(
+  FakeAuthRepository auth,
+  LocalStore store, {
+  FakeNotificationRepository? notifications,
+  FakePushMessaging? push,
+}) =>
+    [
       authRepositoryProvider.overrideWithValue(auth),
       localStoreProvider.overrideWithValue(store),
       connectivityChangesProvider.overrideWith((ref) => const Stream.empty()),
+      notificationRepositoryProvider.overrideWithValue(notifications ?? FakeNotificationRepository()),
+      pushMessagingProvider.overrideWithValue(push ?? FakePushMessaging()),
     ];
 
 /// Pumps [child] inside a pt-BR MaterialApp with the given provider overrides.
@@ -195,3 +206,97 @@ SeasonRanking sampleRanking() => SeasonRanking(season: primavera, entries: const
       RankingEntry(position: 2, playerId: 'p-caio', displayName: 'Caio', points: 15, wins: 1, losses: 1, matchesPlayed: 2, gameDifference: -1),
       RankingEntry(position: 4, playerId: 'p-dani', displayName: 'Dani', points: 0, wins: 0, losses: 0, matchesPlayed: 0, gameDifference: 0),
     ]);
+
+/// In-memory notifications of the signed-in player; records every call.
+class FakeNotificationRepository implements NotificationRepository {
+  FakeNotificationRepository({List<AppNotification>? items, this.pageSize = 20}) : items = items ?? [];
+
+  final List<AppNotification> items;
+  final int pageSize;
+  final calls = <String>[];
+
+  /// While true, every call fails as if there were no connection.
+  bool offline = false;
+
+  void _check(String call) {
+    calls.add(call);
+    if (offline) {
+      throw const ApiException('Sem conexão com o servidor. Verifique sua internet.');
+    }
+  }
+
+  @override
+  Future<NotificationPage> list({int page = 0, int size = 20}) async {
+    _check('list:$page');
+    final start = page * pageSize;
+    final slice = items.skip(start).take(pageSize).toList();
+    return NotificationPage(
+      items: slice,
+      unreadCount: items.where((n) => !n.read).length,
+      hasNext: items.length > start + pageSize,
+    );
+  }
+
+  @override
+  Future<void> markRead(String id) async {
+    _check('read:$id');
+    final i = items.indexWhere((n) => n.id == id);
+    items[i] = items[i].markedRead();
+  }
+
+  @override
+  Future<void> markAllRead() async {
+    _check('readAll');
+    for (var i = 0; i < items.length; i++) {
+      items[i] = items[i].markedRead();
+    }
+  }
+
+  @override
+  Future<void> registerDevice(String token, DevicePlatform platform) async =>
+      _check('register:$token:${platform.name}');
+
+  @override
+  Future<void> unregisterDevice(String token) async => _check('unregister:$token');
+}
+
+/// Push messaging driven by the test.
+class FakePushMessaging implements PushMessaging {
+  FakePushMessaging({this.currentToken = 'push-token', this.launchedFrom});
+
+  String? currentToken;
+  final PushOpened? launchedFrom;
+  int permissionRequests = 0;
+  final refreshes = StreamController<String>.broadcast();
+  final foreground = StreamController<void>.broadcast();
+  final opened = StreamController<PushOpened>.broadcast();
+
+  @override
+  Future<void> requestPermission() async => permissionRequests++;
+
+  @override
+  Future<String?> token() async => currentToken;
+
+  @override
+  Stream<String> get tokenRefreshes => refreshes.stream;
+
+  @override
+  Stream<void> get foregroundMessages => foreground.stream;
+
+  @override
+  Stream<PushOpened> get openedMessages => opened.stream;
+
+  @override
+  Future<PushOpened?> initialMessage() async => launchedFrom;
+}
+
+AppNotification sampleNotification({String id = 'n1', bool read = false, String? matchId = 'm1', String type = 'MATCH_REGISTERED'}) =>
+    AppNotification(
+      id: id,
+      type: type,
+      matchId: matchId,
+      title: 'Nova partida registrada',
+      body: 'Ana registrou Ana e Beto 6–4 Caio e Zé.',
+      createdAt: DateTime(2026, 10, 11, 10),
+      read: read,
+    );

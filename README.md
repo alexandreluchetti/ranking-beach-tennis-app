@@ -13,8 +13,12 @@ Feature-first, with Riverpod for state, go_router for navigation and Dio for HTT
 | `lib/features/auth/` | Sign-in (Google, e-mail/password). Firebase stays behind `AuthRepository`. |
 | `lib/features/me/` | The signed-in player's profile (`/api/me`, admin flag) |
 | `lib/features/ranking/` | Current ranking, past seasons |
+| `lib/features/matches/` | Match registration, history with filters, match details and audit |
+| `lib/features/players/` | Players list and profiles |
+| `lib/features/sync/` | Offline outbox of registered matches and automatic sync |
 | `lib/features/home/` | Bottom navigation with the five areas |
-| `lib/features/settings/` | Theme choice and sign-out |
+| `lib/features/notifications/` | In-app notifications, unread badge, push token registration (FCM behind `PushMessaging`) |
+| `lib/features/settings/` | Display name, theme choice and sign-out |
 
 ## Firebase setup
 
