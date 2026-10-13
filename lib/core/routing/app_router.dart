@@ -6,7 +6,11 @@ import '../../features/auth/auth_providers.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/home/coming_soon_screen.dart';
 import '../../features/home/home_shell.dart';
+import '../../features/matches/match_detail_screen.dart';
+import '../../features/matches/match_history_screen.dart';
+import '../../features/matches/register_match_screen.dart';
 import '../../features/me/me_repository.dart';
+import '../../features/players/players_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
 import '../../features/settings/settings_screen.dart';
@@ -63,13 +67,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/matches',
-              builder: (_, _) => const ComingSoonScreen(title: 'Partidas', icon: Icons.sports_tennis),
+              builder: (_, _) => const MatchHistoryScreen(),
+              routes: [
+                GoRoute(path: 'new', builder: (_, _) => const RegisterMatchScreen()),
+                GoRoute(path: ':id', builder: (_, state) => MatchDetailScreen(matchId: state.pathParameters['id']!)),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/players',
-              builder: (_, _) => const ComingSoonScreen(title: 'Jogadores', icon: Icons.people),
+              builder: (_, _) => const PlayersScreen(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  builder: (_, state) => PlayerProfileScreen(playerId: state.pathParameters['id']!),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780647009353",
+    "project_id": "ranking-beach-tennis",
+    "storage_bucket": "ranking-beach-tennis.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780647009353:android:dd9cd215836edc11f44398",
+        "android_client_info": {
+          "package_name": "com.lucchetta.rankingBeachTennis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMRZg8UhZkbZSOAFwoFHvig4SGN9HwlEc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

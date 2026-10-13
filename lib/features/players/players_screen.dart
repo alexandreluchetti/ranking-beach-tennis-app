@@ -1,0 +1,170 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/widgets/async_states.dart';
+import '../matches/match_history.dart';
+import '../matches/match_repository.dart';
+import '../me/me_repository.dart';
+import 'player_profile.dart';
+
+/// "Jogadores": everyone registered, with a quick search.
+class PlayersScreen extends ConsumerStatefulWidget {
+  const PlayersScreen({super.key});
+
+  @override
+  ConsumerState<PlayersScreen> createState() => _PlayersScreenState();
+}
+
+class _PlayersScreenState extends ConsumerState<PlayersScreen> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final players = ref.watch(playersProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Jogadores')),
+      body: players.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),
+        data: (players) {
+          final visible = players
+              .where((p) => p.displayName.toLowerCase().contains(_query.trim().toLowerCase()))
+              .toList();
+          return RefreshIndicator(
+            onRefresh: () => ref.refresh(playersProvider.future),
+            child: ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar jogador'),
+                    onChanged: (v) => setState(() => _query = v),
+                  ),
+                ),
+                for (final player in visible)
+                  ListTile(
+                    leading: CircleAvatar(child: Text(player.displayName.characters.first.toUpperCase())),
+                    title: Text(player.displayName),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/players/${player.id}'),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Profile: current season standing, career, past seasons and the player's matches.
+class PlayerProfileScreen extends ConsumerWidget {
+  const PlayerProfileScreen({super.key, required this.playerId});
+
+  final String playerId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(playerProfileProvider(playerId));
+    final isMe = ref.watch(meProvider).value?.id == playerId;
+    final filter = MatchFilter(playerId: playerId);
+    return Scaffold(
+      appBar: AppBar(title: Text(profile.value?.displayName ?? 'Jogador')),
+      body: profile.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playerProfileProvider(playerId))),
+        data: (profile) => RefreshIndicator(
+          onRefresh: () {
+            ref.invalidate(matchHistoryProvider(filter));
+            return ref.refresh(playerProfileProvider(playerId).future);
+          },
+          child: CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(12),
+                sliver: SliverList.list(children: [
+                  if (isMe)
+                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Chip(label: Text('Você'))),
+                  _StatsCard(
+                    title: profile.currentSeason == null
+                        ? 'Temporada atual'
+                        : 'Temporada atual · ${profile.currentSeason!.season.name}',
+                    subtitle: profile.currentSeason == null
+                        ? 'Nenhuma temporada ativa'
+                        : '${profile.currentSeason!.position}º de ${profile.currentSeason!.rankedPlayers}',
+                    stats: profile.currentSeason?.stats,
+                  ),
+                  _StatsCard(title: 'Carreira', subtitle: 'Todas as partidas válidas', stats: profile.career),
+                  if (profile.pastSeasons.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text('Temporadas anteriores', style: Theme.of(context).textTheme.titleSmall),
+                    for (final standing in profile.pastSeasons)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(standing.season.name),
+                        subtitle: Text('${standing.position}º de ${standing.rankedPlayers}'),
+                        trailing: Text('${standing.stats.points} pts'),
+                        onTap: () => context.push('/ranking/seasons/${standing.season.id}'),
+                      ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text('Partidas', style: Theme.of(context).textTheme.titleSmall),
+                ]),
+              ),
+              MatchHistorySliver(filter: filter, emptyMessage: 'Nenhuma partida registrada.'),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatsCard extends StatelessWidget {
+  const _StatsCard({required this.title, required this.subtitle, required this.stats});
+
+  final String title;
+  final String subtitle;
+  final PlayerStats? stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final stats = this.stats;
+    final difference = stats == null ? '' : (stats.gameDifference > 0 ? '+${stats.gameDifference}' : '${stats.gameDifference}');
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: theme.textTheme.labelLarge),
+            Text(subtitle, style: theme.textTheme.bodySmall),
+            if (stats != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _number(context, '${stats.points}', 'pontos'),
+                  _number(context, '${stats.wins}', 'vitórias'),
+                  _number(context, '${stats.losses}', 'derrotas'),
+                  _number(context, '${stats.matchesPlayed}', 'partidas'),
+                  _number(context, difference, 'saldo'),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _number(BuildContext context, String value, String label) => Column(
+        children: [
+          Text(value, style: Theme.of(context).textTheme.titleLarge),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      );
+}

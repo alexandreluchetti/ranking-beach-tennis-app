@@ -6,6 +6,7 @@ import 'package:ranking_beach_tennis/app.dart';
 import 'package:ranking_beach_tennis/core/storage/preferences.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
+import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,6 +25,8 @@ void main() {
         authRepositoryProvider.overrideWithValue(FakeAuthRepository(session: session)),
         meProvider.overrideWith((ref) async => me),
         currentRankingProvider.overrideWith((ref) async => sampleRanking()),
+        seasonsProvider.overrideWith((ref) async => [primavera]),
+        matchRepositoryProvider.overrideWithValue(FakeMatchRepository(matches: [sampleMatch()])),
       ],
       child: const RankingBeachTennisApp(),
     ));
@@ -59,7 +62,11 @@ void main() {
 
     await tester.tap(find.text('Partidas'));
     await tester.pumpAndSettle();
+    expect(find.text('Registrar partida'), findsOneWidget);
+    expect(find.text('Contabilizada'), findsOneWidget);
 
+    await tester.tap(find.text('Notificações'));
+    await tester.pumpAndSettle();
     expect(find.text('Em construção'), findsOneWidget);
   });
 }
