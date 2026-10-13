@@ -45,6 +45,13 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$plist"
           /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string O app acessa o servidor de testes na sua rede Wi-Fi." "$plist"
 
+      # Plugins such as connectivity_plus use iOS 26 SDK APIs: build with the newest Xcode.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - run: xcodebuild -version
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.41.9
