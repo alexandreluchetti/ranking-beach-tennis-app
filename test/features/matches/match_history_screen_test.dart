@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ranking_beach_tennis/core/theme/app_theme.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
 import 'package:ranking_beach_tennis/features/matches/match_history_screen.dart';
@@ -29,6 +30,13 @@ void main() {
     expect(find.text('Não contabilizada: havia convidado'), findsOneWidget);
     expect(find.text('Anulada'), findsOneWidget);
     expect(find.text('Ana e Beto'), findsNWidgets(3));
+
+    Color chipColor(String label) => ((tester
+            .widget<Container>(find.ancestor(of: find.text(label), matching: find.byType(Container)).first)
+            .decoration) as BoxDecoration)
+        .color!;
+    expect(chipColor('Contabilizada'), AppColors.successContainerLight);
+    expect(chipColor('Anulada'), isNot(AppColors.successContainerLight));
     expect(find.text('Caio e Zé (convidado)'), findsNWidgets(3));
   });
 

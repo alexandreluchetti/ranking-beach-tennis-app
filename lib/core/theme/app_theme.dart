@@ -7,6 +7,12 @@ class AppColors {
   static const orange = Color(0xFFF47721);
   static const white = Color(0xFFFFFFFF);
   static const nearBlack = Color(0xFF171717);
+
+  /// "Contabilizada" status: green that reads well on both themes.
+  static const successContainerLight = Color(0xFFD7F2DF);
+  static const onSuccessContainerLight = Color(0xFF14532D);
+  static const successContainerDark = Color(0xFF1E4D2E);
+  static const onSuccessContainerDark = Color(0xFFB6EBC6);
 }
 
 class AppTheme {

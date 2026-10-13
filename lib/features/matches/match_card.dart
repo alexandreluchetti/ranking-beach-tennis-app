@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_theme.dart';
 import 'match_models.dart';
 
 /// Status badge: counted, not counted (with reason) or voided.
@@ -12,10 +13,15 @@ class MatchStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     final (background, foreground, icon) = match.voided
         ? (scheme.errorContainer, scheme.onErrorContainer, Icons.block)
         : match.counted
-            ? (scheme.primaryContainer, scheme.onPrimaryContainer, Icons.check_circle_outline)
+            ? (
+                dark ? AppColors.successContainerDark : AppColors.successContainerLight,
+                dark ? AppColors.onSuccessContainerDark : AppColors.onSuccessContainerLight,
+                Icons.check_circle_outline,
+              )
             : (scheme.surfaceContainerHighest, scheme.onSurfaceVariant, Icons.info_outline);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

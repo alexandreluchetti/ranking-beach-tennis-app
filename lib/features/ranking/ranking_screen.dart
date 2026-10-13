@@ -7,6 +7,7 @@ import '../../core/widgets/async_states.dart';
 import '../me/me_repository.dart';
 import 'ranking_repository.dart';
 import 'ranking_table.dart';
+import 'scoring_rules_sheet.dart';
 
 /// Home screen: ranking of the active season.
 class RankingScreen extends ConsumerWidget {
@@ -22,6 +23,11 @@ class RankingScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Ranking'),
         actions: [
+          IconButton(
+            tooltip: 'Regras de pontuação',
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => showScoringRules(context),
+          ),
           IconButton(
             tooltip: 'Temporadas anteriores',
             icon: const Icon(Icons.history),

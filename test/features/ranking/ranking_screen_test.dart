@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
@@ -88,5 +89,26 @@ void main() {
 
     expect(ranking.season.status, SeasonStatus.active);
     expect(ranking.entries.single.points, 9);
+  });
+
+  testWidgets('opens the scoring rules from the ranking', (tester) async {
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Regras de pontuação'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Regras de pontuação'), findsWidgets);
+    expect(find.text('Como os pontos são calculados'), findsOneWidget);
+    expect(find.text('7–6 (tie-break)'), findsOneWidget);
+
+    final sheetList = find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable));
+    for (final section in ['Partidas com convidado', 'Desempate no ranking', 'Correções e anulações']) {
+      await tester.scrollUntilVisible(find.text(section), 200, scrollable: sheetList);
+      expect(find.text(section), findsOneWidget);
+    }
   });
 }
