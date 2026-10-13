@@ -67,3 +67,13 @@ android {
 flutter {
     source = "../.."
 }
+
+// Shareable copy of the release APK named after the app version (pubspec.yaml),
+// e.g. build/app/outputs/shareable/ranking-beach-tennis-1.0.0.apk. The original
+// app-release.apk is left alone (own folder), since the Flutter tool looks for it.
+val shareableReleaseApk = tasks.register<Copy>("shareableReleaseApk") {
+    from(layout.buildDirectory.file("outputs/apk/release/app-release.apk"))
+    into(layout.buildDirectory.dir("outputs/shareable"))
+    rename { "ranking-beach-tennis-${flutter.versionName}.apk" }
+}
+tasks.matching { it.name == "assembleRelease" }.configureEach { finalizedBy(shareableReleaseApk) }

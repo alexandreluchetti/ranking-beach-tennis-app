@@ -103,7 +103,8 @@ firebase deploy --only hosting --project ranking-beach-tennis
 **Android** (Firebase App Distribution). Release builds are signed with the key referenced by
 `android/key.properties` (git-ignored; the keystore lives outside the repository). Its SHA-1 must be
 registered in the Firebase Android app, or Google Sign-In fails. Raise `version` in `pubspec.yaml`
-for every release.
+for every release. Each release build also leaves a copy named after the version, ready to share:
+`build/app/outputs/shareable/ranking-beach-tennis-<version>.apk`.
 
 ```bash
 flutter build apk --release --dart-define=API_BASE_URL=https://api.ranking-beach-tennis.tech --dart-define=GOOGLE_SERVER_CLIENT_ID=780647009353-jkckmv4ct9lu93o7utqbalafcanqeboi.apps.googleusercontent.com
