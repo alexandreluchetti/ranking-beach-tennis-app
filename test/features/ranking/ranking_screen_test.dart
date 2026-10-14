@@ -149,4 +149,27 @@ void main() {
 
     expect(find.text('–'), findsOneWidget);
   });
+
+  testWidgets('switches between the list (default) and the table', (tester) async {
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.text('19 pts'), findsOneWidget, reason: 'the list is the default view');
+    expect(find.text('Pts'), findsNothing);
+
+    await tester.tap(find.byTooltip('Ver em tabela'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pts'), findsOneWidget);
+    expect(find.text('Jogador'), findsOneWidget);
+    expect(find.text('Pts = pontos · J = jogos · V = vitórias · D = derrotas'), findsOneWidget);
+    expect(find.text('19'), findsOneWidget, reason: "Beto's points");
+    expect(find.text('2º'), findsNWidgets(2), reason: 'shared position');
+    expect(find.text('19 pts'), findsNothing);
+
+    await tester.tap(find.byTooltip('Ver em lista'));
+    await tester.pumpAndSettle();
+    expect(find.text('19 pts'), findsOneWidget);
+  });
 }

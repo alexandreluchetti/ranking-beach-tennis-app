@@ -11,7 +11,8 @@ class AboutScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appVersion = ref.watch(appVersionProvider).value;
+    final appVersion = ref.watch(appVersionProvider);
+    Widget unavailable() => Text('indisponível', style: TextStyle(color: theme.colorScheme.outline));
     final backendVersion = ref.watch(backendVersionProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Sobre o app')),
@@ -37,7 +38,11 @@ class AboutScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.phone_android),
             title: const Text('Versão do app'),
-            trailing: Text(appVersion ?? '…'),
+            trailing: appVersion.isLoading
+                ? const Text('…')
+                : appVersion.value != null
+                    ? Text(appVersion.value!)
+                    : unavailable(),
           ),
           ListTile(
             leading: const Icon(Icons.dns_outlined),
@@ -47,7 +52,7 @@ class AboutScreen extends ConsumerWidget {
                 ? const Text('…')
                 : backendVersion.value != null
                     ? Text(backendVersion.value!)
-                    : Text('indisponível', style: TextStyle(color: theme.colorScheme.outline)),
+                    : unavailable(),
           ),
           const Divider(),
           ListTile(
@@ -63,7 +68,7 @@ class AboutScreen extends ConsumerWidget {
             onTap: () => showLicensePage(
               context: context,
               applicationName: 'Ranking Beach Tennis',
-              applicationVersion: appVersion,
+              applicationVersion: appVersion.value,
             ),
           ),
           const Divider(),

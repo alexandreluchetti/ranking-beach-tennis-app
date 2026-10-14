@@ -42,9 +42,28 @@ class _PlayersScreenState extends ConsumerState<PlayersScreen> {
                     onChanged: (v) => setState(() => _query = v),
                   ),
                 ),
-                for (final player in visible)
+                // Numbered only for counting: the last number is how many are listed.
+                for (final (index, player) in visible.indexed)
                   ListTile(
-                    leading: CircleAvatar(child: Text(player.displayName.characters.first.toUpperCase())),
+                    contentPadding: const EdgeInsetsDirectional.only(start: 4, end: 16),
+                    leading: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 36,
+                          child: Text(
+                            '${index + 1}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        CircleAvatar(child: Text(player.displayName.characters.first.toUpperCase())),
+                      ],
+                    ),
                     title: Text(player.displayName),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/players/${player.id}'),
