@@ -51,7 +51,8 @@ Work branch names are lowercase kebab-case in English, e.g. `feat/profile-tab`,
    ```
 
 5. Release: open a pull request from `dev` into `main`. After it is merged, tag `main` with the
-   version of `pubspec.yaml` (raise it for every release) and publish the builds (see `README.md`):
+   version of `pubspec.yaml` (raise it for every release) and publish the builds (see `README.md`;
+   the release APK is also archived to the local `releaseCopyDir`, if configured):
 
    ```bash
    git switch main
