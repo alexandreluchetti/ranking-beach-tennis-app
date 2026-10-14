@@ -7,7 +7,7 @@ import '../../core/widgets/async_states.dart';
 import '../me/me_repository.dart';
 import 'ranking_models.dart';
 import 'ranking_repository.dart';
-import 'ranking_table.dart';
+import 'ranking_view.dart';
 
 /// Every season that has started, to open its ranking.
 class SeasonsScreen extends ConsumerWidget {
@@ -59,12 +59,15 @@ class SeasonRankingScreen extends ConsumerWidget {
     final ranking = ref.watch(seasonRankingProvider(seasonId));
     final me = ref.watch(meProvider).value;
     return Scaffold(
-      appBar: AppBar(title: Text(ranking.value?.season.name ?? 'Ranking')),
+      appBar: AppBar(
+        title: Text(ranking.value?.season.name ?? 'Ranking'),
+        actions: const [RankingViewToggle()],
+      ),
       body: ranking.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
             ErrorRetry(error: error, onRetry: () => ref.invalidate(seasonRankingProvider(seasonId))),
-        data: (ranking) => RankingTable(ranking: ranking, highlightPlayerId: me?.id),
+        data: (ranking) => RankingContent(ranking: ranking, highlightPlayerId: me?.id),
       ),
     );
   }
