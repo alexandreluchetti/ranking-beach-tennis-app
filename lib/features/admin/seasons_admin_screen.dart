@@ -15,10 +15,10 @@ extension SeasonStatusLabel on SeasonStatus {
       };
 }
 
-/// "Administração": season management. Match corrections, voids and void
-/// reversals are on each match's details.
-class AdminScreen extends ConsumerWidget {
-  const AdminScreen({super.key});
+/// Season management, opened from the "Administração" section of the profile.
+/// Match corrections, voids and void reversals are on each match's details.
+class SeasonsAdminScreen extends ConsumerWidget {
+  const SeasonsAdminScreen({super.key});
 
   static final _date = DateFormat('dd/MM/yyyy', 'pt_BR');
 
@@ -26,9 +26,9 @@ class AdminScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final seasons = ref.watch(seasonsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Administração')),
+      appBar: AppBar(title: const Text('Temporadas')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/admin/seasons/new'),
+        onPressed: () => context.push('/profile/seasons/new'),
         icon: const Icon(Icons.add),
         label: const Text('Nova temporada'),
       ),
@@ -40,12 +40,8 @@ class AdminScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 88),
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text('Temporadas', style: Theme.of(context).textTheme.titleMedium),
-              ),
               const Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text('Para corrigir ou anular uma partida, abra-a no histórico.'),
               ),
               if (all.isEmpty)
@@ -63,7 +59,7 @@ class AdminScreen extends ConsumerWidget {
                   // A closed season cannot change (D-006/D-010).
                   onTap: season.status == SeasonStatus.closed
                       ? null
-                      : () => context.push('/admin/seasons/${season.id}'),
+                      : () => context.push('/profile/seasons/${season.id}'),
                 ),
             ],
           ),

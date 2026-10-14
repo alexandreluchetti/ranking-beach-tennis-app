@@ -9,7 +9,7 @@ import '../matches/match_history.dart';
 import '../ranking/ranking_models.dart';
 import '../ranking/ranking_repository.dart';
 import 'admin_repository.dart';
-import 'admin_screen.dart';
+import 'seasons_admin_screen.dart';
 
 /// Creates a season ([seasonId] null) or changes one that is not closed,
 /// following D-010: the end date is never before today; an active season keeps
