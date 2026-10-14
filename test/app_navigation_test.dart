@@ -50,21 +50,49 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  testWidgets('after login the app opens on the ranking with four areas for players', (tester) async {
+  testWidgets('after login the app opens on the ranking with five areas', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
 
     expect(find.text('Primavera · 01/10/2026 a 31/12/2026'), findsOneWidget);
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
-    expect(find.text('Admin'), findsNothing);
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
+    expect(find.text('Perfil'), findsOneWidget);
+    expect(find.byTooltip('Configurações'), findsNothing);
   });
 
-  testWidgets('the administrator also sees the administration area', (tester) async {
+  testWidgets('players see no administration section in the profile', (tester) async {
+    await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
+
+    await tester.tap(find.text('Perfil'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ana'), findsOneWidget);
+    expect(find.text('Sair'), findsOneWidget);
+    expect(find.text('Administração'), findsNothing);
+  });
+
+  testWidgets('players cannot open the season management by address', (tester) async {
+    await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
+    final router = GoRouter.of(tester.element(find.byType(NavigationBar)));
+
+    router.go('/profile/seasons');
+    await tester.pumpAndSettle();
+
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/ranking');
+    expect(find.text('Nova temporada'), findsNothing);
+  });
+
+  testWidgets('the administrator has the same tabs plus the administration section', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'admin'), me: adminMe);
 
     expect(find.byType(NavigationDestination), findsNWidgets(5));
-    await tester.tap(find.text('Admin'));
+    await tester.tap(find.text('Perfil'));
     await tester.pumpAndSettle();
     expect(find.text('Administração'), findsOneWidget);
+
+    await tester.tap(find.text('Temporadas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nova temporada'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget, reason: 'seasons open inside the profile tab');
   });
 
   testWidgets('switches between areas', (tester) async {
@@ -95,7 +123,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(notifications.calls.where((c) => c == 'list:0').length, loads + 1);
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
   });
 
   testWidgets('a push arriving in the foreground updates the count', (tester) async {

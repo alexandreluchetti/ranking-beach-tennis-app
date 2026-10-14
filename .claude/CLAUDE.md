@@ -15,6 +15,12 @@ precisar de mudança na API, descreva a necessidade para o usuário levar à ses
   limitações e pendências e **aguarde aprovação** antes de mudanças grandes.
 - Nunca afirme que testes passaram sem executá-los.
 - **Commits e pushes somente quando o usuário pedir.** Aprovar uma etapa não é pedir commit.
+- **Fluxo de branches (obrigatório, detalhes em `CONTRIBUTING.md`):** nunca commite direto em `dev` ou
+  `main`. Para cada mudança: atualize `dev`, crie `feat/`, `fix/`, `refactor/` ou `chore/<nome-em-kebab-case>`
+  a partir dela, commite, faça push e abra um pull request para `dev` (`gh pr create --base dev`; a
+  descrição termina com a linha de atribuição indicada pelo sistema). Depois de aprovado e mergeado,
+  apague a branch (no GitHub e local). `main` é produção e **só recebe pull request da `dev`** (verificação
+  `source-branch-is-dev`), quando o usuário pedir; cada release ganha a tag `vX.Y.Z`.
 - Não criar recursos na nuvem (Firebase, Google Cloud, lojas, hospedagem), publicar nada ou
   gerar custos sem aprovação explícita.
 - Idiomas:
@@ -31,7 +37,7 @@ Organizada por funcionalidade (sem geração de código):
 |---|---|
 | `lib/core/config` | `AppConfig` (`--dart-define`: `API_BASE_URL`, `GOOGLE_SERVER_CLIENT_ID`) |
 | `lib/core/network` | Dio com o ID token do Firebase; erros viram `ApiException` |
-| `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Admin) |
+| `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Perfil; as mesmas abas para todos) |
 | `lib/core/storage` | `LocalStore` (arquivo JSON atômico no celular; SharedPreferences/localStorage na web, via `openLocalStore`), `Cached<T>` (cópia offline), SharedPreferences |
 | `lib/features/auth` | `AuthRepository` (Firebase + google_sign_in 7), login, `signOutProvider` |
 | `lib/features/me` | `/api/me` (perfil, flag admin, nome de exibição) |
@@ -40,8 +46,8 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/features/players` | Lista e perfis de jogadores |
 | `lib/features/sync` | Fila offline de partidas (`SyncController`) e gatilhos de sincronização |
 | `lib/features/notifications` | Caixa de notificações, contador, token FCM (`PushMessaging`), gatilhos |
-| `lib/features/admin` | Temporadas (criar/editar/encerrar) e ações de admin na partida |
-| `lib/features/settings` | Nome de exibição, tema, sair |
+| `lib/features/admin` | Temporadas (criar/editar/encerrar, em `/profile/seasons`) e ações de admin na partida |
+| `lib/features/profile` | Aba Perfil: nome de exibição, tema, sair e, só para o admin, a seção Administração |
 
 Regras:
 - Riverpod 3 sem codegen (`Provider`, `FutureProvider`, `AsyncNotifier`, `Notifier`). O
@@ -67,7 +73,10 @@ Regras:
   quando chega um push. Sem consulta periódica.
 - "Hoje" para limites de temporada usa a data do celular (o backend confere no fuso de
   São Paulo). Atalho "Encerrar hoje" com confirmação.
-- Aba Admin só tem Temporadas; corrigir, anular e reverter ficam no menu do detalhe da partida.
+- Não há aba Admin: todos têm as mesmas 5 abas. A aba Perfil (à direita de Notificações) reúne o que
+  era Configurações e, só para o admin, a seção Administração (Temporadas). Corrigir, anular e
+  reverter ficam no menu do detalhe da partida. O redirect bloqueia `/admin*` e `/profile/seasons*`
+  para quem não é admin.
 - Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro; fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)

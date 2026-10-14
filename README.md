@@ -16,9 +16,9 @@ Feature-first, with Riverpod for state, go_router for navigation and Dio for HTT
 | `lib/features/matches/` | Match registration, history with filters, match details and audit |
 | `lib/features/players/` | Players list and profiles |
 | `lib/features/sync/` | Offline outbox of registered matches and automatic sync |
-| `lib/features/home/` | Bottom navigation with the five areas |
+| `lib/features/home/` | Bottom navigation with the five areas (the same for every player) |
 | `lib/features/notifications/` | In-app notifications, unread badge, push token registration (FCM behind `PushMessaging`) |
-| `lib/features/settings/` | Display name, theme choice and sign-out |
+| `lib/features/profile/` | Profile tab: display name, theme, sign-out and, for the administrator, the administration section (seasons) |
 
 ## Firebase setup
 
@@ -125,6 +125,10 @@ dart run flutter_launcher_icons
 The tool also rewrites `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS` in
 `ios/Runner.xcodeproj/project.pbxproj` to an invalid value; discard that change
 (`git checkout -- ios/Runner.xcodeproj/project.pbxproj`).
+
+## Contributing
+
+Branches, pull requests and releases: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Tests
 

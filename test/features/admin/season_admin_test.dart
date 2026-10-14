@@ -7,7 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/admin/admin_repository.dart';
-import 'package:ranking_beach_tennis/features/admin/admin_screen.dart';
+import 'package:ranking_beach_tennis/features/admin/seasons_admin_screen.dart';
 import 'package:ranking_beach_tennis/features/admin/season_form_screen.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
@@ -35,15 +35,15 @@ void main() {
   late FakeAdminRepository admin;
   setUp(() => admin = FakeAdminRepository());
 
-  Future<void> pumpAdmin(WidgetTester tester, {String location = '/admin'}) async {
+  Future<void> pumpAdmin(WidgetTester tester, {String location = '/profile/seasons'}) async {
     await initializeDateFormatting('pt_BR');
     final router = GoRouter(initialLocation: location, routes: [
       GoRoute(
-        path: '/admin',
-        builder: (_, _) => const AdminScreen(),
+        path: '/profile/seasons',
+        builder: (_, _) => const SeasonsAdminScreen(),
         routes: [
-          GoRoute(path: 'seasons/new', builder: (_, _) => const SeasonFormScreen()),
-          GoRoute(path: 'seasons/:id', builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['id']!)),
+          GoRoute(path: 'new', builder: (_, _) => const SeasonFormScreen()),
+          GoRoute(path: ':id', builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['id']!)),
         ],
       ),
     ]);
@@ -108,11 +108,11 @@ void main() {
       {'op': 'create', 'name': 'Primavera 2027', 'startDate': today, 'endDate': today},
     ]);
     expect(find.text('Temporada criada.'), findsOneWidget);
-    expect(find.text('Administração'), findsOneWidget);
+    expect(find.text('Temporadas'), findsOneWidget);
   });
 
   testWidgets('a planned season sends only what changed', (tester) async {
-    await pumpAdmin(tester, location: '/admin/seasons/s2');
+    await pumpAdmin(tester, location: '/profile/seasons/s2');
     expect(find.text('Planejada'), findsOneWidget);
     expect(find.text('Encerrar hoje'), findsNothing);
 
@@ -126,7 +126,7 @@ void main() {
   });
 
   testWidgets('an active season keeps its start date and can end today after confirmation', (tester) async {
-    await pumpAdmin(tester, location: '/admin/seasons/s1');
+    await pumpAdmin(tester, location: '/profile/seasons/s1');
 
     final start = tester.widget<ListTile>(find.byKey(const Key('startDate')));
     expect(start.enabled, isFalse);
@@ -156,7 +156,7 @@ void main() {
       code: 'SEASON_OVERLAP',
       statusCode: 409,
     ));
-    await pumpAdmin(tester, location: '/admin/seasons/s2');
+    await pumpAdmin(tester, location: '/profile/seasons/s2');
 
     await tester.enterText(find.byType(TextFormField), 'Verão 2027');
     await tester.tap(find.text('Salvar alterações'));
@@ -167,7 +167,7 @@ void main() {
   });
 
   testWidgets('a closed season opened by link cannot be edited', (tester) async {
-    await pumpAdmin(tester, location: '/admin/seasons/s0');
+    await pumpAdmin(tester, location: '/profile/seasons/s0');
 
     expect(find.text('Esta temporada não pode ser alterada'), findsOneWidget);
     expect(find.byType(TextFormField), findsNothing);
