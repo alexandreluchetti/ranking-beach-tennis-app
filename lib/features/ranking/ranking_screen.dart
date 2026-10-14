@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/widgets/async_states.dart';
 import '../me/me_repository.dart';
 import 'ranking_repository.dart';
-import 'ranking_table.dart';
+import 'ranking_view.dart';
 import 'scoring_rules_sheet.dart';
 
 /// Home screen: ranking of the active season.
@@ -23,6 +23,7 @@ class RankingScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Ranking'),
         actions: [
+          const RankingViewToggle(),
           IconButton(
             tooltip: 'Regras de pontuação',
             icon: const Icon(Icons.help_outline),
@@ -53,7 +54,7 @@ class RankingScreen extends ConsumerWidget {
                           'Os pontos voltam a contar quando o administrador criar a próxima temporada.',
                     ),
                   )
-                : RankingTable(ranking: ranking, highlightPlayerId: me?.id);
+                : RankingContent(ranking: ranking, highlightPlayerId: me?.id);
             if (!cached.fromCache) {
               return content;
             }
