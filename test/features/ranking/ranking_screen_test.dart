@@ -20,8 +20,8 @@ void main() {
     expect(find.text('Primavera · 01/10/2026 a 31/12/2026'), findsOneWidget);
     expect(find.text('Beto'), findsOneWidget);
     expect(find.text('19 pts'), findsOneWidget);
-    expect(find.text('2 V · 0 D · 2 J · saldo +3'), findsOneWidget);
-    expect(find.text('1 V · 1 D · 2 J · saldo -1'), findsNWidgets(2));
+    expect(find.text('2 V · 0 D · 2 J · saldo de games +3'), findsOneWidget);
+    expect(find.text('1 V · 1 D · 2 J · saldo de games -1'), findsNWidgets(2));
     expect(find.text('2º'), findsNWidgets(2));
     expect(find.text('4º'), findsOneWidget);
   });

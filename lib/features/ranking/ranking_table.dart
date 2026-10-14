@@ -57,7 +57,7 @@ class _RankingRow extends StatelessWidget {
         child: Text('${entry.position}º'),
       ),
       title: Text(entry.displayName, style: TextStyle(fontWeight: highlighted ? FontWeight.bold : null)),
-      subtitle: Text('${entry.wins} V · ${entry.losses} D · ${entry.matchesPlayed} J · saldo $difference'),
+      subtitle: Text('${entry.wins} V · ${entry.losses} D · ${entry.matchesPlayed} J · saldo de games $difference'),
       trailing: Text(
         '${entry.points} pts',
         style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
