@@ -111,4 +111,42 @@ void main() {
       expect(find.text(section), findsOneWidget);
     }
   });
+
+  testWidgets('tapping a player expands their main stats, one player at a time', (tester) async {
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsNothing);
+
+    await tester.tap(find.text('Beto'));
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsOneWidget);
+    expect(find.text('100%'), findsOneWidget, reason: '2 wins in 2 matches');
+    expect(find.text('Ver perfil completo'), findsOneWidget);
+
+    await tester.tap(find.text('Ana'));
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsOneWidget, reason: 'only one player is expanded');
+    expect(find.text('50%'), findsOneWidget);
+    expect(find.text('100%'), findsNothing);
+
+    await tester.tap(find.text('Ana'));
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsNothing);
+  });
+
+  testWidgets('a player without matches has no win rate yet', (tester) async {
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Dani'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('–'), findsOneWidget);
+  });
 }
