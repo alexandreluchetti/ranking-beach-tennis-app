@@ -67,6 +67,7 @@ void main() {
 
     expect(find.text('Ana'), findsOneWidget);
     expect(find.text('Sair'), findsOneWidget);
+    expect(find.text('Sobre o app'), findsOneWidget);
     expect(find.text('Administração'), findsNothing);
   });
 
