@@ -60,10 +60,14 @@ Work branch names are lowercase kebab-case in English, e.g. `feat/profile-tab`,
    git push origin vX.Y.Z
    ```
 
-Never commit directly to `dev` or `main`.
+Never commit directly to `dev` or `main`. `main` only accepts pull requests from `dev`: the
+`source-branch-is-dev` check (`.github/workflows/main-only-from-dev.yml`) fails for any other
+source branch.
 
 ## Repository settings (GitHub)
 
-- Branch protection for `dev` (and recommended for `main`): require a pull request before
-  merging, block force pushes and deletion.
+- Ruleset `protected-branches` on `main` (default branch) and `dev` (pattern `dev`): require a pull
+  request before merging (0 approvals, since nobody can approve their own pull request), block
+  force pushes and deletion.
+- On `main` also: require the status check `source-branch-is-dev`.
 - "Automatically delete head branches" on, so merged work branches are removed from GitHub.
