@@ -21,7 +21,7 @@ void main() {
     final logo = tester.widget<Image>(find.byType(Image));
     expect((logo.image as AssetImage).assetName, 'assets/branding/app_icon.png');
     expect(find.bySemanticsLabel('Logo do Ranking Beach Tennis'), findsOneWidget);
-    expect(find.text('Desenvolvido por Alexandre Lucchetta'), findsOneWidget);
+    expect(find.textContaining('Desenvolvido por'), findsNothing, reason: 'credit only in Sobre o app');
   });
 
   testWidgets('validates e-mail and password before calling the provider', (tester) async {

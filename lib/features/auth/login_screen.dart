@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../about/app_info.dart';
 import '../me/me_repository.dart';
 import 'auth_providers.dart';
 import 'auth_repository.dart';
@@ -184,12 +183,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: _busy ? null : _resetPassword,
                         child: const Text('Esqueci minha senha'),
                       ),
-                    const SizedBox(height: 32),
-                    Text(
-                      'Desenvolvido por $appDeveloper',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
-                    ),
                   ],
                 ),
               ),
