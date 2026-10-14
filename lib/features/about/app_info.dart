@@ -3,6 +3,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/network/api_client.dart';
 
+/// Shown in "Sobre o app" and on the sign-in screen.
+const appDeveloper = 'Alexandre Lucchetta';
+
 /// Version of this app as shown to people, e.g. "1.0.1 (build 2)".
 final appVersionProvider = FutureProvider<String>((ref) async {
   final info = await PackageInfo.fromPlatform();

@@ -8,8 +8,6 @@ import 'app_info.dart';
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
-  static const developer = 'Alexandre Lucchetta';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -67,7 +65,7 @@ class AboutScreen extends ConsumerWidget {
           const Divider(),
           const SizedBox(height: 16),
           Text(
-            'Desenvolvido por $developer',
+            'Desenvolvido por $appDeveloper',
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
