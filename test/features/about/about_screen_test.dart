@@ -44,6 +44,24 @@ void main() {
     expect(find.text('1.0.0'), findsOneWidget);
   });
 
+  testWidgets('an unreadable app version shows as unavailable instead of loading forever', (tester) async {
+    await pumpScreen(tester, const AboutScreen(), overrides: [
+      appVersionProvider.overrideWith((ref) async => null),
+      backendVersionProvider.overrideWith((ref) async => '1.0.1'),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Versão do app'), findsOneWidget);
+    expect(find.text('indisponível'), findsOneWidget);
+    expect(find.text('…'), findsNothing);
+  });
+
+  test('app version text', () {
+    expect(describeAppVersion('1.0.2', '3'), '1.0.2 (build 3)');
+    expect(describeAppVersion('1.0.2', ''), '1.0.2');
+    expect(describeAppVersion('', '3'), isNull);
+  });
+
   group('server version', () {
     Future<String?> read(Dio dio) {
       final container = ProviderContainer(overrides: [dioProvider.overrideWithValue(dio)]);
