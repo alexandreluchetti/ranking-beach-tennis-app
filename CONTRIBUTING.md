@@ -61,6 +61,19 @@ Work branch names are lowercase kebab-case in English, e.g. `feat/profile-tab`,
    git push origin vX.Y.Z
    ```
 
+6. `dev` is synced with `main` automatically: after every merge into `main`, the
+   `sync-dev-with-main` workflow (`.github/workflows/sync-dev-with-main.yml`) opens a pull
+   request from `main` into `dev` and merges it (merge commit; no content changes). Afterwards
+   `git log origin/dev..origin/main` must be empty; then update your local `dev`:
+
+       git switch dev
+       git pull
+
+   If the workflow fails, sync by hand:
+
+       gh pr create --base dev --head main --title "Sync dev with main" --body "Sync after release."
+       gh pr merge --merge <number>
+
 Never commit directly to `dev` or `main`. `main` only accepts pull requests from `dev`: the
 `source-branch-is-dev` check (`.github/workflows/main-only-from-dev.yml`) fails for any other
 source branch.
@@ -72,3 +85,5 @@ source branch.
   force pushes and deletion.
 - On `main` also: require the status check `source-branch-is-dev`.
 - "Automatically delete head branches" on, so merged work branches are removed from GitHub.
+- Settings → Actions → General → Workflow permissions: "Allow GitHub Actions to create and
+  approve pull requests" on, required by `sync-dev-with-main`.
