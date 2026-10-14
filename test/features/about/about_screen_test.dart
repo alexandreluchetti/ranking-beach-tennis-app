@@ -18,7 +18,7 @@ Dio _dioAnswering(Object? body, {int status = 200}) => Dio()
   }));
 
 void main() {
-  testWidgets('shows the app version, the credits and hides an unknown server version', (tester) async {
+  testWidgets('shows the app version, the credits and an unavailable server version', (tester) async {
     await pumpScreen(tester, const AboutScreen(), overrides: [
       appVersionProvider.overrideWith((ref) async => '1.0.1 (build 2)'),
       backendVersionProvider.overrideWith((ref) async => null),
@@ -27,7 +27,8 @@ void main() {
 
     expect(find.text('Versão do app'), findsOneWidget);
     expect(find.text('1.0.1 (build 2)'), findsOneWidget);
-    expect(find.text('Versão do servidor'), findsNothing);
+    expect(find.text('Versão do servidor'), findsOneWidget);
+    expect(find.text('indisponível'), findsOneWidget);
     expect(find.text('Desenvolvido por Alexandre Lucchetta'), findsOneWidget);
     expect(find.text('Regras de pontuação'), findsOneWidget);
   });

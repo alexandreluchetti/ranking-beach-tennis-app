@@ -12,7 +12,7 @@ class AboutScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final appVersion = ref.watch(appVersionProvider).value;
-    final backendVersion = ref.watch(backendVersionProvider).value;
+    final backendVersion = ref.watch(backendVersionProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Sobre o app')),
       body: ListView(
@@ -39,12 +39,16 @@ class AboutScreen extends ConsumerWidget {
             title: const Text('Versão do app'),
             trailing: Text(appVersion ?? '…'),
           ),
-          if (backendVersion != null)
-            ListTile(
-              leading: const Icon(Icons.dns_outlined),
-              title: const Text('Versão do servidor'),
-              trailing: Text(backendVersion),
-            ),
+          ListTile(
+            leading: const Icon(Icons.dns_outlined),
+            title: const Text('Versão do servidor'),
+            // While loading: "…"; without connection or version: "indisponível" (never an error).
+            trailing: backendVersion.isLoading
+                ? const Text('…')
+                : backendVersion.value != null
+                    ? Text(backendVersion.value!)
+                    : Text('indisponível', style: TextStyle(color: theme.colorScheme.outline)),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.help_outline),
