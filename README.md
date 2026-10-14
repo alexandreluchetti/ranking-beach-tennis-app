@@ -126,6 +126,10 @@ The tool also rewrites `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENS
 `ios/Runner.xcodeproj/project.pbxproj` to an invalid value; discard that change
 (`git checkout -- ios/Runner.xcodeproj/project.pbxproj`).
 
+## Contributing
+
+Branches, pull requests and releases: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Tests
 
 ```bash
