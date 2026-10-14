@@ -38,6 +38,7 @@ void main() {
     expect(find.text('Temporada atual · Primavera'), findsOneWidget);
     expect(find.text('2º de 8'), findsOneWidget);
     expect(find.text('+10'), findsOneWidget);
+    expect(find.text('saldo de games'), findsNWidgets(2), reason: 'current season and career');
     expect(find.text('Inverno'), findsOneWidget);
     expect(find.text('25 pts'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Contabilizada'), 200);
