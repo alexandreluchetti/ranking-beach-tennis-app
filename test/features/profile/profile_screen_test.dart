@@ -4,8 +4,8 @@ import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/preferences.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
-import 'package:ranking_beach_tennis/features/settings/display_name_dialog.dart';
-import 'package:ranking_beach_tennis/features/settings/settings_screen.dart';
+import 'package:ranking_beach_tennis/features/profile/display_name_dialog.dart';
+import 'package:ranking_beach_tennis/features/profile/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
@@ -34,10 +34,10 @@ class _FakeMeRepository implements MeRepository {
 void main() {
   late _FakeMeRepository me;
 
-  Future<void> pumpSettings(WidgetTester tester) async {
+  Future<void> pumpProfile(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
-    await pumpScreen(tester, const SettingsScreen(), overrides: [
+    await pumpScreen(tester, const ProfileScreen(), overrides: [
       ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
       sharedPreferencesProvider.overrideWithValue(preferences),
       meRepositoryProvider.overrideWithValue(me),
@@ -56,7 +56,7 @@ void main() {
   });
 
   testWidgets('changes the display name', (tester) async {
-    await pumpSettings(tester);
+    await pumpProfile(tester);
     expect(find.text('Ana'), findsOneWidget);
 
     await tester.tap(find.text('Ana'));
@@ -71,7 +71,7 @@ void main() {
   });
 
   testWidgets('rejects a name that is too short without calling the backend', (tester) async {
-    await pumpSettings(tester);
+    await pumpProfile(tester);
 
     await tester.tap(find.text('Ana'));
     await tester.pumpAndSettle();
@@ -85,7 +85,7 @@ void main() {
 
   testWidgets('shows the backend error and keeps the dialog open', (tester) async {
     me.failNextWith = const ApiException('Sem conexão com o servidor. Verifique sua internet.');
-    await pumpSettings(tester);
+    await pumpProfile(tester);
 
     await tester.tap(find.text('Ana'));
     await tester.pumpAndSettle();

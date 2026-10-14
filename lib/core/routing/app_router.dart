@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/admin/admin_screen.dart';
 import '../../features/admin/match_admin_actions.dart';
 import '../../features/admin/season_form_screen.dart';
+import '../../features/admin/seasons_admin_screen.dart';
 import '../../features/auth/auth_providers.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/home/home_shell.dart';
@@ -14,9 +14,9 @@ import '../../features/matches/register_match_screen.dart';
 import '../../features/me/me_repository.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/players/players_screen.dart';
+import '../../features/profile/profile_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
-import '../../features/settings/settings_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Re-evaluates the redirect when the session or the admin flag changes.
@@ -42,7 +42,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/ranking';
       }
       final isAdmin = ref.read(meProvider).value?.admin ?? false;
-      if (location.startsWith('/admin') && !isAdmin) {
+      final adminOnly = location.startsWith('/admin') || location.startsWith('/profile/seasons');
+      if (adminOnly && !isAdmin) {
         return '/ranking';
       }
       return null;
@@ -50,8 +51,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
-      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
-      // Full screen over any area; guarded by the /admin prefix above.
+      // Full screen over any area; admin only (see the redirect above).
       GoRoute(
         path: '/admin/matches/:id/correct',
         builder: (_, state) => CorrectMatchScreen(matchId: state.pathParameters['id']!),
@@ -112,9 +112,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
-              path: '/admin',
-              builder: (_, _) => const AdminScreen(),
+              path: '/profile',
+              builder: (_, _) => const ProfileScreen(),
               routes: [
+                // Administration section (admin only, see the redirect above).
+                GoRoute(path: 'seasons', builder: (_, _) => const SeasonsAdminScreen()),
                 GoRoute(path: 'seasons/new', builder: (_, _) => const SeasonFormScreen()),
                 GoRoute(
                   path: 'seasons/:id',

@@ -33,11 +33,6 @@ class RankingScreen extends ConsumerWidget {
             icon: const Icon(Icons.history),
             onPressed: () => context.push('/ranking/seasons'),
           ),
-          IconButton(
-            tooltip: 'Configurações',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
-          ),
         ],
       ),
       body: RefreshIndicator(

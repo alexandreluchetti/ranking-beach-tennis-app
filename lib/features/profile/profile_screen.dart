@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/theme_mode_controller.dart';
 import '../auth/sign_out.dart';
 import '../me/me_repository.dart';
 import 'display_name_dialog.dart';
 
-class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({super.key});
+/// "Perfil": the signed-in player's name, theme and sign-out. The
+/// administrator also gets the "Administração" section; every player sees the
+/// same tabs.
+class ProfileScreen extends ConsumerWidget {
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final me = ref.watch(meProvider).value;
+    Widget section(String title) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+        );
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
+      appBar: AppBar(title: const Text('Perfil')),
       body: ListView(
         children: [
           if (me != null)
@@ -26,10 +34,7 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => _editName(context, me.displayName),
             ),
           const Divider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text('Tema', style: Theme.of(context).textTheme.titleSmall),
-          ),
+          section('Tema'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SegmentedButton<ThemeMode>(
@@ -43,6 +48,17 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (me?.admin ?? false) ...[
+            const Divider(),
+            section('Administração'),
+            ListTile(
+              leading: const Icon(Icons.event_note),
+              title: const Text('Temporadas'),
+              subtitle: const Text('Criar, alterar e encerrar temporadas'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/profile/seasons'),
+            ),
+          ],
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
