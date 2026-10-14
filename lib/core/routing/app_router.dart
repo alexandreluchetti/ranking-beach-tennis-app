@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/about/about_screen.dart';
 import '../../features/admin/match_admin_actions.dart';
 import '../../features/admin/season_form_screen.dart';
 import '../../features/admin/seasons_admin_screen.dart';
@@ -115,6 +116,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/profile',
               builder: (_, _) => const ProfileScreen(),
               routes: [
+                GoRoute(path: 'about', builder: (_, _) => const AboutScreen()),
                 // Administration section (admin only, see the redirect above).
                 GoRoute(path: 'seasons', builder: (_, _) => const SeasonsAdminScreen()),
                 GoRoute(path: 'seasons/new', builder: (_, _) => const SeasonFormScreen()),

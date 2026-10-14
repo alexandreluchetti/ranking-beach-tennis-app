@@ -61,6 +61,13 @@ class ProfileScreen extends ConsumerWidget {
           ],
           const Divider(),
           ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Sobre o app'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/profile/about'),
+          ),
+          const Divider(),
+          ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sair'),
             onTap: () => ref.read(signOutProvider)(),

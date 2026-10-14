@@ -145,13 +145,13 @@ class _StatsCard extends StatelessWidget {
             if (stats != null) ...[
               const SizedBox(height: 12),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _number(context, '${stats.points}', 'pontos'),
                   _number(context, '${stats.wins}', 'vitórias'),
                   _number(context, '${stats.losses}', 'derrotas'),
                   _number(context, '${stats.matchesPlayed}', 'partidas'),
-                  _number(context, difference, 'saldo'),
+                  _number(context, difference, 'saldo de games'),
                 ],
               ),
             ],
@@ -161,10 +161,13 @@ class _StatsCard extends StatelessWidget {
     );
   }
 
-  Widget _number(BuildContext context, String value, String label) => Column(
-        children: [
-          Text(value, style: Theme.of(context).textTheme.titleLarge),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ],
+  /// Equal-width columns; long labels ("saldo de games") wrap instead of overflowing.
+  Widget _number(BuildContext context, String value, String label) => Expanded(
+        child: Column(
+          children: [
+            Text(value, style: Theme.of(context).textTheme.titleLarge),
+            Text(label, style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+          ],
+        ),
       );
 }

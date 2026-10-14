@@ -76,4 +76,44 @@ val shareableReleaseApk = tasks.register<Copy>("shareableReleaseApk") {
     into(layout.buildDirectory.dir("outputs/shareable"))
     rename { "ranking-beach-tennis-${flutter.versionName}.apk" }
 }
-tasks.matching { it.name == "assembleRelease" }.configureEach { finalizedBy(shareableReleaseApk) }
+
+// Optional local archive of releases: android/release.properties (git-ignored)
+// may set releaseCopyDir. Each release build copies the shareable APK there and
+// deletes the APKs of older versions (same or newer versions are kept).
+val releaseProperties = Properties().apply {
+    val file = rootProject.file("release.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+val archiveReleaseApk = tasks.register("archiveReleaseApk") {
+    dependsOn(shareableReleaseApk)
+    val archiveDir = releaseProperties.getProperty("releaseCopyDir")?.let { File(it) }
+    val version = flutter.versionName
+    val apk = layout.buildDirectory.file("outputs/shareable/ranking-beach-tennis-${version}.apk")
+    onlyIf { archiveDir != null }
+    doLast {
+        val dir = archiveDir!!
+        dir.mkdirs()
+        fun parts(v: String) = v.split(".").map { it.toIntOrNull() ?: 0 }
+        fun older(v: String, than: String): Boolean {
+            val (a, b) = parts(v) to parts(than)
+            for (i in 0 until maxOf(a.size, b.size)) {
+                val x = a.getOrElse(i) { 0 }
+                val y = b.getOrElse(i) { 0 }
+                if (x != y) return x < y
+            }
+            return false
+        }
+        val name = Regex("""ranking-beach-tennis-(\d+(?:\.\d+)*)\.apk""")
+        dir.listFiles().orEmpty()
+            .filter { file -> name.matchEntire(file.name)?.let { older(it.groupValues[1], version) } ?: false }
+            .forEach { file ->
+                file.delete()
+                logger.lifecycle("Deleted older release ${file.name}")
+            }
+        apk.get().asFile.copyTo(File(dir, "ranking-beach-tennis-${version}.apk"), overwrite = true)
+        logger.lifecycle("Release copied to ${dir}")
+    }
+}
+tasks.matching { it.name == "assembleRelease" }.configureEach { finalizedBy(shareableReleaseApk, archiveReleaseApk) }

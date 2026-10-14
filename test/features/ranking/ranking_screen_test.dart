@@ -20,8 +20,8 @@ void main() {
     expect(find.text('Primavera · 01/10/2026 a 31/12/2026'), findsOneWidget);
     expect(find.text('Beto'), findsOneWidget);
     expect(find.text('19 pts'), findsOneWidget);
-    expect(find.text('2 V · 0 D · 2 J · saldo +3'), findsOneWidget);
-    expect(find.text('1 V · 1 D · 2 J · saldo -1'), findsNWidgets(2));
+    expect(find.text('2 V · 0 D · 2 J · saldo de games +3'), findsOneWidget);
+    expect(find.text('1 V · 1 D · 2 J · saldo de games -1'), findsNWidgets(2));
     expect(find.text('2º'), findsNWidgets(2));
     expect(find.text('4º'), findsOneWidget);
   });
@@ -110,5 +110,43 @@ void main() {
       await tester.scrollUntilVisible(find.text(section), 200, scrollable: sheetList);
       expect(find.text(section), findsOneWidget);
     }
+  });
+
+  testWidgets('tapping a player expands their main stats, one player at a time', (tester) async {
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsNothing);
+
+    await tester.tap(find.text('Beto'));
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsOneWidget);
+    expect(find.text('100%'), findsOneWidget, reason: '2 wins in 2 matches');
+    expect(find.text('Ver perfil completo'), findsOneWidget);
+
+    await tester.tap(find.text('Ana'));
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsOneWidget, reason: 'only one player is expanded');
+    expect(find.text('50%'), findsOneWidget);
+    expect(find.text('100%'), findsNothing);
+
+    await tester.tap(find.text('Ana'));
+    await tester.pumpAndSettle();
+    expect(find.text('aproveitamento'), findsNothing);
+  });
+
+  testWidgets('a player without matches has no win rate yet', (tester) async {
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Dani'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('–'), findsOneWidget);
   });
 }
