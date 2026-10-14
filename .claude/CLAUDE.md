@@ -19,8 +19,8 @@ precisar de mudança na API, descreva a necessidade para o usuário levar à ses
   `main`. Para cada mudança: atualize `dev`, crie `feat/`, `fix/`, `refactor/` ou `chore/<nome-em-kebab-case>`
   a partir dela, commite, faça push e abra um pull request para `dev` (`gh pr create --base dev`; a
   descrição termina com a linha de atribuição indicada pelo sistema). Depois de aprovado e mergeado,
-  apague a branch (no GitHub e local). `main` é produção: recebe `dev` por pull request quando o
-  usuário pedir, e cada release ganha a tag `vX.Y.Z`.
+  apague a branch (no GitHub e local). `main` é produção e **só recebe pull request da `dev`** (verificação
+  `source-branch-is-dev`), quando o usuário pedir; cada release ganha a tag `vX.Y.Z`.
 - Não criar recursos na nuvem (Firebase, Google Cloud, lojas, hospedagem), publicar nada ou
   gerar custos sem aprovação explícita.
 - Idiomas:
