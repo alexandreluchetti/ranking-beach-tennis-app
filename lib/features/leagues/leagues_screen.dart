@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
 import '../auth/sign_out.dart';
@@ -158,26 +157,10 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
   bool _busy = false;
 
   Future<void> _answer({required bool accept}) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final repository = ref.read(leagueRepositoryProvider);
     setState(() => _busy = true);
-    try {
-      if (accept) {
-        final league = await repository.acceptInvitation(widget.invitation.id);
-        ref.invalidate(myInvitationsProvider);
-        await enterLeague(ref, league.id);
-      } else {
-        await repository.rejectInvitation(widget.invitation.id);
-        ref.invalidate(myInvitationsProvider);
-        messenger.showSnackBar(const SnackBar(content: Text('Convite recusado.')));
-      }
-    } on ApiException catch (e) {
-      ref.invalidate(myInvitationsProvider);
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+    await answerInvitation(context, ref, widget.invitation.id, accept: accept);
+    if (mounted) {
+      setState(() => _busy = false);
     }
   }
 

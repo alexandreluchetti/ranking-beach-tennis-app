@@ -118,14 +118,17 @@ void main() {
     expect(find.text('Administração'), findsOneWidget, reason: 'administrator of the new league');
   });
 
-  testWidgets('players see no administration section in the profile', (tester) async {
+  testWidgets('the profile has the leagues, global statistics and no administration', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
 
     await tester.tap(find.text('Perfil'));
     await tester.pumpAndSettle();
 
     expect(find.text('Ana'), findsOneWidget);
-    expect(find.text('Sair'), findsOneWidget);
+    expect(find.text('Minhas estatísticas'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget, reason: 'no win rate without matches');
+    await tester.scrollUntilVisible(find.text('Sair'), 200);
+    expect(find.text('Minhas ligas'), findsOneWidget);
     expect(find.text('Sobre o app'), findsOneWidget);
     expect(find.text('Administração'), findsNothing);
   });

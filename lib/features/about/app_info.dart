@@ -20,7 +20,7 @@ String? describeAppVersion(String version, String buildNumber) {
 final webVersionFileProvider = Provider<Future<Map<String, dynamic>?> Function()>(
   (ref) => () async {
     try {
-      final url = Uri.base.resolve('version.json').replace(
+      final url = Uri.base.resolve('/version.json').replace(
         queryParameters: {'v': '${DateTime.now().millisecondsSinceEpoch}'},
       );
       final response = await Dio().getUri<Map<String, dynamic>>(url);

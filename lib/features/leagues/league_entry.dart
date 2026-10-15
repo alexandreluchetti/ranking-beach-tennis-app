@@ -92,3 +92,27 @@ class _LeagueEntryButtonState extends ConsumerState<LeagueEntryButton> {
     );
   }
 }
+
+/// Accepts (entering the league) or rejects an invitation, from the leagues
+/// screen or right from its notification. Returns whether it worked.
+Future<bool> answerInvitation(BuildContext context, WidgetRef ref, String invitationId, {required bool accept}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final repository = ref.read(leagueRepositoryProvider);
+  try {
+    if (accept) {
+      final league = await repository.acceptInvitation(invitationId);
+      ref.invalidate(myInvitationsProvider);
+      await enterLeague(ref, league.id);
+    } else {
+      await repository.rejectInvitation(invitationId);
+      ref.invalidate(myInvitationsProvider);
+      messenger.showSnackBar(const SnackBar(content: Text('Convite recusado.')));
+    }
+    return true;
+  } on ApiException catch (e) {
+    // E.g. already answered or the league is full: show the current state.
+    ref.invalidate(myInvitationsProvider);
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    return false;
+  }
+}

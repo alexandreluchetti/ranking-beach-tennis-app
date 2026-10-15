@@ -6,13 +6,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/routing/app_router.dart';
 import '../auth/auth_providers.dart';
+import '../leagues/league_repository.dart';
 import 'notification_inbox.dart';
+import 'notification_targets.dart';
 import 'push_messaging.dart';
 import 'push_registration.dart';
 
-/// Refreshes the notifications when the app returns to the foreground or a
-/// push arrives, keeps the push token registered and opens the match of a
-/// tapped push.
+/// Refreshes the notifications (and received invitations) when the app
+/// returns to the foreground or a push arrives, keeps the push token
+/// registered and opens what a tapped push is about.
 class NotificationTriggers extends ConsumerStatefulWidget {
   const NotificationTriggers({super.key, required this.child});
 
@@ -32,7 +34,7 @@ class _NotificationTriggersState extends ConsumerState<NotificationTriggers> {
     _lifecycle = AppLifecycleListener(onResume: _onResume);
     final messaging = ref.read(pushMessagingProvider);
     _subscriptions
-      ..add(messaging.foregroundMessages.listen((_) => ref.invalidate(notificationInboxProvider)))
+      ..add(messaging.foregroundMessages.listen((_) => _refresh()))
       ..add(messaging.openedMessages.listen(_open));
     unawaited(messaging.initialMessage().then((opened) {
       if (opened != null) {
@@ -41,8 +43,14 @@ class _NotificationTriggersState extends ConsumerState<NotificationTriggers> {
     }));
   }
 
+  void _refresh() {
+    ref
+      ..invalidate(notificationInboxProvider)
+      ..invalidate(myInvitationsProvider);
+  }
+
   void _onResume() {
-    ref.invalidate(notificationInboxProvider);
+    _refresh();
     unawaited(ref.read(pushRegistrationProvider.notifier).ensureRegistered());
   }
 
@@ -64,8 +72,11 @@ class _NotificationTriggersState extends ConsumerState<NotificationTriggers> {
     } else {
       ref.invalidate(notificationInboxProvider);
     }
-    final matchId = opened.matchId;
-    router.go(matchId == null ? '/notifications' : '/notifications/matches/$matchId');
+    await openNotificationTarget(
+      ref,
+      NotificationTarget(type: opened.type, matchId: opened.matchId, leagueId: opened.leagueId),
+      navigate: router.go,
+    );
   }
 
   /// Navigating while the router still resolves the first screen would be

@@ -19,6 +19,9 @@ class _FakeMeRepository implements MeRepository {
   Future<Me> load() async => current;
 
   @override
+  Future<GlobalStats> statistics() async => noStatistics;
+
+  @override
   Future<Me> updateDisplayName(String name) async {
     final failure = failNextWith;
     if (failure != null) {

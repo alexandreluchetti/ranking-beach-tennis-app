@@ -131,13 +131,13 @@ final leagueRepositoryProvider = Provider<LeagueRepository>((ref) => LeagueRepos
 /// "Minhas ligas" of the signed-in user, with an offline copy so the app opens
 /// in the selected league without a connection.
 final myLeaguesProvider = FutureProvider<Cached<List<League>>>((ref) async {
-  final session = await ref.watch(sessionProvider.future);
-  if (session == null) {
+  final uid = ref.watch(sessionProvider.select((session) => session.value?.uid));
+  if (uid == null) {
     return const Cached([]);
   }
   return fetchWithOfflineCopy(
     store: ref.watch(localStoreProvider),
-    key: 'leagues_mine.${session.uid}',
+    key: 'leagues_mine.$uid',
     fetch: ref.watch(leagueRepositoryProvider).mine,
     encode: (leagues) => [for (final l in leagues) l.toJson()],
     decode: (json) => [for (final l in json as List) League.fromJson(l as Map<String, dynamic>)],

@@ -16,6 +16,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final me = ref.watch(meProvider).value;
+    final statistics = ref.watch(myStatisticsProvider);
     Widget section(String title) => Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(title, style: Theme.of(context).textTheme.titleSmall),
@@ -47,6 +48,13 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: _GlobalStatsCard(
+              statistics: statistics,
+              onRetry: () => ref.invalidate(myStatisticsProvider),
+            ),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.groups_outlined),
@@ -82,5 +90,60 @@ class ProfileScreen extends ConsumerWidget {
     if (saved ?? false) {
       messenger.showSnackBar(const SnackBar(content: Text('Nome atualizado.')));
     }
+  }
+}
+
+/// "Minhas estatísticas": the user's matches over every league, without
+/// points (each league has its own ranking).
+class _GlobalStatsCard extends StatelessWidget {
+  const _GlobalStatsCard({required this.statistics, required this.onRetry});
+
+  final AsyncValue<GlobalStats> statistics;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget number(String value, String label) => Expanded(
+          child: Column(
+            children: [
+              Text(value, style: theme.textTheme.titleLarge),
+              Text(label, style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
+            ],
+          ),
+        );
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Minhas estatísticas', style: theme.textTheme.labelLarge),
+            Text('Todas as ligas somadas, sem pontos', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 12),
+            switch (statistics) {
+              AsyncData(:final value) => Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    number('${value.matchesPlayed}', 'partidas'),
+                    number('${value.wins}', 'vitórias'),
+                    number('${value.losses}', 'derrotas'),
+                    number(value.gameDifference > 0 ? '+${value.gameDifference}' : '${value.gameDifference}',
+                        'saldo de games'),
+                    number(value.winRate == null ? '—' : '${value.winRate}%', 'aproveitamento'),
+                  ],
+                ),
+              AsyncError() => Row(
+                  children: [
+                    Expanded(child: Text('Não foi possível carregar.', style: theme.textTheme.bodyMedium)),
+                    TextButton(onPressed: onRetry, child: const Text('Tentar novamente')),
+                  ],
+                ),
+              _ => const Center(child: CircularProgressIndicator()),
+            },
+          ],
+        ),
+      ),
+    );
   }
 }

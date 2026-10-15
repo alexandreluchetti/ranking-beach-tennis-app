@@ -47,8 +47,10 @@ List<Override> deviceOverrides(
   FakePushMessaging? push,
   List<League> leagues = const [sampleLeague],
   FakeLeagueRepository? leagueRepository,
+  GlobalStats statistics = noStatistics,
 }) =>
     [
+      myStatisticsProvider.overrideWith((ref) async => statistics),
       if (leagueRepository == null)
         ...leagueOverrides(leagues)
       else
@@ -229,6 +231,9 @@ MatchView sampleMatch({String id = 'm1', bool voided = false, bool counted = tru
       'voiding': voided ? {'reason': 'Jogo de treino', 'voidedBy': 'p-admin', 'voidedAt': '2026-10-12T10:00:00-03:00'} : null,
       'version': 0,
     });
+
+/// Statistics of someone who never played.
+const noStatistics = GlobalStats(matchesPlayed: 0, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0, gameDifference: 0);
 
 /// A league where the user is a regular member.
 const sampleLeague = League(
