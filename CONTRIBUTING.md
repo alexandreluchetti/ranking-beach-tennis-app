@@ -13,7 +13,7 @@ Work branch names are lowercase kebab-case in English, e.g. `feat/profile-tab`,
 
 | Prefix | Use for |
 |---|---|
-| `feat/` | New behavior visible to players or the administrator |
+| `feat/` | New behavior visible to players or administrators |
 | `fix/` | Bug fixes |
 | `refactor/` | Code changes without behavior changes |
 | `chore/` | Build, tooling, dependencies, documentation |
