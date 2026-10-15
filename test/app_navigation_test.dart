@@ -163,6 +163,19 @@ void main() {
     expect(find.byType(SeasonFormScreen), findsOneWidget);
   });
 
+  testWidgets('the leagues screen opened by address leads back to the ranking', (tester) async {
+    await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
+    final router = GoRouter.of(tester.element(find.byType(NavigationBar)));
+
+    router.go('/leagues');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Voltar ao ranking'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Primavera · 01/10/2026 a 31/12/2026'), findsOneWidget);
+  });
+
   testWidgets('switches between areas', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
 
