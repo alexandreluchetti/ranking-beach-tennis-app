@@ -15,8 +15,9 @@ extension SeasonStatusLabel on SeasonStatus {
       };
 }
 
-/// Season management, opened from the "Administração" section of the profile.
-/// Match corrections, voids and void reversals are on each match's details.
+/// Season management of the current league, opened from the "Administração"
+/// section of the league page. Match corrections, voids and void reversals are
+/// on each match's details.
 class SeasonsAdminScreen extends ConsumerWidget {
   const SeasonsAdminScreen({super.key});
 
@@ -25,10 +26,12 @@ class SeasonsAdminScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final seasons = ref.watch(seasonsProvider);
+    // Paths relative to this screen's own.
+    final base = GoRouterState.of(context).uri.path;
     return Scaffold(
       appBar: AppBar(title: const Text('Temporadas')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/profile/seasons/new'),
+        onPressed: () => context.push('$base/new'),
         icon: const Icon(Icons.add),
         label: const Text('Nova temporada'),
       ),
@@ -59,7 +62,7 @@ class SeasonsAdminScreen extends ConsumerWidget {
                   // A closed season cannot change (D-006/D-010).
                   onTap: season.status == SeasonStatus.closed
                       ? null
-                      : () => context.push('/profile/seasons/${season.id}'),
+                      : () => context.push('$base/${season.id}'),
                 ),
             ],
           ),

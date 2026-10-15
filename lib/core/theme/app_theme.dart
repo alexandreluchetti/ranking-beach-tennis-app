@@ -18,6 +18,10 @@ class AppColors {
 class AppTheme {
   const AppTheme._();
 
+  /// Filled and outlined buttons take the full width by default; this keeps
+  /// one at its natural size (in a row, a list tile or a card).
+  static const inlineButton = ButtonStyle(minimumSize: WidgetStatePropertyAll(Size(64, 40)));
+
   static ThemeData light() => _build(
         ColorScheme.fromSeed(
           seedColor: AppColors.orange,

@@ -9,9 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/local_store.dart';
+import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/core/theme/app_theme.dart';
 import 'package:ranking_beach_tennis/features/admin/admin_repository.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
+import 'package:ranking_beach_tennis/features/leagues/league_models.dart';
+import 'package:ranking_beach_tennis/features/leagues/league_repository.dart';
 import 'package:ranking_beach_tennis/features/sync/sync_controller.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
@@ -34,14 +37,24 @@ class MemoryLocalStore implements LocalStore {
 }
 
 /// Signed-in user, in-memory device storage, no connectivity events and fake
-/// notifications and push (never Firebase or the network).
+/// notifications and push (never Firebase or the network). The user is in
+/// [leagues] (the first one is selected unless another was saved); with a
+/// [leagueRepository], "Minhas ligas" come from it instead.
 List<Override> deviceOverrides(
   FakeAuthRepository auth,
   LocalStore store, {
   FakeNotificationRepository? notifications,
   FakePushMessaging? push,
+  List<League> leagues = const [sampleLeague],
+  FakeLeagueRepository? leagueRepository,
+  GlobalStats statistics = noStatistics,
 }) =>
     [
+      myStatisticsProvider.overrideWith((ref) async => statistics),
+      if (leagueRepository == null)
+        ...leagueOverrides(leagues)
+      else
+        leagueRepositoryProvider.overrideWithValue(leagueRepository),
       authRepositoryProvider.overrideWithValue(auth),
       localStoreProvider.overrideWithValue(store),
       connectivityChangesProvider.overrideWith((ref) => const Stream.empty()),
@@ -49,13 +62,32 @@ List<Override> deviceOverrides(
       pushMessagingProvider.overrideWithValue(push ?? FakePushMessaging()),
     ];
 
+/// "Minhas ligas" answered from memory (and no league request reaches the network).
+List<Override> leagueOverrides(List<League> leagues) => [
+      myLeaguesProvider.overrideWithValue(AsyncData(Cached(leagues))),
+      leagueRepositoryProvider.overrideWithValue(FakeLeagueRepository(mine: leagues)),
+    ];
+
 /// Pumps [child] inside a pt-BR MaterialApp with the given provider overrides.
-Future<void> pumpScreen(WidgetTester tester, Widget child, {List<Override> overrides = const []}) async {
+/// The user is in [leagues] (with in-memory device storage); pass null when
+/// [overrides] already set them (e.g. with [deviceOverrides]).
+Future<void> pumpScreen(
+  WidgetTester tester,
+  Widget child, {
+  List<Override> overrides = const [],
+  List<League>? leagues = const [sampleLeague],
+}) async {
   await initializeDateFormatting('pt_BR');
   await tester.pumpWidget(
     ProviderScope(
       retry: (_, _) => null,
-      overrides: overrides,
+      overrides: [
+        if (leagues != null) ...[
+          ...leagueOverrides(leagues),
+          localStoreProvider.overrideWithValue(MemoryLocalStore()),
+        ],
+        ...overrides,
+      ],
       child: MaterialApp(
         theme: AppTheme.light(),
         locale: const Locale('pt', 'BR'),
@@ -131,6 +163,9 @@ class FakeMatchRepository implements MatchRepository {
   Future<List<PlayerSummary>> players() async => playerList;
 
   final registered = <Map<String, dynamic>>[];
+
+  /// League of each registration, in order.
+  final registeredLeagues = <String>[];
   final searches = <MatchFilter>[];
   final registerErrors = <Exception>[];
 
@@ -138,8 +173,9 @@ class FakeMatchRepository implements MatchRepository {
   bool offline = false;
 
   @override
-  Future<MatchView> register(MatchDraft draft, {bool confirmPossibleDuplicate = false}) async {
+  Future<MatchView> register(MatchDraft draft, {required String leagueId, bool confirmPossibleDuplicate = false}) async {
     registered.add(draft.toJson(confirmPossibleDuplicate: confirmPossibleDuplicate));
+    registeredLeagues.add(leagueId);
     if (offline) {
       throw const ApiException('Sem conexão com o servidor. Verifique sua internet.');
     }
@@ -196,7 +232,31 @@ MatchView sampleMatch({String id = 'm1', bool voided = false, bool counted = tru
       'version': 0,
     });
 
-const anaMe =Me(id: 'p-ana', displayName: 'Ana', email: 'ana@example.com', admin: false);
+/// Statistics of someone who never played.
+const noStatistics = GlobalStats(matchesPlayed: 0, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0, gameDifference: 0);
+
+/// A league where the user is a regular member.
+const sampleLeague = League(
+  id: 'l-arena',
+  name: 'Beach Tennis Arena',
+  visibility: LeagueVisibility.public,
+  memberCount: 13,
+  memberLimit: 50,
+  myRole: LeagueRole.member,
+);
+
+/// A league the user administers.
+const adminLeague = League(
+  id: 'l-admin',
+  name: 'Liga do Admin',
+  visibility: LeagueVisibility.private,
+  memberCount: 4,
+  memberLimit: 50,
+  myRole: LeagueRole.admin,
+  canAdminister: true,
+);
+
+const anaMe = Me(id: 'p-ana', displayName: 'Ana', email: 'ana@example.com', admin: false);
 const adminMe = Me(id: 'p-admin', displayName: 'Admin', email: 'admin@example.com', admin: true);
 
 final primavera = Season(
@@ -354,5 +414,267 @@ class FakeAdminRepository implements AdminRepository {
   Future<MatchView> revertVoid(String id, String reason) async {
     await _record({'op': 'revert', 'id': id, 'reason': reason});
     return sampleMatch(id: id);
+  }
+}
+
+/// Leagues in memory, answering like the backend; records every call and
+/// throws what is queued in [errors].
+class FakeLeagueRepository implements LeagueRepository {
+  FakeLeagueRepository({
+    List<League> mine = const [],
+    List<League> others = const [],
+    List<LeagueInvitation> invitations = const [],
+    Map<String, List<LeagueMember>> members = const {},
+    Map<String, League> codes = const {},
+  })  : myLeagues = [...mine],
+        others = [...others],
+        invitations = [...invitations],
+        memberLists = {...members},
+        codes = {...codes};
+
+  final List<League> myLeagues;
+
+  /// Leagues the user is not in, found by [search].
+  final List<League> others;
+  final List<LeagueInvitation> invitations;
+  final Map<String, List<LeagueMember>> memberLists;
+
+  /// Invite code (upper case) → league.
+  final Map<String, League> codes;
+  final calls = <String>[];
+  final errors = <Exception>[];
+
+  Future<void> _record(String call) async {
+    calls.add(call);
+    if (errors.isNotEmpty) {
+      throw errors.removeAt(0);
+    }
+  }
+
+  League _asMember(League league, {LeagueRole role = LeagueRole.member}) {
+    final joined = League(
+      id: league.id,
+      name: league.name,
+      description: league.description,
+      visibility: league.visibility,
+      memberCount: league.memberCount + 1,
+      memberLimit: league.memberLimit,
+      myRole: role,
+      canAdminister: role == LeagueRole.admin,
+    );
+    myLeagues.add(joined);
+    others.removeWhere((l) => l.id == league.id);
+    return joined;
+  }
+
+  League _find(String id) => [...myLeagues, ...others].firstWhere((l) => l.id == id);
+
+  @override
+  Future<List<League>> mine() async {
+    await _record('mine');
+    return [...myLeagues];
+  }
+
+  @override
+  Future<LeaguePage> search(String query, {bool archived = false, int page = 0, int size = 20}) async {
+    await _record('search:$query:$page${archived ? ':archived' : ''}');
+    final found = [...myLeagues, ...others]
+        .where((l) => l.archived == archived && l.name.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+    return LeaguePage(items: found, hasNext: false);
+  }
+
+  @override
+  Future<League> byId(String id) async {
+    await _record('get:$id');
+    return _find(id);
+  }
+
+  @override
+  Future<League> create({required String name, String? description, required LeagueVisibility visibility}) async {
+    await _record('create:$name:${visibility.apiValue}');
+    return _asMember(
+      League(id: 'l-new', name: name, description: description, visibility: visibility, memberCount: 0, memberLimit: 50),
+      role: LeagueRole.admin,
+    );
+  }
+
+  @override
+  Future<League> join(String id) async {
+    await _record('join:$id');
+    return _asMember(_find(id));
+  }
+
+  @override
+  Future<League> requestToJoin(String id) async {
+    await _record('request:$id');
+    final league = _find(id).copyWith(joinRequestPending: true);
+    others[others.indexWhere((l) => l.id == id)] = league;
+    return league;
+  }
+
+  @override
+  Future<void> cancelJoinRequest(String id) async {
+    await _record('cancel:$id');
+    others[others.indexWhere((l) => l.id == id)] = _find(id).copyWith(joinRequestPending: false);
+  }
+
+  @override
+  Future<League> joinByCode(String code) async {
+    await _record('code:$code');
+    final league = codes[code.replaceAll(' ', '').toUpperCase()];
+    if (league == null) {
+      throw const ApiException('Código de convite inválido.', code: 'INVITE_CODE_INVALID', statusCode: 404);
+    }
+    return _asMember(league);
+  }
+
+  @override
+  Future<void> leave(String id) async {
+    await _record('leave:$id');
+    myLeagues.removeWhere((l) => l.id == id);
+  }
+
+  @override
+  Future<List<LeagueMember>> members(String id) async {
+    await _record('members:$id');
+    return memberLists[id] ?? const [];
+  }
+
+  @override
+  Future<List<LeagueInvitation>> myInvitations() async {
+    await _record('invitations');
+    return [...invitations];
+  }
+
+  @override
+  Future<League> acceptInvitation(String invitationId) async {
+    await _record('accept:$invitationId');
+    final invitation = invitations.firstWhere((i) => i.id == invitationId);
+    invitations.remove(invitation);
+    return _asMember(invitation.league);
+  }
+
+  @override
+  Future<void> rejectInvitation(String invitationId) async {
+    await _record('reject:$invitationId');
+    invitations.removeWhere((i) => i.id == invitationId);
+  }
+
+  /// Pending join requests by league.
+  final requestLists = <String, List<JoinRequest>>{};
+
+  /// Current invite code by league.
+  final inviteCodes = <String, String>{};
+
+  void _replace(League league) {
+    final i = myLeagues.indexWhere((l) => l.id == league.id);
+    if (i >= 0) {
+      myLeagues[i] = league;
+    }
+  }
+
+  @override
+  Future<League> update(String id, {required String name, required String description, required LeagueVisibility visibility}) async {
+    await _record('update:$id:$name:$description:${visibility.apiValue}');
+    final l = _find(id);
+    final updated = League(
+      id: id,
+      name: name,
+      description: description.isEmpty ? null : description,
+      visibility: visibility,
+      memberCount: l.memberCount,
+      memberLimit: l.memberLimit,
+      myRole: l.myRole,
+      canAdminister: l.canAdminister,
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<League> archive(String id) async {
+    await _record('archive:$id');
+    final l = _find(id);
+    final archived = League(
+      id: id,
+      name: l.name,
+      visibility: l.visibility,
+      memberCount: l.memberCount,
+      memberLimit: l.memberLimit,
+      archived: true,
+      myRole: l.myRole,
+      canAdminister: l.canAdminister,
+    );
+    _replace(archived);
+    return archived;
+  }
+
+  @override
+  Future<League> unarchive(String id) async {
+    await _record('unarchive:$id');
+    final l = _find(id);
+    final active = League(
+      id: id,
+      name: l.name,
+      visibility: l.visibility,
+      memberCount: l.memberCount,
+      memberLimit: l.memberLimit,
+      myRole: l.myRole,
+      canAdminister: l.canAdminister,
+    );
+    _replace(active);
+    final i = others.indexWhere((o) => o.id == id);
+    if (i >= 0) {
+      others[i] = active;
+    }
+    return active;
+  }
+
+  @override
+  Future<void> removeMember(String id, String playerId) async {
+    await _record('remove:$id:$playerId');
+    memberLists[id]?.removeWhere((m) => m.playerId == playerId);
+  }
+
+  @override
+  Future<void> changeRole(String id, String playerId, LeagueRole role) async {
+    await _record('role:$id:$playerId:${role.apiValue}');
+    final list = memberLists[id]!;
+    final i = list.indexWhere((m) => m.playerId == playerId);
+    list[i] = LeagueMember(playerId: playerId, displayName: list[i].displayName, role: role, joinedAt: list[i].joinedAt);
+  }
+
+  @override
+  Future<List<JoinRequest>> joinRequests(String id) async {
+    await _record('requests:$id');
+    return [...?requestLists[id]];
+  }
+
+  @override
+  Future<void> acceptJoinRequest(String id, String requestId) async {
+    await _record('acceptRequest:$id:$requestId');
+    requestLists[id]?.removeWhere((r) => r.id == requestId);
+  }
+
+  @override
+  Future<void> rejectJoinRequest(String id, String requestId) async {
+    await _record('rejectRequest:$id:$requestId');
+    requestLists[id]?.removeWhere((r) => r.id == requestId);
+  }
+
+  @override
+  Future<void> invite(String id, String email) => _record('invite:$id:$email');
+
+  @override
+  Future<String?> inviteCode(String id) async {
+    await _record('code?:$id');
+    return inviteCodes[id];
+  }
+
+  @override
+  Future<String> regenerateInviteCode(String id) async {
+    await _record('newCode:$id');
+    return inviteCodes[id] = 'CODE${inviteCodes.length + 1}';
   }
 }

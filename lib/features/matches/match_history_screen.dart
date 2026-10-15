@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../leagues/current_league.dart';
+import '../leagues/league_switcher.dart';
 import '../ranking/ranking_repository.dart';
 import '../sync/pending_matches_sliver.dart';
 import 'match_history.dart';
@@ -29,13 +31,18 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
     String? seasonName = seasons.where((s) => s.id == _filter.seasonId).map((s) => s.name).firstOrNull;
     String? playerName = players.where((p) => p.id == _filter.playerId).map((p) => p.displayName).firstOrNull;
 
+    // An archived league is read-only.
+    final archived = ref.watch(currentLeagueProvider).value?.archived ?? false;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Partidas')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/matches/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Registrar partida'),
-      ),
+      appBar: AppBar(title: const LeagueTitle()),
+      floatingActionButton: archived
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => context.push('/matches/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Registrar partida'),
+            ),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(matchHistoryProvider(_filter).future),
         child: CustomScrollView(

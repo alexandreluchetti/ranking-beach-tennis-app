@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,6 +15,9 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Web addresses without "#" (e.g. /convite/{code} for invite links); Firebase
+  // Hosting serves index.html for every path. No effect on the phone.
+  usePathUrlStrategy();
   await Firebase.initializeApp(options: _firebaseOptions());
   await initializeDateFormatting('pt_BR');
   final preferences = await SharedPreferences.getInstance();

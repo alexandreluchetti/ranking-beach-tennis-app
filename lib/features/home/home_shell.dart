@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../leagues/league_repository.dart';
 import '../notifications/notification_inbox.dart';
 
 /// The five main areas, the same for every player. The administrator's extra
@@ -43,7 +44,9 @@ class HomeShell extends ConsumerWidget {
         destinations: destinations,
         onDestinationSelected: (i) {
           if (i == notificationsBranch) {
-            ref.invalidate(notificationInboxProvider);
+            ref
+              ..invalidate(notificationInboxProvider)
+              ..invalidate(myInvitationsProvider);
           }
           navigationShell.goBranch(i, initialLocation: i == navigationShell.currentIndex);
         },

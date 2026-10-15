@@ -78,7 +78,7 @@ void main() {
 
   test('a send interrupted by closing the app is pending again on restart', () async {
     await store.write(SyncController.storageKey, [
-      PendingMatch(draft: draft('m1'), ownerUid: 'u-ana', status: SyncStatus.sending).toStorage(),
+      PendingMatch(draft: draft('m1'), leagueId: 'l-arena', ownerUid: 'u-ana', status: SyncStatus.sending).toStorage(),
     ]);
 
     expect(open().read(syncControllerProvider).single.status, SyncStatus.pending);
