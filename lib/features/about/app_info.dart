@@ -8,13 +8,8 @@ import '../../core/network/api_client.dart';
 /// Shown in "Sobre o app" and on the sign-in screen.
 const appDeveloper = 'Alexandre Lucchetta';
 
-/// "1.0.2 (build 3)", "1.0.2" without a build number, or null when unknown.
-String? describeAppVersion(String version, String buildNumber) {
-  if (version.isEmpty) {
-    return null;
-  }
-  return buildNumber.isEmpty ? version : '$version (build $buildNumber)';
-}
+/// "1.0.2", or null when unknown. The build number is not shown to people.
+String? describeAppVersion(String version) => version.isEmpty ? null : version;
 
 /// Reads `version.json` next to the web app, the file package_info_plus reads.
 final webVersionFileProvider = Provider<Future<Map<String, dynamic>?> Function()>(
@@ -37,20 +32,16 @@ final webVersionFileProvider = Provider<Future<Map<String, dynamic>?> Function()
 /// (it builds the version.json URL without a scheme), so the file is read here.
 final appVersionProvider = FutureProvider<String?>((ref) async {
   var version = '';
-  var buildNumber = '';
   try {
-    final info = await PackageInfo.fromPlatform();
-    version = info.version;
-    buildNumber = info.buildNumber;
+    version = (await PackageInfo.fromPlatform()).version;
   } catch (_) {
     // Handled below.
   }
   if (version.isEmpty && kIsWeb) {
     final file = await ref.read(webVersionFileProvider)();
     version = file?['version'] as String? ?? '';
-    buildNumber = file?['build_number'] as String? ?? '';
   }
-  return describeAppVersion(version, buildNumber);
+  return describeAppVersion(version);
 });
 
 /// Backend version from `GET /actuator/info` (`build.version`), or null when
