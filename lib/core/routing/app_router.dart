@@ -56,6 +56,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   final router = GoRouter(
     initialLocation: start.location,
+    // On the web a new router would otherwise start at the address in the
+    // browser (e.g. /leagues) instead of where the league switch sends it.
+    // The first router still honors the address (invite links).
+    overridePlatformDefaultLocation: start.epoch > 0,
     refreshListenable: refresh,
     redirect: (context, state) {
       final invite = RegExp(r'^/convite/([^/]+)$').firstMatch(state.matchedLocation);

@@ -26,6 +26,15 @@ class LeaguesScreen extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          // Opened straight from an address (e.g. a reload on the web): nothing
+          // to go back to, so offer the way to the league's ranking.
+          leading: hasLeague && !context.canPop()
+              ? IconButton(
+                  tooltip: 'Voltar ao ranking',
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => context.go('/ranking'),
+                )
+              : null,
           title: const Text('Ligas'),
           actions: [
             if (!hasLeague)
