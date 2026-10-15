@@ -32,7 +32,7 @@ void main() {
     leagues = FakeLeagueRepository(mine: [adminLeague], members: {'l-admin': members()});
   });
 
-  Future<void> pumpApp(WidgetTester tester, {SeasonRanking? ranking}) async {
+  Future<void> pumpApp(WidgetTester tester, {SeasonRanking? ranking, Me me = adminMe}) async {
     // A tall screen: the whole league page fits without scrolling.
     tester.view.physicalSize = const Size(2400, 6000);
     addTearDown(tester.view.reset);
@@ -45,7 +45,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(preferences),
         ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'admin')), MemoryLocalStore(),
             leagueRepository: leagues),
-        meProvider.overrideWith((ref) async => adminMe),
+        meProvider.overrideWith((ref) async => me),
         currentRankingProvider.overrideWith((ref) async => Cached(ranking)),
         seasonsProvider.overrideWith((ref) async => [primavera]),
         matchRepositoryProvider.overrideWithValue(FakeMatchRepository(matches: [sampleMatch()])),
@@ -211,6 +211,71 @@ void main() {
     expect(leagues.calls, contains('update:l-admin:Liga Renomeada:Quartas à noite:PUBLIC'));
     expect(find.text('Liga atualizada.'), findsOneWidget);
     expect(find.text('Quartas à noite'), findsOneWidget);
+  });
+
+  group('system administrator', () {
+    const oldLeague = League(
+      id: 'l-old',
+      name: 'Liga Antiga',
+      visibility: LeagueVisibility.public,
+      memberCount: 8,
+      memberLimit: 50,
+      archived: true,
+      canAdminister: true,
+    );
+
+    testWidgets('finds archived leagues and unarchives them', (tester) async {
+      leagues.others.add(oldLeague);
+      await pumpApp(tester, ranking: sampleRanking());
+      GoRouter.of(tester.element(find.byType(NavigationBar))).push('/leagues');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Explorar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Liga Antiga'), findsNothing, reason: 'archived leagues are not in the search');
+
+      await tester.tap(find.text('Somente arquivadas'));
+      await tester.pumpAndSettle();
+      expect(leagues.calls, contains('search::0:archived'));
+      await tester.tap(find.text('Liga Antiga'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Desarquivar liga'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Desarquivar'));
+      await tester.pumpAndSettle();
+
+      expect(leagues.calls, contains('unarchive:l-old'));
+      expect(find.text('Liga desarquivada.'), findsOneWidget);
+      expect(find.text('Desarquivar liga'), findsNothing);
+      expect(find.text('Administração'), findsOneWidget, reason: 'active again');
+    });
+
+    testWidgets('other users can neither list archived leagues nor unarchive', (tester) async {
+      const archivedMine = League(
+        id: 'l-old',
+        name: 'Liga Antiga',
+        visibility: LeagueVisibility.public,
+        memberCount: 8,
+        memberLimit: 50,
+        archived: true,
+        myRole: LeagueRole.admin,
+        canAdminister: true,
+      );
+      leagues = FakeLeagueRepository(mine: [adminLeague, archivedMine]);
+      await pumpApp(tester, ranking: sampleRanking(), me: anaMe);
+      GoRouter.of(tester.element(find.byType(NavigationBar))).push('/leagues');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Explorar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Somente arquivadas'), findsNothing);
+
+      GoRouter.of(tester.element(find.byType(Scaffold).last)).push('/leagues/l-old');
+      await tester.pumpAndSettle();
+      expect(find.text('Liga arquivada: somente leitura. Ninguém entra, e não é possível registrar partidas.'),
+          findsOneWidget);
+      expect(find.text('Desarquivar liga'), findsNothing);
+      expect(find.text('Administração'), findsNothing);
+    });
   });
 
   testWidgets('archiving makes the league read-only', (tester) async {

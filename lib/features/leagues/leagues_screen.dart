@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
 import '../auth/sign_out.dart';
+import '../me/me_repository.dart';
 import 'current_league.dart';
 import 'league_entry.dart';
 import 'league_models.dart';
@@ -204,8 +205,11 @@ class _ExploreTab extends ConsumerStatefulWidget {
 }
 
 class _ExploreTabState extends ConsumerState<_ExploreTab> with AutomaticKeepAliveClientMixin {
-  String _query = '';
+  String _text = '';
+  bool _archived = false;
   Timer? _debounce;
+
+  LeagueQuery get _query => (text: _text, archived: _archived);
 
   @override
   bool get wantKeepAlive => true;
@@ -218,13 +222,15 @@ class _ExploreTabState extends ConsumerState<_ExploreTab> with AutomaticKeepAliv
 
   void _search(String text) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () => setState(() => _query = text.trim()));
+    _debounce = Timer(const Duration(milliseconds: 400), () => setState(() => _text = text.trim()));
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final results = ref.watch(leagueSearchProvider(_query));
+    // Only the system administrator may list the archived leagues.
+    final systemAdmin = ref.watch(meProvider).value?.admin ?? false;
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
         if (n.metrics.extentAfter < 300) {
@@ -245,10 +251,23 @@ class _ExploreTabState extends ConsumerState<_ExploreTab> with AutomaticKeepAliv
                 onChanged: _search,
                 onSubmitted: (text) {
                   _debounce?.cancel();
-                  setState(() => _query = text.trim());
+                  setState(() => _text = text.trim());
                 },
               ),
             ),
+            if (systemAdmin)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilterChip(
+                    avatar: const Icon(Icons.inventory_2_outlined, size: 18),
+                    label: const Text('Somente arquivadas'),
+                    selected: _archived,
+                    onSelected: (on) => setState(() => _archived = on),
+                  ),
+                ),
+              ),
             ...results.when(
               loading: () => const [Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))],
               error: (error, _) => [

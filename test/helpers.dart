@@ -476,9 +476,11 @@ class FakeLeagueRepository implements LeagueRepository {
   }
 
   @override
-  Future<LeaguePage> search(String query, {int page = 0, int size = 20}) async {
-    await _record('search:$query:$page');
-    final found = [...myLeagues, ...others].where((l) => l.name.toLowerCase().contains(query.toLowerCase())).toList();
+  Future<LeaguePage> search(String query, {bool archived = false, int page = 0, int size = 20}) async {
+    await _record('search:$query:$page${archived ? ':archived' : ''}');
+    final found = [...myLeagues, ...others]
+        .where((l) => l.archived == archived && l.name.toLowerCase().contains(query.toLowerCase()))
+        .toList();
     return LeaguePage(items: found, hasNext: false);
   }
 
@@ -606,6 +608,27 @@ class FakeLeagueRepository implements LeagueRepository {
     );
     _replace(archived);
     return archived;
+  }
+
+  @override
+  Future<League> unarchive(String id) async {
+    await _record('unarchive:$id');
+    final l = _find(id);
+    final active = League(
+      id: id,
+      name: l.name,
+      visibility: l.visibility,
+      memberCount: l.memberCount,
+      memberLimit: l.memberLimit,
+      myRole: l.myRole,
+      canAdminister: l.canAdminister,
+    );
+    _replace(active);
+    final i = others.indexWhere((o) => o.id == id);
+    if (i >= 0) {
+      others[i] = active;
+    }
+    return active;
   }
 
   @override

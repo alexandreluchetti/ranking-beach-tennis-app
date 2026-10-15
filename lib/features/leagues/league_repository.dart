@@ -20,10 +20,13 @@ class LeagueRepository {
         return response.data!.map((l) => League.fromJson(l as Map<String, dynamic>)).toList();
       });
 
-  /// Leagues by name (archived ones are not listed).
-  Future<LeaguePage> search(String query, {int page = 0, int size = 20}) => apiCall(() async {
+  /// Leagues by name. Archived leagues are listed only with [archived], which
+  /// only the system administrator may use.
+  Future<LeaguePage> search(String query, {bool archived = false, int page = 0, int size = 20}) =>
+      apiCall(() async {
         final response = await _dio.get<Map<String, dynamic>>('/api/leagues', queryParameters: {
           if (query.trim().isNotEmpty) 'query': query.trim(),
+          if (archived) 'archived': true,
           'page': page,
           'size': size,
         });
@@ -91,6 +94,10 @@ class LeagueRepository {
   /// Read-only from then on; only the system administrator can undo it.
   Future<League> archive(String id) =>
       apiCall(() async => _league(await _dio.post<Map<String, dynamic>>('/api/leagues/$id/archive')));
+
+  /// System administrator only.
+  Future<League> unarchive(String id) =>
+      apiCall(() async => _league(await _dio.post<Map<String, dynamic>>('/api/leagues/$id/unarchive')));
 
   Future<void> removeMember(String id, String playerId) =>
       apiCall(() => _dio.delete<void>('/api/leagues/$id/members/$playerId'));
@@ -167,17 +174,21 @@ class LeagueSearchState {
   final bool loadingMore;
 }
 
+/// What "Explorar" searches: a name and, for the system administrator, the
+/// archived leagues instead of the active ones.
+typedef LeagueQuery = ({String text, bool archived});
+
 /// "Explorar": search results loaded page by page.
 class LeagueSearch extends AsyncNotifier<LeagueSearchState> {
   LeagueSearch(this.query);
 
-  final String query;
+  final LeagueQuery query;
   int _page = 0;
 
   @override
   Future<LeagueSearchState> build() async {
     _page = 0;
-    final page = await ref.watch(leagueRepositoryProvider).search(query);
+    final page = await ref.watch(leagueRepositoryProvider).search(query.text, archived: query.archived);
     return LeagueSearchState(items: page.items, hasNext: page.hasNext);
   }
 
@@ -188,7 +199,8 @@ class LeagueSearch extends AsyncNotifier<LeagueSearchState> {
     }
     state = AsyncData(LeagueSearchState(items: current.items, hasNext: true, loadingMore: true));
     try {
-      final next = await ref.read(leagueRepositoryProvider).search(query, page: _page + 1);
+      final next =
+          await ref.read(leagueRepositoryProvider).search(query.text, archived: query.archived, page: _page + 1);
       _page++;
       state = AsyncData(LeagueSearchState(items: [...current.items, ...next.items], hasNext: next.hasNext));
     } catch (_) {
@@ -211,4 +223,4 @@ class LeagueSearch extends AsyncNotifier<LeagueSearchState> {
 }
 
 final leagueSearchProvider =
-    AsyncNotifierProvider.family<LeagueSearch, LeagueSearchState, String>(LeagueSearch.new);
+    AsyncNotifierProvider.family<LeagueSearch, LeagueSearchState, LeagueQuery>(LeagueSearch.new);

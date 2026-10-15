@@ -113,6 +113,15 @@ class _LeagueDetails extends ConsumerWidget {
           const Divider(),
           _MembersSection(league: league),
         ],
+        if (league.archived && (ref.watch(meProvider).value?.admin ?? false)) ...[
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.unarchive_outlined),
+            title: const Text('Desarquivar liga'),
+            subtitle: const Text('Somente o administrador geral'),
+            onTap: () => _unarchive(context, ref),
+          ),
+        ],
         if (league.isMember) ...[
           const Divider(),
           ListTile(
@@ -123,6 +132,23 @@ class _LeagueDetails extends ConsumerWidget {
         ],
       ],
     );
+  }
+
+  Future<void> _unarchive(BuildContext context, WidgetRef ref) async {
+    final ok = await confirm(
+      context,
+      title: 'Desarquivar liga?',
+      message: 'A liga volta a aparecer na busca e a aceitar partidas, temporadas e novos membros.',
+      action: 'Desarquivar',
+    );
+    if (!ok || !context.mounted) {
+      return;
+    }
+    await runLeagueAction(context, () async {
+      await ref.read(leagueRepositoryProvider).unarchive(league.id);
+      refreshLeague(ref, league.id);
+      ref.invalidate(leagueSearchProvider);
+    }, done: 'Liga desarquivada.');
   }
 
   Future<void> _leave(BuildContext context, WidgetRef ref) async {
