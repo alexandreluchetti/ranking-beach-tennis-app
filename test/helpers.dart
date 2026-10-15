@@ -553,4 +553,100 @@ class FakeLeagueRepository implements LeagueRepository {
     await _record('reject:$invitationId');
     invitations.removeWhere((i) => i.id == invitationId);
   }
+
+  /// Pending join requests by league.
+  final requestLists = <String, List<JoinRequest>>{};
+
+  /// Current invite code by league.
+  final inviteCodes = <String, String>{};
+
+  void _replace(League league) {
+    final i = myLeagues.indexWhere((l) => l.id == league.id);
+    if (i >= 0) {
+      myLeagues[i] = league;
+    }
+  }
+
+  @override
+  Future<League> update(String id, {required String name, required String description, required LeagueVisibility visibility}) async {
+    await _record('update:$id:$name:$description:${visibility.apiValue}');
+    final l = _find(id);
+    final updated = League(
+      id: id,
+      name: name,
+      description: description.isEmpty ? null : description,
+      visibility: visibility,
+      memberCount: l.memberCount,
+      memberLimit: l.memberLimit,
+      myRole: l.myRole,
+      canAdminister: l.canAdminister,
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<League> archive(String id) async {
+    await _record('archive:$id');
+    final l = _find(id);
+    final archived = League(
+      id: id,
+      name: l.name,
+      visibility: l.visibility,
+      memberCount: l.memberCount,
+      memberLimit: l.memberLimit,
+      archived: true,
+      myRole: l.myRole,
+      canAdminister: l.canAdminister,
+    );
+    _replace(archived);
+    return archived;
+  }
+
+  @override
+  Future<void> removeMember(String id, String playerId) async {
+    await _record('remove:$id:$playerId');
+    memberLists[id]?.removeWhere((m) => m.playerId == playerId);
+  }
+
+  @override
+  Future<void> changeRole(String id, String playerId, LeagueRole role) async {
+    await _record('role:$id:$playerId:${role.apiValue}');
+    final list = memberLists[id]!;
+    final i = list.indexWhere((m) => m.playerId == playerId);
+    list[i] = LeagueMember(playerId: playerId, displayName: list[i].displayName, role: role, joinedAt: list[i].joinedAt);
+  }
+
+  @override
+  Future<List<JoinRequest>> joinRequests(String id) async {
+    await _record('requests:$id');
+    return [...?requestLists[id]];
+  }
+
+  @override
+  Future<void> acceptJoinRequest(String id, String requestId) async {
+    await _record('acceptRequest:$id:$requestId');
+    requestLists[id]?.removeWhere((r) => r.id == requestId);
+  }
+
+  @override
+  Future<void> rejectJoinRequest(String id, String requestId) async {
+    await _record('rejectRequest:$id:$requestId');
+    requestLists[id]?.removeWhere((r) => r.id == requestId);
+  }
+
+  @override
+  Future<void> invite(String id, String email) => _record('invite:$id:$email');
+
+  @override
+  Future<String?> inviteCode(String id) async {
+    await _record('code?:$id');
+    return inviteCodes[id];
+  }
+
+  @override
+  Future<String> regenerateInviteCode(String id) async {
+    await _record('newCode:$id');
+    return inviteCodes[id] = 'CODE${inviteCodes.length + 1}';
+  }
 }

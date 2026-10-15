@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ranking_beach_tennis/app.dart';
+import 'package:ranking_beach_tennis/features/admin/season_form_screen.dart';
 import 'package:ranking_beach_tennis/core/storage/preferences.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
@@ -108,7 +109,11 @@ void main() {
     expect(find.byType(MatchDetailScreen), findsNothing);
     expect(find.text('Registrar partida'), findsOneWidget);
 
-    await tester.tap(find.text('Perfil'));
+    await tester.tap(find.text('Ranking'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Trocar de liga'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Detalhes da liga'));
     await tester.pumpAndSettle();
     expect(find.text('Administração'), findsOneWidget, reason: 'administrator of the new league');
   });
@@ -129,25 +134,30 @@ void main() {
     await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
     final router = GoRouter.of(tester.element(find.byType(NavigationBar)));
 
-    router.go('/profile/seasons');
+    router.go('/leagues/l-arena/seasons');
     await tester.pumpAndSettle();
 
-    expect(router.routerDelegate.currentConfiguration.uri.path, '/ranking');
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/leagues/l-arena');
     expect(find.text('Nova temporada'), findsNothing);
+    expect(find.text('Administração'), findsNothing);
   });
 
-  testWidgets('the administrator has the same tabs plus the administration section', (tester) async {
+  testWidgets('league administrators manage the seasons from the league page', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'admin'), me: adminMe, leagues: [adminLeague]);
 
     expect(find.byType(NavigationDestination), findsNWidgets(5));
-    await tester.tap(find.text('Perfil'));
+    await tester.tap(find.byTooltip('Trocar de liga'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Detalhes da liga'));
     await tester.pumpAndSettle();
     expect(find.text('Administração'), findsOneWidget);
 
     await tester.tap(find.text('Temporadas'));
     await tester.pumpAndSettle();
     expect(find.text('Nova temporada'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget, reason: 'seasons open inside the profile tab');
+    await tester.tap(find.text('Nova temporada'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SeasonFormScreen), findsOneWidget);
   });
 
   testWidgets('switches between areas', (tester) async {

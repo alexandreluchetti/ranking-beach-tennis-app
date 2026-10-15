@@ -35,11 +35,11 @@ void main() {
   late FakeAdminRepository admin;
   setUp(() => admin = FakeAdminRepository());
 
-  Future<void> pumpAdmin(WidgetTester tester, {String location = '/profile/seasons'}) async {
+  Future<void> pumpAdmin(WidgetTester tester, {String location = '/leagues/l-admin/seasons'}) async {
     await initializeDateFormatting('pt_BR');
     final router = GoRouter(initialLocation: location, routes: [
       GoRoute(
-        path: '/profile/seasons',
+        path: '/leagues/l-admin/seasons',
         builder: (_, _) => const SeasonsAdminScreen(),
         routes: [
           GoRoute(path: 'new', builder: (_, _) => const SeasonFormScreen()),
@@ -113,7 +113,7 @@ void main() {
   });
 
   testWidgets('a planned season sends only what changed', (tester) async {
-    await pumpAdmin(tester, location: '/profile/seasons/s2');
+    await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s2');
     expect(find.text('Planejada'), findsOneWidget);
     expect(find.text('Encerrar hoje'), findsNothing);
 
@@ -127,7 +127,7 @@ void main() {
   });
 
   testWidgets('an active season keeps its start date and can end today after confirmation', (tester) async {
-    await pumpAdmin(tester, location: '/profile/seasons/s1');
+    await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s1');
 
     final start = tester.widget<ListTile>(find.byKey(const Key('startDate')));
     expect(start.enabled, isFalse);
@@ -157,7 +157,7 @@ void main() {
       code: 'SEASON_OVERLAP',
       statusCode: 409,
     ));
-    await pumpAdmin(tester, location: '/profile/seasons/s2');
+    await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s2');
 
     await tester.enterText(find.byType(TextFormField), 'Verão 2027');
     await tester.tap(find.text('Salvar alterações'));
@@ -168,7 +168,7 @@ void main() {
   });
 
   testWidgets('a closed season opened by link cannot be edited', (tester) async {
-    await pumpAdmin(tester, location: '/profile/seasons/s0');
+    await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s0');
 
     expect(find.text('Esta temporada não pode ser alterada'), findsOneWidget);
     expect(find.byType(TextFormField), findsNothing);

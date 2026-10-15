@@ -12,6 +12,7 @@ import '../../features/home/home_shell.dart';
 import '../../features/leagues/create_league_screen.dart';
 import '../../features/leagues/current_league.dart';
 import '../../features/leagues/join_by_code_screen.dart';
+import '../../features/leagues/league_admin.dart';
 import '../../features/leagues/league_detail_screen.dart';
 import '../../features/leagues/leagues_screen.dart';
 import '../../features/matches/match_detail_screen.dart';
@@ -58,9 +59,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (location == '/login' || location == '/splash') {
         return '/ranking';
       }
-      final adminOnly = location.startsWith('/admin') || location.startsWith('/profile/seasons');
-      if (adminOnly && !ref.read(canAdministerLeagueProvider)) {
+      final canAdminister = ref.read(canAdministerLeagueProvider);
+      if (location.startsWith('/admin') && !canAdminister) {
         return '/ranking';
+      }
+      final seasons = RegExp(r'^/leagues/([^/]+)/seasons').firstMatch(location);
+      if (seasons != null && (!canAdminister || seasons.group(1) != league.value!.id)) {
+        return '/leagues/${seasons.group(1)}';
       }
       return null;
     },
@@ -76,7 +81,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'join',
             builder: (_, state) => JoinByCodeScreen(initialCode: state.uri.queryParameters['code']),
           ),
-          GoRoute(path: ':id', builder: (_, state) => LeagueDetailScreen(leagueId: state.pathParameters['id']!)),
+          GoRoute(
+            path: ':id',
+            builder: (_, state) => LeagueDetailScreen(leagueId: state.pathParameters['id']!),
+            // Administration; the backend checks the permission.
+            routes: [
+              GoRoute(path: 'edit', builder: (_, state) => EditLeagueScreen(leagueId: state.pathParameters['id']!)),
+              GoRoute(
+                path: 'requests',
+                builder: (_, state) => JoinRequestsScreen(leagueId: state.pathParameters['id']!),
+              ),
+              GoRoute(path: 'invite', builder: (_, state) => InviteScreen(leagueId: state.pathParameters['id']!)),
+              // Seasons of the current league only (see the redirect).
+              GoRoute(
+                path: 'seasons',
+                builder: (_, _) => const SeasonsAdminScreen(),
+                routes: [
+                  GoRoute(path: 'new', builder: (_, _) => const SeasonFormScreen()),
+                  GoRoute(
+                    path: ':seasonId',
+                    builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['seasonId']!),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
       // Full screen over any area; league administrators only (see the redirect above).
@@ -144,13 +173,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (_, _) => const ProfileScreen(),
               routes: [
                 GoRoute(path: 'about', builder: (_, _) => const AboutScreen()),
-                // Administration of the current league (see the redirect above).
-                GoRoute(path: 'seasons', builder: (_, _) => const SeasonsAdminScreen()),
-                GoRoute(path: 'seasons/new', builder: (_, _) => const SeasonFormScreen()),
-                GoRoute(
-                  path: 'seasons/:id',
-                  builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['id']!),
-                ),
               ],
             ),
           ]),

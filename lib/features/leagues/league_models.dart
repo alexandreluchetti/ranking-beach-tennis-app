@@ -144,3 +144,20 @@ class LeagueInvitation {
   final String invitedByName;
   final DateTime createdAt;
 }
+
+/// A pending request to join a private league, seen by its administrators.
+class JoinRequest {
+  const JoinRequest({required this.id, required this.playerId, required this.displayName, required this.createdAt});
+
+  factory JoinRequest.fromJson(Map<String, dynamic> json) => JoinRequest(
+        id: json['id'] as String,
+        playerId: json['playerId'] as String,
+        displayName: json['displayName'] as String,
+        createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
+      );
+
+  final String id;
+  final String playerId;
+  final String displayName;
+  final DateTime createdAt;
+}

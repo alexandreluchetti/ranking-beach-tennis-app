@@ -122,7 +122,9 @@ void main() {
       expect(find.text('Amigos do Vôlei'), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget);
 
-      await tester.tap(find.text('Perfil'));
+      await tester.tap(find.byTooltip('Trocar de liga'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Detalhes da liga'));
       await tester.pumpAndSettle();
       expect(find.text('Administração'), findsOneWidget);
     });

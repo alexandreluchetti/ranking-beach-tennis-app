@@ -4,13 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/theme_mode_controller.dart';
 import '../auth/sign_out.dart';
-import '../leagues/current_league.dart';
 import '../me/me_repository.dart';
 import 'display_name_dialog.dart';
 
-/// "Perfil": the signed-in player's name, theme and sign-out. Administrators
-/// of the current league also get the "Administração" section; every player
-/// sees the same tabs.
+/// "Perfil": the signed-in player's name, leagues, theme and sign-out. League
+/// administration lives on each league's page.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -18,7 +16,6 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final me = ref.watch(meProvider).value;
-    final canAdminister = ref.watch(canAdministerLeagueProvider);
     Widget section(String title) => Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(title, style: Theme.of(context).textTheme.titleSmall),
@@ -50,17 +47,14 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          if (canAdminister) ...[
-            const Divider(),
-            section('Administração'),
-            ListTile(
-              leading: const Icon(Icons.event_note),
-              title: const Text('Temporadas'),
-              subtitle: const Text('Criar, alterar e encerrar temporadas'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/profile/seasons'),
-            ),
-          ],
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.groups_outlined),
+            title: const Text('Minhas ligas'),
+            subtitle: const Text('Criar, explorar, convites e administração'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/leagues'),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.info_outline),

@@ -6,6 +6,7 @@ import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
 import '../me/me_repository.dart';
 import 'current_league.dart';
+import 'league_admin.dart';
 import 'league_entry.dart';
 import 'league_models.dart';
 import 'league_repository.dart';
@@ -102,6 +103,11 @@ class _LeagueDetails extends ConsumerWidget {
               label: const Text('Ver ranking desta liga'),
             ),
           ),
+        if (league.canAdminister && !league.archived) ...[
+          const SizedBox(height: 16),
+          const Divider(),
+          LeagueAdminSection(league: league),
+        ],
         if (seesMembers) ...[
           const SizedBox(height: 16),
           const Divider(),
@@ -197,14 +203,20 @@ class _MembersSection extends ConsumerWidget {
                 ),
                 title: Text(member.playerId == meId ? '${member.displayName} (você)' : member.displayName),
                 subtitle: Text('Desde ${_date.format(member.joinedAt)}'),
-                trailing: member.role == LeagueRole.admin
-                    ? Chip(
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (member.role == LeagueRole.admin)
+                      Chip(
                         label: const Text('Admin'),
                         visualDensity: VisualDensity.compact,
                         side: BorderSide.none,
                         backgroundColor: theme.colorScheme.primaryContainer,
-                      )
-                    : null,
+                      ),
+                    if (league.canAdminister && !league.archived)
+                      MemberAdminMenu(league: league, member: member, isMe: member.playerId == meId),
+                  ],
+                ),
               ),
           ],
         ),

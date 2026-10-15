@@ -77,6 +77,53 @@ class LeagueRepository {
 
   Future<void> rejectInvitation(String invitationId) =>
       apiCall(() => _dio.post<void>('/api/me/invitations/$invitationId/reject'));
+
+  // League administration (D-018). The backend checks the permission.
+
+  /// An empty description removes it.
+  Future<League> update(String id, {required String name, required String description, required LeagueVisibility visibility}) =>
+      apiCall(() async => _league(await _dio.patch<Map<String, dynamic>>('/api/leagues/$id', data: {
+            'name': name,
+            'description': description,
+            'visibility': visibility.apiValue,
+          })));
+
+  /// Read-only from then on; only the system administrator can undo it.
+  Future<League> archive(String id) =>
+      apiCall(() async => _league(await _dio.post<Map<String, dynamic>>('/api/leagues/$id/archive')));
+
+  Future<void> removeMember(String id, String playerId) =>
+      apiCall(() => _dio.delete<void>('/api/leagues/$id/members/$playerId'));
+
+  Future<void> changeRole(String id, String playerId, LeagueRole role) =>
+      apiCall(() => _dio.put<void>('/api/leagues/$id/members/$playerId/role', data: {'role': role.apiValue}));
+
+  Future<List<JoinRequest>> joinRequests(String id) => apiCall(() async {
+        final response = await _dio.get<List<dynamic>>('/api/leagues/$id/join-requests');
+        return response.data!.map((r) => JoinRequest.fromJson(r as Map<String, dynamic>)).toList();
+      });
+
+  Future<void> acceptJoinRequest(String id, String requestId) =>
+      apiCall(() => _dio.post<void>('/api/leagues/$id/join-requests/$requestId/accept'));
+
+  Future<void> rejectJoinRequest(String id, String requestId) =>
+      apiCall(() => _dio.post<void>('/api/leagues/$id/join-requests/$requestId/reject'));
+
+  /// Always accepted: the backend never reveals whether the e-mail has an account.
+  Future<void> invite(String id, String email) =>
+      apiCall(() => _dio.post<void>('/api/leagues/$id/invitations', data: {'email': email}));
+
+  /// Null if no code was generated yet.
+  Future<String?> inviteCode(String id) => apiCall(() async {
+        final response = await _dio.get<Map<String, dynamic>>('/api/leagues/$id/invite-code');
+        return response.data?['code'] as String?;
+      });
+
+  /// A new code; the previous one stops working.
+  Future<String> regenerateInviteCode(String id) => apiCall(() async {
+        final response = await _dio.post<Map<String, dynamic>>('/api/leagues/$id/invite-code');
+        return response.data!['code'] as String;
+      });
 }
 
 final leagueRepositoryProvider = Provider<LeagueRepository>((ref) => LeagueRepository(ref.watch(dioProvider)));
@@ -102,6 +149,12 @@ final leagueProvider =
 
 final leagueMembersProvider =
     FutureProvider.family<List<LeagueMember>, String>((ref, id) => ref.watch(leagueRepositoryProvider).members(id));
+
+final leagueJoinRequestsProvider = FutureProvider.family<List<JoinRequest>, String>(
+    (ref, id) => ref.watch(leagueRepositoryProvider).joinRequests(id));
+
+final leagueInviteCodeProvider =
+    FutureProvider.family<String?, String>((ref, id) => ref.watch(leagueRepositoryProvider).inviteCode(id));
 
 final myInvitationsProvider =
     FutureProvider<List<LeagueInvitation>>((ref) => ref.watch(leagueRepositoryProvider).myInvitations());
