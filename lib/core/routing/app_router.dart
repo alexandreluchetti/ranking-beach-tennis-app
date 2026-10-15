@@ -9,7 +9,10 @@ import '../../features/admin/seasons_admin_screen.dart';
 import '../../features/auth/auth_providers.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/home/home_shell.dart';
+import '../../features/leagues/create_league_screen.dart';
 import '../../features/leagues/current_league.dart';
+import '../../features/leagues/join_by_code_screen.dart';
+import '../../features/leagues/league_detail_screen.dart';
 import '../../features/leagues/leagues_screen.dart';
 import '../../features/matches/match_detail_screen.dart';
 import '../../features/matches/match_history_screen.dart';
@@ -64,7 +67,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
-      GoRoute(path: '/leagues', builder: (_, _) => const LeaguesScreen()),
+      GoRoute(
+        path: '/leagues',
+        builder: (_, _) => const LeaguesScreen(),
+        routes: [
+          GoRoute(path: 'new', builder: (_, _) => const CreateLeagueScreen()),
+          GoRoute(
+            path: 'join',
+            builder: (_, state) => JoinByCodeScreen(initialCode: state.uri.queryParameters['code']),
+          ),
+          GoRoute(path: ':id', builder: (_, state) => LeagueDetailScreen(leagueId: state.pathParameters['id']!)),
+        ],
+      ),
       // Full screen over any area; league administrators only (see the redirect above).
       GoRoute(
         path: '/admin/matches/:id/correct',

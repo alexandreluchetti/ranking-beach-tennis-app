@@ -54,6 +54,8 @@ class LeagueTitle extends ConsumerWidget {
         await switchLeague(ref, leagueId, location: location);
       case _AllLeagues():
         await context.push('/leagues');
+      case _LeagueDetails(:final leagueId):
+        await context.push('/leagues/$leagueId');
     }
   }
 }
@@ -70,6 +72,12 @@ class _SelectLeague extends _SwitcherChoice {
 
 class _AllLeagues extends _SwitcherChoice {
   const _AllLeagues();
+}
+
+class _LeagueDetails extends _SwitcherChoice {
+  const _LeagueDetails(this.leagueId);
+
+  final String leagueId;
 }
 
 class _LeagueSwitcherSheet extends ConsumerWidget {
@@ -107,6 +115,13 @@ class _LeagueSwitcherSheet extends ConsumerWidget {
           ...archived.map(tile),
         ],
         const Divider(),
+        if (currentId != null)
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Detalhes da liga'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pop(context, _LeagueDetails(currentId)),
+          ),
         ListTile(
           leading: const Icon(Icons.travel_explore),
           title: const Text('Todas as ligas'),

@@ -89,3 +89,58 @@ class League {
         'joinRequestPending': joinRequestPending,
       };
 }
+
+extension LeagueCopy on League {
+  League copyWith({bool? joinRequestPending}) => League(
+        id: id,
+        name: name,
+        description: description,
+        visibility: visibility,
+        memberCount: memberCount,
+        memberLimit: memberLimit,
+        archived: archived,
+        myRole: myRole,
+        canAdminister: canAdminister,
+        joinRequestPending: joinRequestPending ?? this.joinRequestPending,
+      );
+}
+
+class LeaguePage {
+  const LeaguePage({required this.items, required this.hasNext});
+
+  final List<League> items;
+  final bool hasNext;
+}
+
+class LeagueMember {
+  const LeagueMember({required this.playerId, required this.displayName, required this.role, required this.joinedAt});
+
+  factory LeagueMember.fromJson(Map<String, dynamic> json) => LeagueMember(
+        playerId: json['playerId'] as String,
+        displayName: json['displayName'] as String,
+        role: LeagueRole.fromApi(json['role'] as String)!,
+        joinedAt: DateTime.parse(json['joinedAt'] as String).toLocal(),
+      );
+
+  final String playerId;
+  final String displayName;
+  final LeagueRole role;
+  final DateTime joinedAt;
+}
+
+/// An invitation the user received to a league (D-019).
+class LeagueInvitation {
+  const LeagueInvitation({required this.id, required this.league, required this.invitedByName, required this.createdAt});
+
+  factory LeagueInvitation.fromJson(Map<String, dynamic> json) => LeagueInvitation(
+        id: json['id'] as String,
+        league: League.fromJson(json['league'] as Map<String, dynamic>),
+        invitedByName: json['invitedByName'] as String,
+        createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
+      );
+
+  final String id;
+  final League league;
+  final String invitedByName;
+  final DateTime createdAt;
+}

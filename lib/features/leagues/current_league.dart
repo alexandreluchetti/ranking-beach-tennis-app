@@ -59,6 +59,23 @@ Future<void> switchLeague(WidgetRef ref, String leagueId, {String location = '/r
   ref.read(routerRestartProvider.notifier).restartAt(location);
 }
 
+/// After joining a league (or creating one): reloads "Minhas ligas", selects
+/// it and opens its ranking.
+Future<void> enterLeague(WidgetRef ref, String leagueId) async {
+  ref.invalidate(myLeaguesProvider);
+  await ref.read(myLeaguesProvider.future);
+  await ref.read(selectedLeagueIdProvider.notifier).select(leagueId);
+  ref.read(routerRestartProvider.notifier).restartAt('/ranking');
+}
+
+/// After leaving a league: reloads "Minhas ligas" and starts over in the
+/// remaining current league (or the leagues screen, without any).
+Future<void> afterLeavingLeague(WidgetRef ref) async {
+  ref.invalidate(myLeaguesProvider);
+  await ref.read(myLeaguesProvider.future);
+  ref.read(routerRestartProvider.notifier).restartAt('/ranking');
+}
+
 /// Path of a league-scoped endpoint, e.g. `leaguePath(id, 'seasons')`.
 String leaguePath(String? leagueId, String path) {
   if (leagueId == null) {

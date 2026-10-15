@@ -38,16 +38,21 @@ class MemoryLocalStore implements LocalStore {
 
 /// Signed-in user, in-memory device storage, no connectivity events and fake
 /// notifications and push (never Firebase or the network). The user is in
-/// [leagues] (the first one is selected unless another was saved).
+/// [leagues] (the first one is selected unless another was saved); with a
+/// [leagueRepository], "Minhas ligas" come from it instead.
 List<Override> deviceOverrides(
   FakeAuthRepository auth,
   LocalStore store, {
   FakeNotificationRepository? notifications,
   FakePushMessaging? push,
   List<League> leagues = const [sampleLeague],
+  FakeLeagueRepository? leagueRepository,
 }) =>
     [
-      ...leagueOverrides(leagues),
+      if (leagueRepository == null)
+        ...leagueOverrides(leagues)
+      else
+        leagueRepositoryProvider.overrideWithValue(leagueRepository),
       authRepositoryProvider.overrideWithValue(auth),
       localStoreProvider.overrideWithValue(store),
       connectivityChangesProvider.overrideWith((ref) => const Stream.empty()),
@@ -55,9 +60,10 @@ List<Override> deviceOverrides(
       pushMessagingProvider.overrideWithValue(push ?? FakePushMessaging()),
     ];
 
-/// "Minhas ligas" answered from memory.
+/// "Minhas ligas" answered from memory (and no league request reaches the network).
 List<Override> leagueOverrides(List<League> leagues) => [
       myLeaguesProvider.overrideWithValue(AsyncData(Cached(leagues))),
+      leagueRepositoryProvider.overrideWithValue(FakeLeagueRepository(mine: leagues)),
     ];
 
 /// Pumps [child] inside a pt-BR MaterialApp with the given provider overrides.
@@ -403,5 +409,148 @@ class FakeAdminRepository implements AdminRepository {
   Future<MatchView> revertVoid(String id, String reason) async {
     await _record({'op': 'revert', 'id': id, 'reason': reason});
     return sampleMatch(id: id);
+  }
+}
+
+/// Leagues in memory, answering like the backend; records every call and
+/// throws what is queued in [errors].
+class FakeLeagueRepository implements LeagueRepository {
+  FakeLeagueRepository({
+    List<League> mine = const [],
+    List<League> others = const [],
+    List<LeagueInvitation> invitations = const [],
+    Map<String, List<LeagueMember>> members = const {},
+    Map<String, League> codes = const {},
+  })  : myLeagues = [...mine],
+        others = [...others],
+        invitations = [...invitations],
+        memberLists = {...members},
+        codes = {...codes};
+
+  final List<League> myLeagues;
+
+  /// Leagues the user is not in, found by [search].
+  final List<League> others;
+  final List<LeagueInvitation> invitations;
+  final Map<String, List<LeagueMember>> memberLists;
+
+  /// Invite code (upper case) → league.
+  final Map<String, League> codes;
+  final calls = <String>[];
+  final errors = <Exception>[];
+
+  Future<void> _record(String call) async {
+    calls.add(call);
+    if (errors.isNotEmpty) {
+      throw errors.removeAt(0);
+    }
+  }
+
+  League _asMember(League league, {LeagueRole role = LeagueRole.member}) {
+    final joined = League(
+      id: league.id,
+      name: league.name,
+      description: league.description,
+      visibility: league.visibility,
+      memberCount: league.memberCount + 1,
+      memberLimit: league.memberLimit,
+      myRole: role,
+      canAdminister: role == LeagueRole.admin,
+    );
+    myLeagues.add(joined);
+    others.removeWhere((l) => l.id == league.id);
+    return joined;
+  }
+
+  League _find(String id) => [...myLeagues, ...others].firstWhere((l) => l.id == id);
+
+  @override
+  Future<List<League>> mine() async {
+    await _record('mine');
+    return [...myLeagues];
+  }
+
+  @override
+  Future<LeaguePage> search(String query, {int page = 0, int size = 20}) async {
+    await _record('search:$query:$page');
+    final found = [...myLeagues, ...others].where((l) => l.name.toLowerCase().contains(query.toLowerCase())).toList();
+    return LeaguePage(items: found, hasNext: false);
+  }
+
+  @override
+  Future<League> byId(String id) async {
+    await _record('get:$id');
+    return _find(id);
+  }
+
+  @override
+  Future<League> create({required String name, String? description, required LeagueVisibility visibility}) async {
+    await _record('create:$name:${visibility.apiValue}');
+    return _asMember(
+      League(id: 'l-new', name: name, description: description, visibility: visibility, memberCount: 0, memberLimit: 50),
+      role: LeagueRole.admin,
+    );
+  }
+
+  @override
+  Future<League> join(String id) async {
+    await _record('join:$id');
+    return _asMember(_find(id));
+  }
+
+  @override
+  Future<League> requestToJoin(String id) async {
+    await _record('request:$id');
+    final league = _find(id).copyWith(joinRequestPending: true);
+    others[others.indexWhere((l) => l.id == id)] = league;
+    return league;
+  }
+
+  @override
+  Future<void> cancelJoinRequest(String id) async {
+    await _record('cancel:$id');
+    others[others.indexWhere((l) => l.id == id)] = _find(id).copyWith(joinRequestPending: false);
+  }
+
+  @override
+  Future<League> joinByCode(String code) async {
+    await _record('code:$code');
+    final league = codes[code.replaceAll(' ', '').toUpperCase()];
+    if (league == null) {
+      throw const ApiException('Código de convite inválido.', code: 'INVITE_CODE_INVALID', statusCode: 404);
+    }
+    return _asMember(league);
+  }
+
+  @override
+  Future<void> leave(String id) async {
+    await _record('leave:$id');
+    myLeagues.removeWhere((l) => l.id == id);
+  }
+
+  @override
+  Future<List<LeagueMember>> members(String id) async {
+    await _record('members:$id');
+    return memberLists[id] ?? const [];
+  }
+
+  @override
+  Future<List<LeagueInvitation>> myInvitations() async {
+    await _record('invitations');
+    return [...invitations];
+  }
+
+  @override
+  Future<League> acceptInvitation(String invitationId) async {
+    await _record('accept:$invitationId');
+    final invitation = invitations.firstWhere((i) => i.id == invitationId);
+    invitations.remove(invitation);
+    return _asMember(invitation.league);
+  }
+
+  @override
+  Future<void> rejectInvitation(String invitationId) async {
+    await _record('reject:$invitationId');
+    invitations.removeWhere((i) => i.id == invitationId);
   }
 }
