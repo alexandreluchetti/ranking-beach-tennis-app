@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
+import '../leagues/current_league.dart';
+import '../leagues/league_switcher.dart';
 import '../me/me_repository.dart';
 import 'ranking_repository.dart';
 import 'ranking_view.dart';
@@ -19,9 +22,11 @@ class RankingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ranking = ref.watch(currentRankingProvider);
     final me = ref.watch(meProvider).value;
+    final canAdminister = ref.watch(canAdministerLeagueProvider);
+    final leagueId = ref.watch(currentLeagueIdProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ranking'),
+        title: const LeagueTitle(),
         actions: [
           const RankingViewToggle(),
           IconButton(
@@ -46,12 +51,24 @@ class RankingScreen extends ConsumerWidget {
           data: (cached) {
             final ranking = cached.value;
             final content = ranking == null
-                ? const _Scrollable(
-                    child: EmptyMessage(
-                      icon: Icons.emoji_events_outlined,
-                      title: 'Nenhuma temporada ativa no momento',
-                      message: 'As partidas registradas ficam no histórico. '
-                          'Os pontos voltam a contar quando o administrador criar a próxima temporada.',
+                ? _Scrollable(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const EmptyMessage(
+                          icon: Icons.emoji_events_outlined,
+                          title: 'Nenhuma temporada ativa no momento',
+                          message: 'As partidas registradas ficam no histórico. '
+                              'Os pontos voltam a contar quando um administrador da liga criar a próxima temporada.',
+                        ),
+                        if (canAdminister)
+                          FilledButton.icon(
+                            style: AppTheme.inlineButton,
+                            onPressed: () => context.push('/leagues/$leagueId/seasons/new'),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Criar temporada'),
+                          ),
+                      ],
                     ),
                   )
                 : RankingContent(ranking: ranking, highlightPlayerId: me?.id);

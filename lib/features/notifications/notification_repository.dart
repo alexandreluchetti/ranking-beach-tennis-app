@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
 
-/// In-app notification about a match. Title and body come written in pt-BR by
-/// the backend, identical to the push message.
+/// In-app notification about a match or a league. Title and body come written
+/// in pt-BR by the backend, identical to the push message.
 class AppNotification {
   const AppNotification({
     required this.id,
@@ -14,6 +14,9 @@ class AppNotification {
     required this.body,
     required this.createdAt,
     required this.read,
+    this.leagueId,
+    this.joinRequestId,
+    this.invitationId,
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) => AppNotification(
@@ -24,17 +27,31 @@ class AppNotification {
         body: json['body'] as String,
         createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
         read: json['read'] as bool,
+        leagueId: json['leagueId'] as String?,
+        joinRequestId: json['joinRequestId'] as String?,
+        invitationId: json['invitationId'] as String?,
       );
 
   final String id;
 
-  /// MATCH_REGISTERED, MATCH_CORRECTED, MATCH_VOIDED or MATCH_VOID_REVERTED.
+  /// MATCH_REGISTERED, MATCH_CORRECTED, MATCH_VOIDED, MATCH_VOID_REVERTED,
+  /// LEAGUE_JOIN_REQUESTED, LEAGUE_JOIN_REQUEST_ACCEPTED,
+  /// LEAGUE_JOIN_REQUEST_REJECTED or LEAGUE_INVITATION_RECEIVED.
   final String type;
   final String? matchId;
   final String title;
   final String body;
   final DateTime createdAt;
   final bool read;
+
+  /// League of the match or of the league event.
+  final String? leagueId;
+
+  /// Join request an administrator may answer (LEAGUE_JOIN_REQUESTED).
+  final String? joinRequestId;
+
+  /// Invitation the user may accept or reject (LEAGUE_INVITATION_RECEIVED).
+  final String? invitationId;
 
   AppNotification markedRead() => AppNotification(
         id: id,
@@ -44,6 +61,9 @@ class AppNotification {
         body: body,
         createdAt: createdAt,
         read: true,
+        leagueId: leagueId,
+        joinRequestId: joinRequestId,
+        invitationId: invitationId,
       );
 }
 

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A push message the user tapped, with the data sent by the backend.
 class PushOpened {
-  const PushOpened({this.notificationId, this.matchId});
+  const PushOpened({this.notificationId, this.matchId, this.type, this.leagueId});
 
   factory PushOpened.fromData(Map<String, dynamic> data) {
     String? value(String key) {
@@ -12,11 +12,18 @@ class PushOpened {
       return v is String && v.isNotEmpty ? v : null;
     }
 
-    return PushOpened(notificationId: value('notificationId'), matchId: value('matchId'));
+    return PushOpened(
+      notificationId: value('notificationId'),
+      matchId: value('matchId'),
+      type: value('type'),
+      leagueId: value('leagueId'),
+    );
   }
 
   final String? notificationId;
   final String? matchId;
+  final String? type;
+  final String? leagueId;
 }
 
 /// Push messaging port. The only implementation is Firebase Cloud Messaging;

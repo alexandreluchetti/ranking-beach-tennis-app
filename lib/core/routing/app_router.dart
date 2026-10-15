@@ -9,27 +9,59 @@ import '../../features/admin/seasons_admin_screen.dart';
 import '../../features/auth/auth_providers.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/home/home_shell.dart';
+import '../../features/leagues/create_league_screen.dart';
+import '../../features/leagues/current_league.dart';
+import '../../features/leagues/join_by_code_screen.dart';
+import '../../features/leagues/league_admin.dart';
+import '../../features/leagues/league_detail_screen.dart';
+import '../../features/leagues/league_repository.dart';
+import '../../features/leagues/leagues_screen.dart';
 import '../../features/matches/match_detail_screen.dart';
 import '../../features/matches/match_history_screen.dart';
 import '../../features/matches/register_match_screen.dart';
-import '../../features/me/me_repository.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/players/players_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
+import 'router_restart.dart';
+
+/// Code of an invite link (/convite/{code}) kept while the user signs in.
+class PendingInviteCode {
+  String? code;
+
+  String? take() {
+    final value = code;
+    code = null;
+    return value;
+  }
+}
+
+final pendingInviteCodeProvider = Provider<PendingInviteCode>((ref) => PendingInviteCode());
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Re-evaluates the redirect when the session or the admin flag changes.
+  final pendingInvite = ref.watch(pendingInviteCodeProvider);
+  // Switching leagues creates a new router (see switchLeague).
+  final start = ref.watch(routerRestartProvider);
+  // Re-evaluates the redirect when the session or the current league changes.
   final refresh = ValueNotifier<int>(0);
-  ref.listen(sessionProvider, (_, _) => refresh.value++);
-  ref.listen(meProvider, (_, _) => refresh.value++);
-  ref.onDispose(refresh.dispose);
+  ref.listen(sessionProvider, (previous, next) {
+    // Another user: their leagues must load before the redirect decides.
+    if (previous?.value?.uid != next.value?.uid) {
+      ref.invalidate(myLeaguesProvider);
+    }
+    refresh.value++;
+  });
+  ref.listen(currentLeagueProvider, (_, _) => refresh.value++);
 
-  return GoRouter(
-    initialLocation: '/ranking',
+  final router = GoRouter(
+    initialLocation: start.location,
     refreshListenable: refresh,
     redirect: (context, state) {
+      final invite = RegExp(r'^/convite/([^/]+)$').firstMatch(state.matchedLocation);
+      if (invite != null) {
+        pendingInvite.code = invite.group(1);
+      }
       final session = ref.read(sessionProvider);
       if (session.isLoading) {
         return state.matchedLocation == '/splash' ? null : '/splash';
@@ -39,20 +71,78 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!signedIn) {
         return location == '/login' ? null : '/login';
       }
+      final league = ref.read(currentLeagueProvider);
+      // Right after signing in, wait for this user's leagues; later reloads
+      // keep the current screen.
+      final entering = location == '/login' || location == '/splash';
+      if (league.isLoading && (!league.hasValue || entering)) {
+        return location == '/splash' ? null : '/splash';
+      }
+      final inviteCode = pendingInvite.take();
+      if (inviteCode != null) {
+        return Uri(path: '/leagues/join', queryParameters: {'code': inviteCode}).toString();
+      }
+      // Without a league (or if the leagues could not be loaded), the leagues
+      // screen is the whole app.
+      final onLeagues = location == '/leagues' || location.startsWith('/leagues/');
+      if (league.value == null) {
+        return onLeagues ? null : '/leagues';
+      }
       if (location == '/login' || location == '/splash') {
         return '/ranking';
       }
-      final isAdmin = ref.read(meProvider).value?.admin ?? false;
-      final adminOnly = location.startsWith('/admin') || location.startsWith('/profile/seasons');
-      if (adminOnly && !isAdmin) {
+      final canAdminister = ref.read(canAdministerLeagueProvider);
+      if (location.startsWith('/admin') && !canAdminister) {
         return '/ranking';
+      }
+      final seasons = RegExp(r'^/leagues/([^/]+)/seasons').firstMatch(location);
+      if (seasons != null && (!canAdminister || seasons.group(1) != league.value!.id)) {
+        return '/leagues/${seasons.group(1)}';
       }
       return null;
     },
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
-      // Full screen over any area; admin only (see the redirect above).
+      // Invite links; the redirect above sends them to "Entrar com código".
+      GoRoute(path: '/convite/:code', builder: (_, _) => const SizedBox.shrink()),
+      GoRoute(
+        path: '/leagues',
+        builder: (_, _) => const LeaguesScreen(),
+        routes: [
+          GoRoute(path: 'new', builder: (_, _) => const CreateLeagueScreen()),
+          GoRoute(
+            path: 'join',
+            builder: (_, state) => JoinByCodeScreen(initialCode: state.uri.queryParameters['code']),
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (_, state) => LeagueDetailScreen(leagueId: state.pathParameters['id']!),
+            // Administration; the backend checks the permission.
+            routes: [
+              GoRoute(path: 'edit', builder: (_, state) => EditLeagueScreen(leagueId: state.pathParameters['id']!)),
+              GoRoute(
+                path: 'requests',
+                builder: (_, state) => JoinRequestsScreen(leagueId: state.pathParameters['id']!),
+              ),
+              GoRoute(path: 'invite', builder: (_, state) => InviteScreen(leagueId: state.pathParameters['id']!)),
+              // Seasons of the current league only (see the redirect).
+              GoRoute(
+                path: 'seasons',
+                builder: (_, _) => const SeasonsAdminScreen(),
+                routes: [
+                  GoRoute(path: 'new', builder: (_, _) => const SeasonFormScreen()),
+                  GoRoute(
+                    path: ':seasonId',
+                    builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['seasonId']!),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      // Full screen over any area; league administrators only (see the redirect above).
       GoRoute(
         path: '/admin/matches/:id/correct',
         builder: (_, state) => CorrectMatchScreen(matchId: state.pathParameters['id']!),
@@ -117,13 +207,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (_, _) => const ProfileScreen(),
               routes: [
                 GoRoute(path: 'about', builder: (_, _) => const AboutScreen()),
-                // Administration section (admin only, see the redirect above).
-                GoRoute(path: 'seasons', builder: (_, _) => const SeasonsAdminScreen()),
-                GoRoute(path: 'seasons/new', builder: (_, _) => const SeasonFormScreen()),
-                GoRoute(
-                  path: 'seasons/:id',
-                  builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['id']!),
-                ),
               ],
             ),
           ]),
@@ -131,4 +214,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  // The old router is still on screen until the app rebuilds with the new one.
+  ref.onDispose(() => WidgetsBinding.instance.addPostFrameCallback((_) {
+        router.dispose();
+        refresh.dispose();
+      }));
+  return router;
 });

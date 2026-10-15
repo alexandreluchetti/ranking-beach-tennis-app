@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/local_store.dart';
 import '../auth/auth_providers.dart';
+import '../leagues/current_league.dart';
 import '../matches/match_draft.dart';
 import '../matches/match_history.dart';
 import '../matches/match_models.dart';
@@ -71,7 +72,8 @@ class SyncController extends Notifier<List<PendingMatch>> {
 
   String? get _currentUid => ref.read(authRepositoryProvider).currentSession?.uid;
 
-  /// Saves the match on the phone (new or edited) and tries to send it now.
+  /// Saves the match on the phone (new or edited) and tries to send it now. A
+  /// new match belongs to the selected league; an edited one keeps its league.
   Future<SubmitResult> submit(MatchDraft draft) async {
     final uid = _currentUid;
     if (uid == null) {
@@ -81,8 +83,12 @@ class SyncController extends Notifier<List<PendingMatch>> {
     if (existing != null && (existing.ownerUid != uid || existing.status == SyncStatus.sending)) {
       throw StateError('Pending match ${draft.id} cannot be changed now');
     }
+    final leagueId = existing?.leagueId ?? ref.read(currentLeagueIdProvider);
+    if (leagueId == null) {
+      throw StateError('No league selected');
+    }
     await _put(existing?.copyWith(draft: draft, status: SyncStatus.pending, message: () => null) ??
-        PendingMatch(draft: draft, ownerUid: uid, status: SyncStatus.pending));
+        PendingMatch(draft: draft, leagueId: leagueId, ownerUid: uid, status: SyncStatus.pending));
     return _send(draft.id);
   }
 
@@ -108,7 +114,7 @@ class SyncController extends Notifier<List<PendingMatch>> {
     await _persist();
   }
 
-  /// Sends every pending match of the current user.
+  /// Sends every pending match of the current user, in any league.
   Future<void> syncAll() async {
     if (_running) {
       _runAgain = true;
@@ -151,7 +157,7 @@ class SyncController extends Notifier<List<PendingMatch>> {
     try {
       final match = await ref
           .read(matchRepositoryProvider)
-          .register(item.draft, confirmPossibleDuplicate: item.duplicateConfirmed);
+          .register(item.draft, leagueId: item.leagueId, confirmPossibleDuplicate: item.duplicateConfirmed);
       state = state.where((p) => p.id != id).toList();
       await _persist();
       ref.invalidate(currentRankingProvider);
@@ -205,9 +211,10 @@ class SyncController extends Notifier<List<PendingMatch>> {
 
 final syncControllerProvider = NotifierProvider<SyncController, List<PendingMatch>>(SyncController.new);
 
-/// Pending matches of the signed-in user, most recent first.
+/// Pending matches of the signed-in user in the current league, most recent first.
 final myPendingMatchesProvider = Provider<List<PendingMatch>>((ref) {
   final uid = ref.watch(sessionProvider).value?.uid;
-  return ref.watch(syncControllerProvider).where((p) => p.ownerUid == uid).toList()
+  final leagueId = ref.watch(currentLeagueIdProvider);
+  return ref.watch(syncControllerProvider).where((p) => p.ownerUid == uid && p.leagueId == leagueId).toList()
     ..sort((a, b) => b.draft.playedAt.compareTo(a.draft.playedAt));
 });

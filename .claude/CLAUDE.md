@@ -1,6 +1,8 @@
 # ranking-beach-tennis-app — Instruções para Claude
 
-App Flutter (Android, iOS e web/PWA) do ranking individual de beach tennis de um grupo de amigos.
+App Flutter (Android, iOS e web/PWA) do ranking individual de beach tennis, organizado em **ligas**
+(backend 1.1.0, D-017 a D-023): cada liga tem membros, temporadas, partidas e ranking próprios, e o
+app mostra a liga selecionada.
 O backend vive em repositório separado (`C:\Users\luche\IdeaProjects\ranking-beach-tennis`),
 mantido por outra sessão: **não altere o repositório do backend** (somente leitura). Se o app
 precisar de mudança na API, descreva a necessidade para o usuário levar à sessão do backend.
@@ -40,17 +42,18 @@ Organizada por funcionalidade (sem geração de código):
 |---|---|
 | `lib/core/config` | `AppConfig` (`--dart-define`: `API_BASE_URL`, `GOOGLE_SERVER_CLIENT_ID`) |
 | `lib/core/network` | Dio com o ID token do Firebase; erros viram `ApiException` |
-| `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Perfil; as mesmas abas para todos) |
+| `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Perfil; as mesmas abas para todos); `routerRestartProvider` recria o router ao trocar de liga |
 | `lib/core/storage` | `LocalStore` (arquivo JSON atômico no celular; SharedPreferences/localStorage na web, via `openLocalStore`), `Cached<T>` (cópia offline), SharedPreferences |
 | `lib/features/auth` | `AuthRepository` (Firebase + google_sign_in 7), login, `signOutProvider` |
-| `lib/features/me` | `/api/me` (perfil, flag admin, nome de exibição) |
+| `lib/features/me` | `/api/me` (perfil, flag de administrador geral, nome de exibição) e estatísticas globais (`/api/me/statistics`) |
+| `lib/features/leagues` | Liga selecionada (`currentLeagueProvider`, `switchLeague`, `enterLeague`), seletor no título, tela Ligas (minhas, convites, explorar), criar/entrar/sair, página da liga e sua administração |
 | `lib/features/ranking` | Ranking atual, temporadas passadas |
 | `lib/features/matches` | Registro (e correção pelo admin), histórico com filtros, detalhe e auditoria |
 | `lib/features/players` | Lista e perfis de jogadores |
 | `lib/features/sync` | Fila offline de partidas (`SyncController`) e gatilhos de sincronização |
 | `lib/features/notifications` | Caixa de notificações, contador, token FCM (`PushMessaging`), gatilhos |
-| `lib/features/admin` | Temporadas (criar/editar/encerrar, em `/profile/seasons`) e ações de admin na partida |
-| `lib/features/profile` | Aba Perfil: nome de exibição, tema, sair e, só para o admin, a seção Administração |
+| `lib/features/admin` | Temporadas da liga atual (em `/leagues/{id}/seasons`) e ações de admin na partida |
+| `lib/features/profile` | Aba Perfil: nome de exibição, "Minhas estatísticas" (todas as ligas, sem pontos), "Minhas ligas", tema e sair |
 
 Regras:
 - Riverpod 3 sem codegen (`Provider`, `FutureProvider`, `AsyncNotifier`, `Notifier`). O
@@ -66,7 +69,13 @@ Regras:
   Só o autor edita ou descarta a pendência (D-016). Ranking e jogadores têm cópia offline;
   notificações **não** (decisão aprovada).
 - Depois de ações que mudam dados, invalide os providers afetados
-  (ex.: `refreshAfterMatchChange` em `admin/match_admin_actions.dart`).
+  (ex.: `refreshAfterMatchChange` em `admin/match_admin_actions.dart`, `refreshLeague` em
+  `leagues/league_admin.dart`).
+- Ligas: dados da liga só pelas rotas `/api/leagues/{leagueId}/...` (helper `leaguePath`); os
+  repositórios recebem o id de `currentLeagueIdProvider` e se refazem ao trocar de liga. Permissão
+  de administração **só** pelo `canAdminister` da liga (`canAdministerLeagueProvider`, falso se
+  arquivada); `Me.admin` é o administrador geral (desarquivar e buscar arquivadas). Partidas
+  pendentes guardam a liga em que foram registradas; cópias offline são por liga.
 
 ## Decisões de UX aprovadas pelo usuário (além do decisions.md)
 
@@ -76,10 +85,16 @@ Regras:
   quando chega um push. Sem consulta periódica.
 - "Hoje" para limites de temporada usa a data do celular (o backend confere no fuso de
   São Paulo). Atalho "Encerrar hoje" com confirmação.
-- Não há aba Admin: todos têm as mesmas 5 abas. A aba Perfil (à direita de Notificações) reúne o que
-  era Configurações e, só para o admin, a seção Administração (Temporadas). Corrigir, anular e
-  reverter ficam no menu do detalhe da partida. O redirect bloqueia `/admin*` e `/profile/seasons*`
-  para quem não é admin.
+- Não há aba Admin: todos têm as mesmas 5 abas. Ranking, Partidas e Jogadores são da liga
+  selecionada, cujo nome é o título (toque para trocar); Notificações e Perfil valem para todas.
+  Trocar de liga volta todas as abas ao início. Sem nenhuma liga, a tela Ligas ocupa o app inteiro
+  (sem abas). A administração da liga fica na página da liga (Convidar, Pedidos, Temporadas,
+  Editar, Arquivar; menu em cada membro). Corrigir, anular e reverter ficam no menu do detalhe da
+  partida. O redirect bloqueia `/admin*` e `/leagues/{id}/seasons*` para quem não administra a liga atual.
+- Explorar mostra também as ligas em que o usuário está (etiqueta "Membro"). Link de convite
+  `https://ranking-beach-tennis.web.app/convite/{código}` (web com URLs sem `#`); no Android o link
+  abre o navegador por enquanto (App Links fica para depois da 1.1.0).
+- Notificações de partida sem `leagueId` (anteriores às ligas) são da Arena.
 - Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro; fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)
@@ -114,11 +129,14 @@ flutter run -d <id do aparelho> --dart-define=API_BASE_URL=http://localhost:8080
 
 ## Testes
 
-- Helpers em `test/helpers.dart`: `pumpScreen`, `deviceOverrides(auth, store, notifications:, push:)`,
+- Helpers em `test/helpers.dart`: `pumpScreen(..., leagues:)`,
+  `deviceOverrides(auth, store, notifications:, push:, leagues:, leagueRepository:, statistics:)`,
   `FakeAuthRepository`, `FakeMatchRepository` (`offline = true` simula falta de conexão),
-  `FakeNotificationRepository`, `FakePushMessaging`, `FakeAdminRepository`,
+  `FakeNotificationRepository`, `FakePushMessaging`, `FakeAdminRepository`, `FakeLeagueRepository`,
   `MemoryLocalStore` e dados de exemplo (`sampleMatch`, `sampleNotification`, `primavera`,
-  `anaMe`, `adminMe`).
+  `anaMe`, `adminMe`, `sampleLeague` (membro), `adminLeague` (admin da liga), `noStatistics`).
+- Com `leagues:` as ligas vêm prontas; com `leagueRepository:` "Minhas ligas" vem do fake (use para
+  entrar/sair/criar). Em `pumpScreen` com `deviceOverrides`, passe `leagues: null`.
 - **Nunca deixe os testes chegarem ao Firebase nem à rede real**: use sempre `deviceOverrides`.
 - Telas que navegam com go_router precisam de um `GoRouter` no teste (`MaterialApp.router`).
 - Armadilhas já encontradas:
@@ -128,6 +146,9 @@ flutter run -d <id do aparelho> --dart-define=API_BASE_URL=http://localhost:8080
   - Itens fora da tela: `scrollUntilVisible`; com mais de uma área rolável (ex.: campo de
     texto com várias linhas), passe `scrollable: find.byType(Scrollable).first`.
   - Uma falha offline simulada é seguida de uma sincronização automática bem-sucedida.
+  - Botões Filled/Outlined ocupam a largura toda pelo tema: em linha, use `AppTheme.inlineButton`.
+  - `context.push` não muda `currentConfiguration.uri`: confira a tela, não o endereço.
+  - Página da liga é longa: aumente a tela do teste (`tester.view.physicalSize`).
 
 ## Armadilhas do ambiente
 
@@ -145,6 +166,8 @@ flutter run -d <id do aparelho> --dart-define=API_BASE_URL=http://localhost:8080
 - Distribuição: Android via Firebase App Distribution (recomendado); iOS via TestFlight exige
   conta Apple Developer (US$ 99/ano) e Mac ou build em nuvem. Decisão do usuário pendente.
 - Ícone monocromático para ícones temáticos do Android 13+ (opcional).
+- Release 1.1.0 (ligas) só depois do backend 1.1.0 em produção; App Links do convite no Android
+  depois disso. Remoção das rotas antigas sem liga é do backend, após a publicação do app.
 
 ## Referências rápidas
 

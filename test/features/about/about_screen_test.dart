@@ -20,13 +20,13 @@ Dio _dioAnswering(Object? body, {int status = 200}) => Dio()
 void main() {
   testWidgets('shows the app version, the credits and an unavailable server version', (tester) async {
     await pumpScreen(tester, const AboutScreen(), overrides: [
-      appVersionProvider.overrideWith((ref) async => '1.0.1 (build 2)'),
+      appVersionProvider.overrideWith((ref) async => '1.0.1'),
       backendVersionProvider.overrideWith((ref) async => null),
     ]);
     await tester.pumpAndSettle();
 
     expect(find.text('Versão do app'), findsOneWidget);
-    expect(find.text('1.0.1 (build 2)'), findsOneWidget);
+    expect(find.text('1.0.1'), findsOneWidget);
     expect(find.text('Versão do servidor'), findsOneWidget);
     expect(find.text('indisponível'), findsOneWidget);
     expect(find.text('Desenvolvido por Alexandre Lucchetta'), findsOneWidget);
@@ -35,7 +35,7 @@ void main() {
 
   testWidgets('shows the server version when the backend exposes it', (tester) async {
     await pumpScreen(tester, const AboutScreen(), overrides: [
-      appVersionProvider.overrideWith((ref) async => '1.0.1 (build 2)'),
+      appVersionProvider.overrideWith((ref) async => '1.1.0'),
       backendVersionProvider.overrideWith((ref) async => '1.0.0'),
     ]);
     await tester.pumpAndSettle();
@@ -57,9 +57,8 @@ void main() {
   });
 
   test('app version text', () {
-    expect(describeAppVersion('1.0.2', '3'), '1.0.2 (build 3)');
-    expect(describeAppVersion('1.0.2', ''), '1.0.2');
-    expect(describeAppVersion('', '3'), isNull);
+    expect(describeAppVersion('1.0.2'), '1.0.2', reason: 'no build number for people');
+    expect(describeAppVersion(''), isNull);
   });
 
   group('server version', () {

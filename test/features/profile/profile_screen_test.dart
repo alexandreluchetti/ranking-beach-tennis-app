@@ -19,6 +19,9 @@ class _FakeMeRepository implements MeRepository {
   Future<Me> load() async => current;
 
   @override
+  Future<GlobalStats> statistics() async => noStatistics;
+
+  @override
   Future<Me> updateDisplayName(String name) async {
     final failure = failNextWith;
     if (failure != null) {
@@ -37,7 +40,7 @@ void main() {
   Future<void> pumpProfile(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
-    await pumpScreen(tester, const ProfileScreen(), overrides: [
+    await pumpScreen(tester, const ProfileScreen(), leagues: null, overrides: [
       ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
       sharedPreferencesProvider.overrideWithValue(preferences),
       meRepositoryProvider.overrideWithValue(me),

@@ -2,23 +2,25 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
+import '../leagues/current_league.dart';
 import '../matches/match_draft.dart';
 import '../matches/match_models.dart';
 import '../ranking/ranking_models.dart';
 
-/// Administrator-only operations. The backend checks the permission; the app
-/// only hides them from other players.
+/// League administrator operations in the current league. The backend
+/// checks the permission; the app only hides them from other players.
 class AdminRepository {
-  AdminRepository(this._dio);
+  AdminRepository(this._dio, this._leagueId);
 
   final Dio _dio;
+  final String? _leagueId;
 
   static String _date(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   Future<Season> createSeason({required String name, required DateTime startDate, required DateTime endDate}) =>
       apiCall(() async {
-        final response = await _dio.post<Map<String, dynamic>>('/api/admin/seasons', data: {
+        final response = await _dio.post<Map<String, dynamic>>(leaguePath(_leagueId, 'seasons'), data: {
           'name': name,
           'startDate': _date(startDate),
           'endDate': _date(endDate),
@@ -29,7 +31,7 @@ class AdminRepository {
   /// Partial update: only the given fields change.
   Future<Season> updateSeason(String id, {String? name, DateTime? startDate, DateTime? endDate}) =>
       apiCall(() async {
-        final response = await _dio.patch<Map<String, dynamic>>('/api/admin/seasons/$id', data: {
+        final response = await _dio.patch<Map<String, dynamic>>(leaguePath(_leagueId, 'seasons/$id'), data: {
           'name': ?name,
           if (startDate != null) 'startDate': _date(startDate),
           if (endDate != null) 'endDate': _date(endDate),
@@ -44,7 +46,7 @@ class AdminRepository {
         final body = draft.toJson()
           ..remove('id')
           ..remove('confirmPossibleDuplicate');
-        final response = await _dio.put<Map<String, dynamic>>('/api/admin/matches/$id', data: {
+        final response = await _dio.put<Map<String, dynamic>>(leaguePath(_leagueId, 'matches/$id'), data: {
           ...body,
           'version': version,
           'reason': ?reason,
@@ -53,18 +55,18 @@ class AdminRepository {
       });
 
   Future<MatchView> voidMatch(String id, String reason) => apiCall(() async {
-        final response = await _dio.post<Map<String, dynamic>>('/api/admin/matches/$id/void', data: {'reason': reason});
+        final response = await _dio.post<Map<String, dynamic>>(leaguePath(_leagueId, 'matches/$id/void'), data: {'reason': reason});
         return MatchView.fromJson(response.data!);
       });
 
   Future<MatchView> revertVoid(String id, String reason) => apiCall(() async {
         final response =
-            await _dio.post<Map<String, dynamic>>('/api/admin/matches/$id/revert-void', data: {'reason': reason});
+            await _dio.post<Map<String, dynamic>>(leaguePath(_leagueId, 'matches/$id/revert-void'), data: {'reason': reason});
         return MatchView.fromJson(response.data!);
       });
 }
 
-final adminRepositoryProvider = Provider<AdminRepository>((ref) => AdminRepository(ref.watch(dioProvider)));
+final adminRepositoryProvider = Provider<AdminRepository>((ref) => AdminRepository(ref.watch(dioProvider), ref.watch(currentLeagueIdProvider)));
 
 /// Today's date on the phone (approved: the backend checks it again in the
 /// São Paulo time zone). Overridden in tests.

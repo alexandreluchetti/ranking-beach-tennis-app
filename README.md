@@ -1,7 +1,9 @@
 # ranking-beach-tennis-app
 
-Flutter app (Android, iOS and web) of the beach tennis individual ranking. The backend lives in its
-own repository (`ranking-beach-tennis`). The user interface is in Brazilian Portuguese.
+Flutter app (Android, iOS and web) of the beach tennis individual ranking. Players take part in
+**leagues**, each with its own members, seasons, matches and ranking; the app shows the selected
+league. The backend lives in its own repository (`ranking-beach-tennis`); the app uses only the
+`/api/leagues/{leagueId}/...` endpoints for league data. The user interface is in Brazilian Portuguese.
 
 ## Structure
 
@@ -11,14 +13,16 @@ Feature-first, with Riverpod for state, go_router for navigation and Dio for HTT
 |---|---|
 | `lib/core/` | Configuration, theme (light/dark/system), HTTP client and errors, routing |
 | `lib/features/auth/` | Sign-in (Google, e-mail/password). Firebase stays behind `AuthRepository`. |
-| `lib/features/me/` | The signed-in player's profile (`/api/me`, admin flag) |
+| `lib/features/me/` | The signed-in player's profile (`/api/me`, system administrator flag) and global statistics |
+| `lib/features/leagues/` | Leagues: selected league and switcher, "Ligas" (mine, invitations, explore), create/join/leave, league page and its administration (members, requests, invitations, invite code, archive) |
 | `lib/features/ranking/` | Current ranking, past seasons |
 | `lib/features/matches/` | Match registration, history with filters, match details and audit |
 | `lib/features/players/` | Players list and profiles |
 | `lib/features/sync/` | Offline outbox of registered matches and automatic sync |
 | `lib/features/home/` | Bottom navigation with the five areas (the same for every player) |
 | `lib/features/notifications/` | In-app notifications, unread badge, push token registration (FCM behind `PushMessaging`) |
-| `lib/features/profile/` | Profile tab: display name, theme, sign-out and, for the administrator, the administration section (seasons) |
+| `lib/features/admin/` | Seasons of the current league and match corrections/voids (league administrators) |
+| `lib/features/profile/` | Profile tab: display name, global statistics, "Minhas ligas", theme and sign-out |
 
 ## Firebase setup
 
@@ -88,6 +92,10 @@ flutter build web --release --dart-define=API_BASE_URL=https://<backend> --dart-
 
 `FIREBASE_AUTH_DOMAIN` (web only, optional) serves the sign-in pages from the site domain when it is
 hosted on Firebase Hosting.
+
+The web app uses path URLs (`/ranking`, no `#`), so invite links like
+`https://ranking-beach-tennis.web.app/convite/{code}` open "Entrar com código" filled in (Firebase Hosting
+serves `index.html` for every path). On Android these links open the browser for now.
 
 ## Production
 

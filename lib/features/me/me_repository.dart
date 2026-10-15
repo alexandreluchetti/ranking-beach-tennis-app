@@ -21,6 +21,40 @@ class Me {
   final bool admin;
 }
 
+/// The user's own statistics over every league (D-022): no points, since each
+/// league has its own ranking. Never shown for another person.
+class GlobalStats {
+  const GlobalStats({
+    required this.matchesPlayed,
+    required this.wins,
+    required this.losses,
+    required this.gamesWon,
+    required this.gamesLost,
+    required this.gameDifference,
+    this.winRate,
+  });
+
+  factory GlobalStats.fromJson(Map<String, dynamic> json) => GlobalStats(
+        matchesPlayed: json['matchesPlayed'] as int,
+        wins: json['wins'] as int,
+        losses: json['losses'] as int,
+        gamesWon: json['gamesWon'] as int,
+        gamesLost: json['gamesLost'] as int,
+        gameDifference: json['gameDifference'] as int,
+        winRate: json['winRate'] as int?,
+      );
+
+  final int matchesPlayed;
+  final int wins;
+  final int losses;
+  final int gamesWon;
+  final int gamesLost;
+  final int gameDifference;
+
+  /// "Aproveitamento" in whole percent; null without matches (shown as "—").
+  final int? winRate;
+}
+
 class MeRepository {
   MeRepository(this._dio);
 
@@ -36,9 +70,17 @@ class MeRepository {
         final response = await _dio.patch<Map<String, dynamic>>('/api/me', data: {'displayName': name});
         return Me.fromJson(response.data!);
       });
+
+  Future<GlobalStats> statistics() => apiCall(() async {
+        final response = await _dio.get<Map<String, dynamic>>('/api/me/statistics');
+        return GlobalStats.fromJson(response.data!);
+      });
 }
 
 final meRepositoryProvider = Provider<MeRepository>((ref) => MeRepository(ref.watch(dioProvider)));
+
+final myStatisticsProvider =
+    FutureProvider<GlobalStats>((ref) => ref.watch(meRepositoryProvider).statistics());
 
 /// Reloaded whenever the signed-in user changes.
 final meProvider = FutureProvider<Me?>((ref) async {
