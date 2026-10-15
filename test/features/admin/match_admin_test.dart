@@ -9,6 +9,7 @@ import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/admin/admin_repository.dart';
 import 'package:ranking_beach_tennis/features/admin/match_admin_actions.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
+import 'package:ranking_beach_tennis/features/leagues/league_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_detail_screen.dart';
 import 'package:ranking_beach_tennis/features/matches/match_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
@@ -33,7 +34,7 @@ void main() {
     );
   });
 
-  Future<void> pumpMatch(WidgetTester tester, String location, {Me me = adminMe}) async {
+  Future<void> pumpMatch(WidgetTester tester, String location, {League league = adminLeague}) async {
     await initializeDateFormatting('pt_BR');
     final router = GoRouter(initialLocation: location, routes: [
       GoRoute(path: '/matches/:id', builder: (_, state) => MatchDetailScreen(matchId: state.pathParameters['id']!)),
@@ -45,10 +46,11 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       retry: (_, _) => null,
       overrides: [
-        ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'admin')), MemoryLocalStore()),
+        ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'admin')), MemoryLocalStore(),
+            leagues: [league]),
         adminRepositoryProvider.overrideWithValue(admin),
         matchRepositoryProvider.overrideWithValue(matches),
-        meProvider.overrideWith((ref) async => me),
+        meProvider.overrideWith((ref) async => adminMe),
         currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
       ],
       child: MaterialApp.router(
@@ -67,7 +69,7 @@ void main() {
   }
 
   testWidgets('players do not see the administrator actions', (tester) async {
-    await pumpMatch(tester, '/matches/m1', me: anaMe);
+    await pumpMatch(tester, '/matches/m1', league: sampleLeague);
 
     expect(find.byTooltip('Ações do administrador'), findsNothing);
   });

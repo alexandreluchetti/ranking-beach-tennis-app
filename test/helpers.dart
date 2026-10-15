@@ -9,9 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/local_store.dart';
+import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/core/theme/app_theme.dart';
 import 'package:ranking_beach_tennis/features/admin/admin_repository.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
+import 'package:ranking_beach_tennis/features/leagues/league_models.dart';
+import 'package:ranking_beach_tennis/features/leagues/league_repository.dart';
 import 'package:ranking_beach_tennis/features/sync/sync_controller.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
@@ -34,14 +37,17 @@ class MemoryLocalStore implements LocalStore {
 }
 
 /// Signed-in user, in-memory device storage, no connectivity events and fake
-/// notifications and push (never Firebase or the network).
+/// notifications and push (never Firebase or the network). The user is in
+/// [leagues] (the first one is selected unless another was saved).
 List<Override> deviceOverrides(
   FakeAuthRepository auth,
   LocalStore store, {
   FakeNotificationRepository? notifications,
   FakePushMessaging? push,
+  List<League> leagues = const [sampleLeague],
 }) =>
     [
+      ...leagueOverrides(leagues),
       authRepositoryProvider.overrideWithValue(auth),
       localStoreProvider.overrideWithValue(store),
       connectivityChangesProvider.overrideWith((ref) => const Stream.empty()),
@@ -49,13 +55,31 @@ List<Override> deviceOverrides(
       pushMessagingProvider.overrideWithValue(push ?? FakePushMessaging()),
     ];
 
+/// "Minhas ligas" answered from memory.
+List<Override> leagueOverrides(List<League> leagues) => [
+      myLeaguesProvider.overrideWithValue(AsyncData(Cached(leagues))),
+    ];
+
 /// Pumps [child] inside a pt-BR MaterialApp with the given provider overrides.
-Future<void> pumpScreen(WidgetTester tester, Widget child, {List<Override> overrides = const []}) async {
+/// The user is in [leagues] (with in-memory device storage); pass null when
+/// [overrides] already set them (e.g. with [deviceOverrides]).
+Future<void> pumpScreen(
+  WidgetTester tester,
+  Widget child, {
+  List<Override> overrides = const [],
+  List<League>? leagues = const [sampleLeague],
+}) async {
   await initializeDateFormatting('pt_BR');
   await tester.pumpWidget(
     ProviderScope(
       retry: (_, _) => null,
-      overrides: overrides,
+      overrides: [
+        if (leagues != null) ...[
+          ...leagueOverrides(leagues),
+          localStoreProvider.overrideWithValue(MemoryLocalStore()),
+        ],
+        ...overrides,
+      ],
       child: MaterialApp(
         theme: AppTheme.light(),
         locale: const Locale('pt', 'BR'),
@@ -131,6 +155,9 @@ class FakeMatchRepository implements MatchRepository {
   Future<List<PlayerSummary>> players() async => playerList;
 
   final registered = <Map<String, dynamic>>[];
+
+  /// League of each registration, in order.
+  final registeredLeagues = <String>[];
   final searches = <MatchFilter>[];
   final registerErrors = <Exception>[];
 
@@ -138,8 +165,9 @@ class FakeMatchRepository implements MatchRepository {
   bool offline = false;
 
   @override
-  Future<MatchView> register(MatchDraft draft, {bool confirmPossibleDuplicate = false}) async {
+  Future<MatchView> register(MatchDraft draft, {required String leagueId, bool confirmPossibleDuplicate = false}) async {
     registered.add(draft.toJson(confirmPossibleDuplicate: confirmPossibleDuplicate));
+    registeredLeagues.add(leagueId);
     if (offline) {
       throw const ApiException('Sem conexão com o servidor. Verifique sua internet.');
     }
@@ -196,7 +224,28 @@ MatchView sampleMatch({String id = 'm1', bool voided = false, bool counted = tru
       'version': 0,
     });
 
-const anaMe =Me(id: 'p-ana', displayName: 'Ana', email: 'ana@example.com', admin: false);
+/// A league where the user is a regular member.
+const sampleLeague = League(
+  id: 'l-arena',
+  name: 'Beach Tennis Arena',
+  visibility: LeagueVisibility.public,
+  memberCount: 13,
+  memberLimit: 50,
+  myRole: LeagueRole.member,
+);
+
+/// A league the user administers.
+const adminLeague = League(
+  id: 'l-admin',
+  name: 'Liga do Admin',
+  visibility: LeagueVisibility.private,
+  memberCount: 4,
+  memberLimit: 50,
+  myRole: LeagueRole.admin,
+  canAdminister: true,
+);
+
+const anaMe = Me(id: 'p-ana', displayName: 'Ana', email: 'ana@example.com', admin: false);
 const adminMe = Me(id: 'p-admin', displayName: 'Admin', email: 'admin@example.com', admin: true);
 
 final primavera = Season(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/widgets/async_states.dart';
+import '../leagues/league_switcher.dart';
 import '../me/me_repository.dart';
 import 'ranking_repository.dart';
 import 'ranking_view.dart';
@@ -21,7 +22,7 @@ class RankingScreen extends ConsumerWidget {
     final me = ref.watch(meProvider).value;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ranking'),
+        title: const LeagueTitle(),
         actions: [
           const RankingViewToggle(),
           IconButton(

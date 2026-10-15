@@ -9,25 +9,28 @@ import '../../features/admin/seasons_admin_screen.dart';
 import '../../features/auth/auth_providers.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/home/home_shell.dart';
+import '../../features/leagues/current_league.dart';
+import '../../features/leagues/leagues_screen.dart';
 import '../../features/matches/match_detail_screen.dart';
 import '../../features/matches/match_history_screen.dart';
 import '../../features/matches/register_match_screen.dart';
-import '../../features/me/me_repository.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/players/players_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
+import 'router_restart.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Re-evaluates the redirect when the session or the admin flag changes.
+  // Switching leagues creates a new router (see switchLeague).
+  final start = ref.watch(routerRestartProvider);
+  // Re-evaluates the redirect when the session or the current league changes.
   final refresh = ValueNotifier<int>(0);
   ref.listen(sessionProvider, (_, _) => refresh.value++);
-  ref.listen(meProvider, (_, _) => refresh.value++);
-  ref.onDispose(refresh.dispose);
+  ref.listen(currentLeagueProvider, (_, _) => refresh.value++);
 
-  return GoRouter(
-    initialLocation: '/ranking',
+  final router = GoRouter(
+    initialLocation: start.location,
     refreshListenable: refresh,
     redirect: (context, state) {
       final session = ref.read(sessionProvider);
@@ -39,12 +42,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!signedIn) {
         return location == '/login' ? null : '/login';
       }
+      final league = ref.read(currentLeagueProvider);
+      if (league.isLoading && !league.hasValue) {
+        return location == '/splash' ? null : '/splash';
+      }
+      // Without a league (or if the leagues could not be loaded), the leagues
+      // screen is the whole app.
+      final onLeagues = location == '/leagues' || location.startsWith('/leagues/');
+      if (league.value == null) {
+        return onLeagues ? null : '/leagues';
+      }
       if (location == '/login' || location == '/splash') {
         return '/ranking';
       }
-      final isAdmin = ref.read(meProvider).value?.admin ?? false;
       final adminOnly = location.startsWith('/admin') || location.startsWith('/profile/seasons');
-      if (adminOnly && !isAdmin) {
+      if (adminOnly && !ref.read(canAdministerLeagueProvider)) {
         return '/ranking';
       }
       return null;
@@ -52,7 +64,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
-      // Full screen over any area; admin only (see the redirect above).
+      GoRoute(path: '/leagues', builder: (_, _) => const LeaguesScreen()),
+      // Full screen over any area; league administrators only (see the redirect above).
       GoRoute(
         path: '/admin/matches/:id/correct',
         builder: (_, state) => CorrectMatchScreen(matchId: state.pathParameters['id']!),
@@ -117,7 +130,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (_, _) => const ProfileScreen(),
               routes: [
                 GoRoute(path: 'about', builder: (_, _) => const AboutScreen()),
-                // Administration section (admin only, see the redirect above).
+                // Administration of the current league (see the redirect above).
                 GoRoute(path: 'seasons', builder: (_, _) => const SeasonsAdminScreen()),
                 GoRoute(path: 'seasons/new', builder: (_, _) => const SeasonFormScreen()),
                 GoRoute(
@@ -131,4 +144,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  // The old router is still on screen until the app rebuilds with the new one.
+  ref.onDispose(() => WidgetsBinding.instance.addPostFrameCallback((_) {
+        router.dispose();
+        refresh.dispose();
+      }));
+  return router;
 });

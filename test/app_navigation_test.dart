@@ -7,6 +7,7 @@ import 'package:ranking_beach_tennis/app.dart';
 import 'package:ranking_beach_tennis/core/storage/preferences.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
+import 'package:ranking_beach_tennis/features/leagues/league_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_detail_screen.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
@@ -23,6 +24,7 @@ void main() {
     Me? me,
     FakeNotificationRepository? notifications,
     FakePushMessaging? push,
+    List<League> leagues = const [sampleLeague],
   }) async {
     SharedPreferences.setMockInitialValues({});
     await initializeDateFormatting('pt_BR');
@@ -32,7 +34,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(preferences),
         ...deviceOverrides(FakeAuthRepository(session: session), MemoryLocalStore(),
-            notifications: notifications, push: push),
+            notifications: notifications, push: push, leagues: leagues),
         meProvider.overrideWith((ref) async => me),
         currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
         seasonsProvider.overrideWith((ref) async => [primavera]),
@@ -59,6 +61,58 @@ void main() {
     expect(find.byTooltip('Configurações'), findsNothing);
   });
 
+  testWidgets('without a league the leagues screen is the whole app', (tester) async {
+    await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe, leagues: const []);
+
+    expect(find.text('Ligas'), findsOneWidget);
+    expect(find.text('Você ainda não participa de nenhuma liga'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    final router = GoRouter.of(tester.element(find.text('Ligas')));
+    router.go('/ranking');
+    await tester.pumpAndSettle();
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/leagues');
+
+    await tester.tap(find.byTooltip('Mais opções'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sair'), findsOneWidget);
+  });
+
+  testWidgets('the league name is the title; switching starts every tab over in the new league', (tester) async {
+    await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe, leagues: const [sampleLeague, adminLeague]);
+    expect(find.text('Beach Tennis Arena'), findsOneWidget);
+
+    // A match left open in "Partidas".
+    await tester.tap(find.text('Partidas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Contabilizada'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchDetailScreen), findsOneWidget);
+
+    await tester.tap(find.text('Ranking'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Trocar de liga'));
+    await tester.pumpAndSettle();
+    expect(find.text('Minhas ligas'), findsOneWidget);
+    expect(find.text('13/50 · Pública'), findsOneWidget);
+    expect(find.text('4/50 · Privada · Admin'), findsOneWidget);
+    expect(find.text('Todas as ligas'), findsOneWidget);
+
+    await tester.tap(find.text('Liga do Admin'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Liga do Admin'), findsOneWidget);
+    expect(find.text('Primavera · 01/10/2026 a 31/12/2026'), findsOneWidget, reason: 'still on the ranking tab');
+    await tester.tap(find.text('Partidas'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchDetailScreen), findsNothing);
+    expect(find.text('Registrar partida'), findsOneWidget);
+
+    await tester.tap(find.text('Perfil'));
+    await tester.pumpAndSettle();
+    expect(find.text('Administração'), findsOneWidget, reason: 'administrator of the new league');
+  });
+
   testWidgets('players see no administration section in the profile', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
 
@@ -83,7 +137,7 @@ void main() {
   });
 
   testWidgets('the administrator has the same tabs plus the administration section', (tester) async {
-    await pumpApp(tester, session: const AuthSession(uid: 'admin'), me: adminMe);
+    await pumpApp(tester, session: const AuthSession(uid: 'admin'), me: adminMe, leagues: [adminLeague]);
 
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     await tester.tap(find.text('Perfil'));

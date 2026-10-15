@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/async_states.dart';
+import '../leagues/league_switcher.dart';
 import '../matches/match_history.dart';
 import '../matches/match_repository.dart';
 import '../me/me_repository.dart';
 import 'player_profile.dart';
 
-/// "Jogadores": everyone registered, with a quick search.
+/// "Jogadores": the members of the current league, with a quick search.
 class PlayersScreen extends ConsumerStatefulWidget {
   const PlayersScreen({super.key});
 
@@ -23,7 +24,7 @@ class _PlayersScreenState extends ConsumerState<PlayersScreen> {
   Widget build(BuildContext context) {
     final players = ref.watch(playersProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Jogadores')),
+      appBar: AppBar(title: const LeagueTitle()),
       body: players.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),

@@ -19,7 +19,7 @@ void main() {
       sampleMatch(id: 'm2', counted: false, reason: 'GUEST_PRESENT'),
       sampleMatch(id: 'm3', voided: true, counted: false, reason: 'VOIDED'),
     ]);
-    await pumpScreen(tester, const MatchHistoryScreen(), overrides: [
+    await pumpScreen(tester, const MatchHistoryScreen(), leagues: null, overrides: [
       ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
       matchRepositoryProvider.overrideWithValue(repository),
       seasonsProvider.overrideWith((ref) async => [primavera]),
@@ -42,7 +42,7 @@ void main() {
 
   testWidgets('outcome filters are sent to the backend', (tester) async {
     final repository = FakeMatchRepository();
-    await pumpScreen(tester, const MatchHistoryScreen(), overrides: [
+    await pumpScreen(tester, const MatchHistoryScreen(), leagues: null, overrides: [
       ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
       matchRepositoryProvider.overrideWithValue(repository),
       seasonsProvider.overrideWith((ref) async => [primavera]),
@@ -74,6 +74,7 @@ void main() {
             teamAGames: 6,
             teamBGames: 2,
           ),
+          leagueId: 'l-arena',
           ownerUid: owner,
           status: status,
           message: message,
@@ -84,7 +85,7 @@ void main() {
       pending('c', 'u-beto', SyncStatus.pending).toStorage(),
     ]);
     final repository = FakeMatchRepository(matches: [sampleMatch()])..offline = true;
-    await pumpScreen(tester, const MatchHistoryScreen(), overrides: [
+    await pumpScreen(tester, const MatchHistoryScreen(), leagues: null, overrides: [
       ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), store),
       matchRepositoryProvider.overrideWithValue(repository),
       seasonsProvider.overrideWith((ref) async => [primavera]),

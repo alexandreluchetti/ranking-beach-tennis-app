@@ -226,6 +226,7 @@ void main() {
           teamAGames: 6,
           teamBGames: 5,
         ),
+        leagueId: 'l-arena',
         ownerUid: 'u-ana',
         status: SyncStatus.failed,
         message: 'Placar inválido para o formato escolhido.',

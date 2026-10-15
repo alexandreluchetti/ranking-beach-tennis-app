@@ -17,7 +17,7 @@ void main() {
       sampleNotification(id: 'n1'),
       sampleNotification(id: 'n2', read: true, type: 'MATCH_VOIDED'),
     ]);
-    await pumpScreen(tester, const NotificationsScreen(),
+    await pumpScreen(tester, const NotificationsScreen(), leagues: null,
         overrides: deviceOverrides(signedIn(), MemoryLocalStore(), notifications: repository));
     await tester.pumpAndSettle();
 
@@ -29,7 +29,7 @@ void main() {
 
   testWidgets('marks all as read', (tester) async {
     final repository = FakeNotificationRepository(items: [sampleNotification(id: 'n1'), sampleNotification(id: 'n2')]);
-    await pumpScreen(tester, const NotificationsScreen(),
+    await pumpScreen(tester, const NotificationsScreen(), leagues: null,
         overrides: deviceOverrides(signedIn(), MemoryLocalStore(), notifications: repository));
     await tester.pumpAndSettle();
 
@@ -42,7 +42,7 @@ void main() {
   });
 
   testWidgets('explains when there are no notifications', (tester) async {
-    await pumpScreen(tester, const NotificationsScreen(),
+    await pumpScreen(tester, const NotificationsScreen(), leagues: null,
         overrides: deviceOverrides(signedIn(), MemoryLocalStore()));
     await tester.pumpAndSettle();
 
@@ -52,7 +52,7 @@ void main() {
 
   testWidgets('without a connection shows the error and loads on retry', (tester) async {
     final repository = FakeNotificationRepository(items: [sampleNotification()])..offline = true;
-    await pumpScreen(tester, const NotificationsScreen(),
+    await pumpScreen(tester, const NotificationsScreen(), leagues: null,
         overrides: deviceOverrides(signedIn(), MemoryLocalStore(), notifications: repository));
     await tester.pumpAndSettle();
     expect(find.text('Sem conexão com o servidor. Verifique sua internet.'), findsOneWidget);
@@ -69,7 +69,7 @@ void main() {
       items: [for (var i = 0; i < 5; i++) sampleNotification(id: 'n$i')],
       pageSize: 3,
     );
-    await pumpScreen(tester, const NotificationsScreen(),
+    await pumpScreen(tester, const NotificationsScreen(), leagues: null,
         overrides: deviceOverrides(signedIn(), MemoryLocalStore(), notifications: repository));
     await tester.pumpAndSettle();
 

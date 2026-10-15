@@ -50,7 +50,8 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       retry: (_, _) => null,
       overrides: [
-        ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'admin')), MemoryLocalStore()),
+        ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'admin')), MemoryLocalStore(),
+            leagues: [adminLeague]),
         adminRepositoryProvider.overrideWithValue(admin),
         todayProvider.overrideWithValue(today),
         seasonsProvider.overrideWith((ref) async => [planned, primavera, closed]),

@@ -8,7 +8,7 @@ import '../matches/match_history.dart';
 import '../matches/match_models.dart';
 import '../matches/match_repository.dart';
 import '../matches/register_match_screen.dart';
-import '../me/me_repository.dart';
+import '../leagues/current_league.dart';
 import '../notifications/notification_inbox.dart';
 import '../ranking/ranking_repository.dart';
 import 'admin_repository.dart';
@@ -27,8 +27,8 @@ void refreshAfterMatchChange(WidgetRef ref, String matchId) {
 
 enum _MatchAction { correct, voidMatch, revertVoid }
 
-/// App bar menu of the match details, only for the administrator. A voided
-/// match must be restored before it can be corrected.
+/// App bar menu of the match details, only for the league administrators. A
+/// voided match must be restored before it can be corrected.
 class MatchAdminMenu extends ConsumerWidget {
   const MatchAdminMenu({super.key, required this.match});
 
@@ -36,8 +36,7 @@ class MatchAdminMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(meProvider).value?.admin ?? false;
-    if (!isAdmin) {
+    if (!ref.watch(canAdministerLeagueProvider)) {
       return const SizedBox.shrink();
     }
     return PopupMenuButton<_MatchAction>(

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
+import '../leagues/current_league.dart';
 import '../ranking/ranking_models.dart';
 
 class PlayerStats {
@@ -73,8 +74,9 @@ class PlayerProfile {
 
 final playerProfileProvider = FutureProvider.family<PlayerProfile, String>((ref, playerId) {
   final dio = ref.watch(dioProvider);
+  final leagueId = ref.watch(currentLeagueIdProvider);
   return apiCall(() async {
-    final response = await dio.get<Map<String, dynamic>>('/api/players/$playerId/profile');
+    final response = await dio.get<Map<String, dynamic>>(leaguePath(leagueId, 'players/$playerId/profile'));
     return PlayerProfile.fromJson(response.data!);
   });
 });

@@ -1,3 +1,4 @@
+import '../leagues/league_models.dart';
 import '../matches/match_draft.dart';
 
 enum SyncStatus {
@@ -20,6 +21,7 @@ enum SyncStatus {
 class PendingMatch {
   const PendingMatch({
     required this.draft,
+    required this.leagueId,
     required this.ownerUid,
     required this.status,
     this.message,
@@ -28,6 +30,8 @@ class PendingMatch {
 
   factory PendingMatch.fromStorage(Map<String, dynamic> json) => PendingMatch(
         draft: MatchDraft.fromStorage(json['draft'] as Map<String, dynamic>),
+        // Saved before leagues existed: the group became the Arena (D-023).
+        leagueId: json['leagueId'] as String? ?? arenaLeagueId,
         ownerUid: json['ownerUid'] as String,
         // A send interrupted by closing the app is simply pending again.
         status: switch (SyncStatus.values.byName(json['status'] as String)) {
@@ -39,6 +43,10 @@ class PendingMatch {
       );
 
   final MatchDraft draft;
+
+  /// League it was registered in; it is sent there even if another league is
+  /// selected meanwhile.
+  final String leagueId;
 
   /// Only the user who registered it may send, edit or discard it (D-016).
   final String ownerUid;
@@ -65,6 +73,7 @@ class PendingMatch {
   }) =>
       PendingMatch(
         draft: draft ?? this.draft,
+        leagueId: leagueId,
         ownerUid: ownerUid,
         status: status ?? this.status,
         message: message == null ? this.message : message(),
@@ -73,6 +82,7 @@ class PendingMatch {
 
   Map<String, dynamic> toStorage() => {
         'draft': draft.toStorage(),
+        'leagueId': leagueId,
         'ownerUid': ownerUid,
         'status': status.name,
         'message': message,
