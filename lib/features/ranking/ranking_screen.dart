@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
 import '../leagues/current_league.dart';
 import '../leagues/league_switcher.dart';
+import '../leagues/no_league_view.dart';
 import '../me/me_repository.dart';
 import 'ranking_repository.dart';
 import 'ranking_view.dart';
@@ -20,6 +21,9 @@ class RankingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(currentLeagueIdProvider) == null) {
+      return const NoLeagueScaffold();
+    }
     final ranking = ref.watch(currentRankingProvider);
     final me = ref.watch(meProvider).value;
     final canAdminister = ref.watch(canAdministerLeagueProvider);

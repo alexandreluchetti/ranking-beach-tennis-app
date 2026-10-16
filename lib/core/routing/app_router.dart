@@ -86,11 +86,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (inviteCode != null) {
         return Uri(path: '/leagues/join', queryParameters: {'code': inviteCode}).toString();
       }
-      // Without a league (or if the leagues could not be loaded), the leagues
-      // screen is the whole app.
-      final onLeagues = location == '/leagues' || location.startsWith('/leagues/');
+      // Without a league the tabs stay: Ranking, Partidas and Jogadores show
+      // how to join or create one; nothing inside them can be opened.
       if (league.value == null) {
-        return onLeagues ? null : '/leagues';
+        final leagueScoped = RegExp(r'^/(ranking|matches|players)/').hasMatch(location) ||
+            location.startsWith('/notifications/matches') ||
+            location.startsWith('/admin');
+        return location == '/login' || location == '/splash' || leagueScoped ? '/ranking' : null;
       }
       if (location == '/login' || location == '/splash') {
         return '/ranking';
