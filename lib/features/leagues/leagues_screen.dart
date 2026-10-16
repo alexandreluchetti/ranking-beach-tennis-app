@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
-import '../auth/sign_out.dart';
 import '../me/me_repository.dart';
 import 'current_league.dart';
 import 'league_entry.dart';
@@ -15,20 +14,18 @@ import 'league_repository.dart';
 import 'league_switcher.dart';
 
 /// "Ligas": the user's leagues and invitations, and the search for others.
-/// Without any league it is the whole app (no tabs) until the user joins one.
 class LeaguesScreen extends ConsumerWidget {
   const LeaguesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hasLeague = ref.watch(currentLeagueIdProvider) != null;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           // Opened straight from an address (e.g. a reload on the web): nothing
-          // to go back to, so offer the way to the league's ranking.
-          leading: hasLeague && !context.canPop()
+          // to go back to, so offer the way to the ranking.
+          leading: !context.canPop()
               ? IconButton(
                   tooltip: 'Voltar ao ranking',
                   icon: const Icon(Icons.arrow_back),
@@ -36,18 +33,6 @@ class LeaguesScreen extends ConsumerWidget {
                 )
               : null,
           title: const Text('Ligas'),
-          actions: [
-            if (!hasLeague)
-              PopupMenuButton<void>(
-                tooltip: 'Mais opções',
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    onTap: () => ref.read(signOutProvider)(),
-                    child: const ListTile(leading: Icon(Icons.logout), title: Text('Sair')),
-                  ),
-                ],
-              ),
-          ],
           bottom: const TabBar(tabs: [Tab(text: 'Minhas ligas'), Tab(text: 'Explorar')]),
         ),
         body: const TabBarView(children: [_MyLeaguesTab(), _ExploreTab()]),
@@ -96,28 +81,7 @@ class _MyLeaguesTab extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => context.push('/leagues/new'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Criar liga'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push('/leagues/join'),
-                    icon: const Icon(Icons.vpn_key_outlined),
-                    label: const Text('Entrar com código', overflow: TextOverflow.ellipsis),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 0), child: LeagueActions()),
           if (invitations.isNotEmpty) ...[
             header('Convites recebidos'),
             for (final invitation in invitations) InvitationCard(invitation: invitation),
@@ -151,6 +115,57 @@ class _MyLeaguesTab extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "Criar liga" and "Entrar com código", side by side.
+class LeagueActions extends StatelessWidget {
+  const LeagueActions({super.key});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: () => context.push('/leagues/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Criar liga'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => context.push('/leagues/join'),
+              icon: const Icon(Icons.vpn_key_outlined),
+              label: const Text('Entrar com código', overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ],
+      );
+}
+
+/// A league found by [query], with the way in (or the "Membro" tag).
+class LeagueSearchTile extends ConsumerWidget {
+  const LeagueSearchTile({super.key, required this.league, required this.query});
+
+  final League league;
+  final LeagueQuery query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => ListTile(
+        leading: Icon(league.visibility == LeagueVisibility.public ? Icons.public : Icons.lock_outline),
+        title: Text(league.name),
+        subtitle: Text(
+            league.joinRequestPending ? '${leagueSubtitle(league)} · Pedido enviado' : leagueSubtitle(league)),
+        onTap: () => context.push('/leagues/${league.id}'),
+        trailing: LeagueEntryButton(
+          league: league,
+          compact: true,
+          onChanged: (changed) {
+            ref.read(leagueSearchProvider(query).notifier).replace(changed);
+            ref.invalidate(leagueProvider(changed.id));
+          },
+        ),
+      );
 }
 
 /// A received invitation, answered right here.
@@ -291,23 +306,7 @@ class _ExploreTabState extends ConsumerState<_ExploreTab> with AutomaticKeepAliv
                     padding: EdgeInsets.all(32),
                     child: EmptyMessage(icon: Icons.search_off, title: 'Nenhuma liga encontrada'),
                   ),
-                for (final league in state.items)
-                  ListTile(
-                    leading: Icon(league.visibility == LeagueVisibility.public ? Icons.public : Icons.lock_outline),
-                    title: Text(league.name),
-                    subtitle: Text(league.joinRequestPending
-                        ? '${leagueSubtitle(league)} · Pedido enviado'
-                        : leagueSubtitle(league)),
-                    onTap: () => context.push('/leagues/${league.id}'),
-                    trailing: LeagueEntryButton(
-                      league: league,
-                      compact: true,
-                      onChanged: (changed) {
-                        ref.read(leagueSearchProvider(_query).notifier).replace(changed);
-                        ref.invalidate(leagueProvider(changed.id));
-                      },
-                    ),
-                  ),
+                for (final league in state.items) LeagueSearchTile(league: league, query: _query),
                 if (state.loadingMore)
                   const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
               ],

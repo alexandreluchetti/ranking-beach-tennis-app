@@ -74,8 +74,8 @@ void main() {
       ]);
       await pumpApp(tester);
 
-      expect(find.byType(NavigationBar), findsNothing);
-      expect(find.text('Você ainda não participa de nenhuma liga'), findsOneWidget);
+      expect(find.text('Selecione uma liga'), findsOneWidget);
+      expect(find.text('Entre ou crie uma liga para participar de um ranking'), findsOneWidget);
       expect(find.text('Convites recebidos'), findsOneWidget);
       expect(find.text('Convite de Beto · 7/50 · Privada'), findsOneWidget);
 
@@ -181,10 +181,9 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('lists leagues with the way in; joining a public league opens it', (tester) async {
+    testWidgets('without a league, the leagues are listed with the way in; joining opens it', (tester) async {
       leagues = FakeLeagueRepository(others: [_publicLeague, _privateLeague, _fullLeague]);
       await pumpApp(tester);
-      await openExplore(tester);
 
       expect(find.text('12/50 · Pública'), findsOneWidget);
       expect(find.text('Pedir para entrar'), findsOneWidget);
@@ -201,7 +200,6 @@ void main() {
     testWidgets('asks to join a private league and can cancel the request', (tester) async {
       leagues = FakeLeagueRepository(others: [_privateLeague]);
       await pumpApp(tester);
-      await openExplore(tester);
 
       await tester.tap(find.text('Pedir para entrar'));
       await tester.pumpAndSettle();
@@ -272,7 +270,7 @@ void main() {
       expect(find.text('Sair da liga'), findsOneWidget);
     });
 
-    testWidgets('leaving the only league goes back to the leagues screen', (tester) async {
+    testWidgets('leaving the only league shows how to join or create one', (tester) async {
       leagues = FakeLeagueRepository(mine: [sampleLeague], members: members);
       await pumpApp(tester);
       GoRouter.of(tester.element(find.byType(NavigationBar))).push('/leagues/l-arena');
@@ -285,8 +283,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(leagues.calls, contains('leave:l-arena'));
-      expect(find.byType(NavigationBar), findsNothing);
-      expect(find.text('Você ainda não participa de nenhuma liga'), findsOneWidget);
+      expect(find.text('Selecione uma liga'), findsOneWidget);
+      expect(find.text('Entre ou crie uma liga para participar de um ranking'), findsOneWidget);
     });
 
     testWidgets('the last administrator gets the backend explanation', (tester) async {
