@@ -176,7 +176,8 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
                 child: const ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('Partida com convidado não vale pontos para nenhum dos participantes.'),
-                  subtitle: Text('Ela fica no histórico e conta nas estatísticas.'),
+                  subtitle: Text('Ela fica no histórico e conta só nas estatísticas de carreira, '
+                      'não no ranking da temporada.'),
                 ),
               ),
             ],

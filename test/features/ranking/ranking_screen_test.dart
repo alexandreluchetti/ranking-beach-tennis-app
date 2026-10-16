@@ -106,7 +106,13 @@ void main() {
     expect(find.text('7–6 (tie-break)'), findsOneWidget);
 
     final sheetList = find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable));
-    for (final section in ['Partidas com convidado', 'Desempate no ranking', 'Correções e anulações']) {
+    for (final section in [
+      'Partidas com convidado',
+      'Desempate no ranking',
+      '5º  Mais games vencidos.',
+      '6º  Quem chegou primeiro à pontuação atual.',
+      'Correções e anulações',
+    ]) {
       await tester.scrollUntilVisible(find.text(section), 200, scrollable: sheetList);
       expect(find.text(section), findsOneWidget);
     }
