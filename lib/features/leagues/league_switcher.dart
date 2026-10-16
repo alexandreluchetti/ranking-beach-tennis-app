@@ -6,19 +6,16 @@ import 'current_league.dart';
 import 'league_models.dart';
 import 'league_repository.dart';
 
-/// App bar title of the league tabs: the selected league's name; tapping it
-/// opens the list of the user's leagues to switch.
+/// App bar title of the league tabs: the selected league's name ("Selecione
+/// uma liga" without one); tapping it opens the list of the user's leagues.
 class LeagueTitle extends ConsumerWidget {
   const LeagueTitle({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final league = ref.watch(currentLeagueProvider).value;
-    if (league == null) {
-      return const SizedBox.shrink();
-    }
     return Tooltip(
-      message: 'Trocar de liga',
+      message: league == null ? 'Selecionar liga' : 'Trocar de liga',
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () => _choose(context, ref),
@@ -27,7 +24,7 @@ class LeagueTitle extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(child: Text(league.name, overflow: TextOverflow.ellipsis)),
+              Flexible(child: Text(league?.name ?? 'Selecione uma liga', overflow: TextOverflow.ellipsis)),
               const Icon(Icons.arrow_drop_down),
             ],
           ),
@@ -109,6 +106,11 @@ class _LeagueSwitcherSheet extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 16),
       children: [
         header('Minhas ligas'),
+        if (mine.isEmpty)
+          const ListTile(
+            title: Text('Você ainda não participa de nenhuma liga.'),
+            subtitle: Text('Entre em uma liga ou crie a sua em "Todas as ligas".'),
+          ),
         ...active.map(tile),
         if (archived.isNotEmpty) ...[
           header('Arquivadas'),

@@ -61,22 +61,28 @@ class ScoringRules extends StatelessWidget {
         bullet('O tie-break conta como um game para quem venceu: 6–6 vira 7–6 e 4–4 vira 5–4.'),
         bullet('Os pontos do tie-break são opcionais e ficam só no histórico; não mudam a pontuação.'),
         title('Partidas com convidado'),
-        paragraph('Se qualquer um dos quatro for convidado (sem conta no app), ninguém recebe pontos. '
-            'A partida continua valendo para as estatísticas: jogos, vitórias, derrotas e saldo de games.'),
+        paragraph('Se qualquer um dos quatro for convidado (sem conta no app), ninguém recebe pontos e a '
+            'partida não conta no ranking nem nas estatísticas da temporada. Ela vale só para as '
+            'estatísticas de carreira (perfil do jogador e "Minhas estatísticas").'),
         title('Desempate no ranking'),
+        paragraph('Cada jogador tem uma posição própria (1º, 2º, 3º…). Em caso de empate, vale, nesta ordem:'),
         bullet('1º  Mais pontos.'),
         bullet('2º  Mais vitórias.'),
         bullet('3º  Melhor saldo de games.'),
         bullet('4º  Menos partidas jogadas (o mesmo resultado em menos jogos fica na frente).'),
-        bullet('Se ainda houver empate, os jogadores dividem a posição (por exemplo: 1º, 1º, 3º).'),
+        bullet('5º  Mais games vencidos.'),
+        bullet('6º  Quem chegou primeiro à pontuação atual.'),
+        bullet('7º  Quem entrou primeiro na liga; depois, ordem alfabética do nome; por fim, '
+            'quem se cadastrou primeiro no app.'),
         title('Temporadas'),
         bullet('Só contam para o ranking as partidas jogadas dentro do período da temporada '
             '(início e término incluídos).'),
-        bullet('Partidas fora de uma temporada ficam no histórico, sem pontos.'),
+        bullet('Partidas fora de uma temporada ficam no histórico, sem pontos, e contam só para as '
+            'estatísticas de carreira.'),
         bullet('Uma partida registrada depois, mas jogada dentro de uma temporada já encerrada, '
             'ainda conta para ela.'),
         title('Correções e anulações'),
-        paragraph('O administrador pode corrigir ou anular partidas. Partidas anuladas não valem pontos '
+        paragraph('Os administradores da liga podem corrigir ou anular partidas. Partidas anuladas não valem pontos '
             'nem estatísticas. O ranking é sempre recalculado a partir das partidas, então os pontos '
             'nunca são contados duas vezes. Os participantes são avisados nas Notificações.'),
       ],

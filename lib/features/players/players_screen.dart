@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/async_states.dart';
+import '../leagues/current_league.dart';
 import '../leagues/league_switcher.dart';
+import '../leagues/no_league_view.dart';
 import '../matches/match_history.dart';
 import '../matches/match_repository.dart';
 import '../me/me_repository.dart';
@@ -22,6 +24,9 @@ class _PlayersScreenState extends ConsumerState<PlayersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(currentLeagueIdProvider) == null) {
+      return const NoLeagueScaffold();
+    }
     final players = ref.watch(playersProvider);
     return Scaffold(
       appBar: AppBar(title: const LeagueTitle()),
@@ -115,7 +120,11 @@ class PlayerProfileScreen extends ConsumerWidget {
                         : '${profile.currentSeason!.position}º de ${profile.currentSeason!.rankedPlayers}',
                     stats: profile.currentSeason?.stats,
                   ),
-                  _StatsCard(title: 'Carreira', subtitle: 'Todas as partidas válidas', stats: profile.career),
+                  _StatsCard(
+                    title: 'Carreira',
+                    subtitle: 'Todas as partidas válidas, inclusive com convidado e fora de temporada',
+                    stats: profile.career,
+                  ),
                   if (profile.pastSeasons.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text('Temporadas anteriores', style: Theme.of(context).textTheme.titleSmall),

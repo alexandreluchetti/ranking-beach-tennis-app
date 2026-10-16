@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../leagues/current_league.dart';
 import '../leagues/league_switcher.dart';
+import '../leagues/no_league_view.dart';
 import '../ranking/ranking_repository.dart';
 import '../sync/pending_matches_sliver.dart';
 import 'match_history.dart';
@@ -26,6 +27,9 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(currentLeagueIdProvider) == null) {
+      return const NoLeagueScaffold();
+    }
     final seasons = ref.watch(seasonsProvider).value ?? const [];
     final players = ref.watch(playersProvider).value ?? const [];
     String? seasonName = seasons.where((s) => s.id == _filter.seasonId).map((s) => s.name).firstOrNull;

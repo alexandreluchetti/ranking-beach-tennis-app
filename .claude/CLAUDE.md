@@ -87,10 +87,13 @@ Regras:
   São Paulo). Atalho "Encerrar hoje" com confirmação.
 - Não há aba Admin: todos têm as mesmas 5 abas. Ranking, Partidas e Jogadores são da liga
   selecionada, cujo nome é o título (toque para trocar); Notificações e Perfil valem para todas.
-  Trocar de liga volta todas as abas ao início. Sem nenhuma liga, a tela Ligas ocupa o app inteiro
-  (sem abas). A administração da liga fica na página da liga (Convidar, Pedidos, Temporadas,
+  Trocar de liga volta todas as abas ao início. Sem nenhuma liga, as abas continuam: o título vira
+  "Selecione uma liga" e Ranking, Partidas e Jogadores mostram "Entre ou crie uma liga para participar
+  de um ranking", com Criar liga, Entrar com código, convites recebidos e a lista de ligas
+  (`NoLeagueView`). A administração da liga fica na página da liga (Convidar, Pedidos, Temporadas,
   Editar, Arquivar; menu em cada membro). Corrigir, anular e reverter ficam no menu do detalhe da
-  partida. O redirect bloqueia `/admin*` e `/leagues/{id}/seasons*` para quem não administra a liga atual.
+  partida. O redirect bloqueia `/admin*` e `/leagues/{id}/seasons*` para quem não administra a liga atual
+  e, sem liga, as telas internas de Ranking, Partidas e Jogadores.
 - Explorar mostra também as ligas em que o usuário está (etiqueta "Membro"). Link de convite
   `https://ranking-beach-tennis.web.app/convite/{código}` (web com URLs sem `#`); no Android o link
   abre o navegador por enquanto (App Links fica para depois da 1.1.0).

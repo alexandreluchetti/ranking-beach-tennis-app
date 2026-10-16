@@ -62,20 +62,35 @@ void main() {
     expect(find.byTooltip('Configurações'), findsNothing);
   });
 
-  testWidgets('without a league the leagues screen is the whole app', (tester) async {
+  testWidgets('without a league the league tabs show how to join or create one', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe, leagues: const []);
 
-    expect(find.text('Ligas'), findsOneWidget);
-    expect(find.text('Você ainda não participa de nenhuma liga'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Selecione uma liga'), findsOneWidget);
+    expect(find.text('Entre ou crie uma liga para participar de um ranking'), findsOneWidget);
+    expect(find.text('Criar liga'), findsOneWidget);
 
-    final router = GoRouter.of(tester.element(find.text('Ligas')));
-    router.go('/ranking');
+    await tester.tap(find.text('Partidas'));
     await tester.pumpAndSettle();
-    expect(router.routerDelegate.currentConfiguration.uri.path, '/leagues');
+    expect(find.text('Entre ou crie uma liga para participar de um ranking'), findsOneWidget);
+    expect(find.text('Registrar partida'), findsNothing);
 
-    await tester.tap(find.byTooltip('Mais opções'));
+    final router = GoRouter.of(tester.element(find.byType(NavigationBar)));
+    router.go('/matches/m1');
     await tester.pumpAndSettle();
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/ranking');
+
+    await tester.tap(find.byTooltip('Selecionar liga'));
+    await tester.pumpAndSettle();
+    expect(find.text('Você ainda não participa de nenhuma liga.'), findsOneWidget);
+    expect(find.text('Detalhes da liga'), findsNothing);
+    expect(find.text('Todas as ligas'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Perfil'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Sair'), 200);
     expect(find.text('Sair'), findsOneWidget);
   });
 
