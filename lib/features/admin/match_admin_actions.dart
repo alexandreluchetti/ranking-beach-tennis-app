@@ -8,13 +8,15 @@ import '../matches/match_history.dart';
 import '../matches/match_models.dart';
 import '../matches/match_repository.dart';
 import '../matches/register_match_screen.dart';
+import '../me/me_repository.dart';
+import '../players/player_profile.dart';
 import '../leagues/current_league.dart';
 import '../notifications/notification_inbox.dart';
 import '../ranking/ranking_repository.dart';
 import 'admin_repository.dart';
 
 /// Reloads everything a match change can affect: the match, its audit trail,
-/// histories, rankings and the notifications it generated.
+/// histories, rankings, player statistics and the notifications it generated.
 void refreshAfterMatchChange(WidgetRef ref, String matchId) {
   ref
     ..invalidate(matchProvider(matchId))
@@ -22,6 +24,8 @@ void refreshAfterMatchChange(WidgetRef ref, String matchId) {
     ..invalidate(matchHistoryProvider)
     ..invalidate(currentRankingProvider)
     ..invalidate(seasonRankingProvider)
+    ..invalidate(playerProfileProvider)
+    ..invalidate(myStatisticsProvider)
     ..invalidate(notificationInboxProvider);
 }
 

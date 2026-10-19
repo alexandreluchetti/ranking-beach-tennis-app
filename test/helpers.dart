@@ -47,10 +47,11 @@ List<Override> deviceOverrides(
   FakePushMessaging? push,
   List<League> leagues = const [sampleLeague],
   FakeLeagueRepository? leagueRepository,
-  GlobalStats statistics = noStatistics,
+  GlobalStats? statistics = noStatistics,
 }) =>
     [
-      myStatisticsProvider.overrideWith((ref) async => statistics),
+      // Null: the statistics come from the (overridden) MeRepository.
+      if (statistics != null) myStatisticsProvider.overrideWith((ref) async => statistics),
       if (leagueRepository == null)
         ...leagueOverrides(leagues)
       else
