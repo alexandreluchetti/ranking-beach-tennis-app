@@ -158,9 +158,6 @@ void main() {
     await tester.scrollUntilVisible(find.text('Salvar correção'), 200, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Salvar correção'));
     await tester.pumpAndSettle();
-    // The sample match has a guest: the usual warning comes first.
-    await tester.tap(find.text('Salvar mesmo assim'));
-    await tester.pumpAndSettle();
 
     final call = admin.calls.single;
     expect(call['op'], 'correct');
@@ -191,9 +188,9 @@ void main() {
     final loadsBefore = matches.loaded.length;
 
     await tester.scrollUntilVisible(find.text('Salvar correção'), 200, scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('Salvar correção'));
+    await tester.ensureVisible(find.text('Salvar correção'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Salvar mesmo assim'));
+    await tester.tap(find.text('Salvar correção'));
     await tester.pumpAndSettle();
 
     expect(find.text('Partida alterada'), findsOneWidget);

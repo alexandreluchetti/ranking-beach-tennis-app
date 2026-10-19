@@ -16,7 +16,7 @@ void main() {
   testWidgets('lists matches with a clear status for each', (tester) async {
     final repository = FakeMatchRepository(matches: [
       sampleMatch(id: 'm1'),
-      sampleMatch(id: 'm2', counted: false, reason: 'GUEST_PRESENT'),
+      sampleMatch(id: 'm2', counted: false, reason: 'NO_SEASON'),
       sampleMatch(id: 'm3', voided: true, counted: false, reason: 'VOIDED'),
     ]);
     await pumpScreen(tester, const MatchHistoryScreen(), leagues: null, overrides: [
@@ -27,7 +27,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Contabilizada'), findsOneWidget);
-    expect(find.text('Não contabilizada: havia convidado'), findsOneWidget);
+    expect(find.text('Não contabilizada: fora de temporada'), findsOneWidget);
     expect(find.text('Anulada'), findsOneWidget);
     expect(find.text('Ana e Beto'), findsNWidgets(3));
 
@@ -108,5 +108,10 @@ void main() {
     expect(match.statusLabel, 'Anulada');
     expect(match.teamB[1].name, 'Zé (convidado)');
     expect(match.score, '6–4');
+  });
+
+  test('guest matches count; a reason the backend no longer sends does not break the label', () {
+    expect(sampleMatch().statusLabel, 'Contabilizada', reason: 'the sample match has a guest');
+    expect(sampleMatch(counted: false, reason: 'GUEST_PRESENT').statusLabel, 'Não contabilizada: sem pontos');
   });
 }
