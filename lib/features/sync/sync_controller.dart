@@ -11,6 +11,8 @@ import '../matches/match_draft.dart';
 import '../matches/match_history.dart';
 import '../matches/match_models.dart';
 import '../matches/match_repository.dart';
+import '../me/me_repository.dart';
+import '../players/player_profile.dart';
 import '../ranking/ranking_repository.dart';
 import 'pending_match.dart';
 
@@ -160,8 +162,13 @@ class SyncController extends Notifier<List<PendingMatch>> {
           .register(item.draft, leagueId: item.leagueId, confirmPossibleDuplicate: item.duplicateConfirmed);
       state = state.where((p) => p.id != id).toList();
       await _persist();
-      ref.invalidate(currentRankingProvider);
-      ref.invalidate(matchHistoryProvider);
+      // Everything the new match changes reloads (now if on screen).
+      ref
+        ..invalidate(currentRankingProvider)
+        ..invalidate(seasonRankingProvider)
+        ..invalidate(matchHistoryProvider)
+        ..invalidate(playerProfileProvider)
+        ..invalidate(myStatisticsProvider);
       return SubmitResult.sent(match);
     } on ApiException catch (e) {
       final next = switch (e) {

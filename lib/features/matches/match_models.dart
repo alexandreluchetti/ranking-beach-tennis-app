@@ -135,8 +135,8 @@ class MatchView {
     return 'Não contabilizada: ${reasonLabel(notCountedReason)}';
   }
 
+  /// Unknown reasons (e.g. ones the backend no longer sends) read "sem pontos".
   static String reasonLabel(String? reason) => switch (reason) {
-        'GUEST_PRESENT' => 'havia convidado',
         'NO_SEASON' => 'fora de temporada',
         'VOIDED' => 'anulada',
         _ => 'sem pontos',

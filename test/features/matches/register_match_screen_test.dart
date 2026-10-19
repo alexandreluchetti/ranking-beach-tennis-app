@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
@@ -126,7 +127,7 @@ void main() {
     expect(find.byKey(const Key('tiebreakA')), findsOneWidget);
   });
 
-  testWidgets('warns that a guest match gives no points before saving', (tester) async {
+  testWidgets('a guest match is registered like any other, without a warning', (tester) async {
     await pumpForm(tester);
     await fillRegularMatch(tester);
     await choose(tester, 3, 'Convidado');
@@ -135,17 +136,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Zé (convidado)'), findsOneWidget);
-    expect(find.text('Partida com convidado não vale pontos para nenhum dos participantes.'), findsOneWidget);
+    expect(find.textContaining('não vale pontos'), findsNothing);
 
     await save(tester);
-    expect(find.text('Partida com convidado'), findsOneWidget);
-    await tester.tap(find.text('Voltar'));
-    await tester.pumpAndSettle();
-    expect(repository.registered, isEmpty);
-
-    await save(tester);
-    await tester.tap(find.text('Registrar mesmo assim'));
-    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
     expect(repository.registered.single['teamB'], [
       {'playerId': 'p-caio'},
       {'guest': true, 'guestName': 'Zé'},
@@ -241,11 +235,71 @@ void main() {
     await tester.enterText(find.byKey(const Key('gamesB')), '4');
     await tester.pumpAndSettle();
     await save(tester);
-    await tester.tap(find.text('Registrar mesmo assim'));
-    await tester.pumpAndSettle();
 
     expect(repository.registered.single['id'], 'pending-1');
     expect(repository.registered.single['teamBGames'], 4);
+    expect(DateTime.parse(repository.registered.single['playedAt'] as String).toLocal(), DateTime(2026, 10, 11, 9, 30),
+        reason: 'an edited pending match keeps the moment it was registered');
     expect(container.read(syncControllerProvider), isEmpty);
+  });
+
+  DateTime sentPlayedAt() => DateTime.parse(repository.registered.last['playedAt'] as String).toLocal();
+
+  testWidgets('only the day is chosen: today by default, at the time of registration', (tester) async {
+    await pumpForm(tester);
+    final today = DateUtils.dateOnly(DateTime.now());
+
+    expect(find.text(DateFormat('dd/MM/yyyy').format(today)), findsOneWidget);
+    expect(find.text('Data da partida (a hora é a do registro)'), findsOneWidget);
+    expect(find.text('Data e hora da partida'), findsNothing);
+
+    await fillRegularMatch(tester);
+    final before = DateTime.now().subtract(const Duration(seconds: 1));
+    await save(tester);
+    final after = DateTime.now().add(const Duration(seconds: 1));
+
+    final playedAt = sentPlayedAt();
+    expect(DateUtils.dateOnly(playedAt), today);
+    expect(playedAt.isAfter(before) && playedAt.isBefore(after), isTrue, reason: 'the moment of registration');
+  });
+
+  testWidgets('a past day keeps the time of registration; future days cannot be chosen', (tester) async {
+    await pumpForm(tester);
+    final day = DateUtils.dateOnly(DateTime.now()).subtract(const Duration(days: 3));
+
+    await tester.tap(find.byKey(const Key('matchDay')));
+    await tester.pumpAndSettle();
+    final picker = tester.widget<DatePickerDialog>(find.byType(DatePickerDialog));
+    expect(picker.lastDate, DateUtils.dateOnly(DateTime.now()));
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, DateFormat('dd/MM/yyyy').format(day));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(find.text(DateFormat('dd/MM/yyyy').format(day)), findsOneWidget);
+
+    await fillRegularMatch(tester);
+    final now = DateTime.now();
+    await save(tester);
+
+    final playedAt = sentPlayedAt();
+    expect(DateUtils.dateOnly(playedAt), day);
+    expect(playedAt.hour * 60 + playedAt.minute, closeTo(now.hour * 60 + now.minute, 1));
+  });
+
+  testWidgets('an offline match keeps the captured moment when it is sent later', (tester) async {
+    await pumpForm(tester);
+    repository.offline = true;
+    await fillRegularMatch(tester);
+    await save(tester);
+    final captured = container.read(syncControllerProvider).single.draft.playedAt;
+
+    repository.offline = false;
+    await container.read(syncControllerProvider.notifier).syncAll();
+    await tester.pumpAndSettle();
+
+    final attempts = repository.registered.map((r) => r['playedAt']).toSet();
+    expect(attempts, hasLength(1), reason: 'every attempt sends the same playedAt');
+    expect(sentPlayedAt(), captured);
   });
 }

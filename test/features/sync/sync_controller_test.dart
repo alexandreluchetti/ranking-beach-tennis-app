@@ -6,6 +6,7 @@ import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
 import 'package:ranking_beach_tennis/features/matches/match_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
+import 'package:ranking_beach_tennis/features/me/me_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
 import 'package:ranking_beach_tennis/features/sync/pending_match.dart';
 import 'package:ranking_beach_tennis/features/sync/sync_controller.dart';
@@ -19,9 +20,15 @@ void main() {
   late MemoryLocalStore store;
   late FakeAuthRepository auth;
 
+  var statisticsLoads = 0;
+
   ProviderContainer open() {
     final container = ProviderContainer(overrides: [
-      ...deviceOverrides(auth, store),
+      ...deviceOverrides(auth, store, statistics: null),
+      myStatisticsProvider.overrideWith((ref) async {
+        statisticsLoads++;
+        return noStatistics;
+      }),
       matchRepositoryProvider.overrideWithValue(repository),
       currentRankingProvider.overrideWith((ref) async => const Cached(null)),
     ]);
@@ -56,6 +63,18 @@ void main() {
 
     expect(result.match?.id, 'm1');
     expect(store.readSync(SyncController.storageKey), isEmpty);
+  });
+
+  test('a sent match reloads the statistics shown in the profile', () async {
+    final container = open();
+    container.listen(myStatisticsProvider, (_, _) {});
+    await container.read(myStatisticsProvider.future);
+    final before = statisticsLoads;
+
+    await container.read(syncControllerProvider.notifier).submit(draft('m1'));
+    await container.read(myStatisticsProvider.future);
+
+    expect(statisticsLoads, before + 1);
   });
 
   test('offline matches are kept, survive a restart and are sent exactly once later', () async {

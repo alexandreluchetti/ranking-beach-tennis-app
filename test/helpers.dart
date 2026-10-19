@@ -47,10 +47,11 @@ List<Override> deviceOverrides(
   FakePushMessaging? push,
   List<League> leagues = const [sampleLeague],
   FakeLeagueRepository? leagueRepository,
-  GlobalStats statistics = noStatistics,
+  GlobalStats? statistics = noStatistics,
 }) =>
     [
-      myStatisticsProvider.overrideWith((ref) async => statistics),
+      // Null: the statistics come from the (overridden) MeRepository.
+      if (statistics != null) myStatisticsProvider.overrideWith((ref) async => statistics),
       if (leagueRepository == null)
         ...leagueOverrides(leagues)
       else
@@ -144,6 +145,18 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> sendPasswordReset(String email) async => calls.add('reset:$email');
+
+  /// The password the fake accepts as the current one.
+  String password = 'secret1';
+
+  @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    calls.add('changePassword');
+    if (currentPassword != password) {
+      throw const AuthFailure('Senha atual incorreta.');
+    }
+    password = newPassword;
+  }
 
   @override
   Future<void> signOut() async {
@@ -256,8 +269,9 @@ const adminLeague = League(
   canAdminister: true,
 );
 
-const anaMe = Me(id: 'p-ana', displayName: 'Ana', email: 'ana@example.com', admin: false);
-const adminMe = Me(id: 'p-admin', displayName: 'Admin', email: 'admin@example.com', admin: true);
+const anaMe = Me(id: 'p-ana', displayName: 'Ana', fullName: 'Ana Souza', email: 'ana@example.com', admin: false);
+const adminMe =
+    Me(id: 'p-admin', displayName: 'Admin', fullName: 'Admin Geral', email: 'admin@example.com', admin: true);
 
 final primavera = Season(
   id: 's1',

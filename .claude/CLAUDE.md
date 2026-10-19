@@ -45,7 +45,7 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Perfil; as mesmas abas para todos); `routerRestartProvider` recria o router ao trocar de liga |
 | `lib/core/storage` | `LocalStore` (arquivo JSON atômico no celular; SharedPreferences/localStorage na web, via `openLocalStore`), `Cached<T>` (cópia offline), SharedPreferences |
 | `lib/features/auth` | `AuthRepository` (Firebase + google_sign_in 7), login, `signOutProvider` |
-| `lib/features/me` | `/api/me` (perfil, flag de administrador geral, nome de exibição) e estatísticas globais (`/api/me/statistics`) |
+| `lib/features/me` | `/api/me` (perfil, flag de administrador geral, apelido `displayName` e nome completo `fullName`, D-024) e estatísticas globais (`/api/me/statistics`) |
 | `lib/features/leagues` | Liga selecionada (`currentLeagueProvider`, `switchLeague`, `enterLeague`), seletor no título, tela Ligas (minhas, convites, explorar), criar/entrar/sair, página da liga e sua administração |
 | `lib/features/ranking` | Ranking atual, temporadas passadas |
 | `lib/features/matches` | Registro (e correção pelo admin), histórico com filtros, detalhe e auditoria |
@@ -53,7 +53,7 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/features/sync` | Fila offline de partidas (`SyncController`) e gatilhos de sincronização |
 | `lib/features/notifications` | Caixa de notificações, contador, token FCM (`PushMessaging`), gatilhos |
 | `lib/features/admin` | Temporadas da liga atual (em `/leagues/{id}/seasons`) e ações de admin na partida |
-| `lib/features/profile` | Aba Perfil: nome de exibição, "Minhas estatísticas" (todas as ligas, sem pontos), "Minhas ligas", tema e sair |
+| `lib/features/profile` | Aba Perfil: apelido e nome completo (`NamesDialog`), "Minhas estatísticas" (todas as ligas, sem pontos), "Minhas ligas", tema e sair |
 
 Regras:
 - Riverpod 3 sem codegen (`Provider`, `FutureProvider`, `AsyncNotifier`, `Notifier`). O
@@ -98,7 +98,11 @@ Regras:
   `https://ranking-beach-tennis.web.app/convite/{código}` (web com URLs sem `#`); no Android o link
   abre o navegador por enquanto (App Links fica para depois da 1.1.0).
 - Notificações de partida sem `leagueId` (anteriores às ligas) são da Arena.
-- Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro; fontes SVG em `assets/branding`.
+- Cadastro por e-mail: Nome completo, Como quer ser chamado, E-mail, Senha e Confirmar senha. Os nomes
+  ficam guardados no aparelho (`PendingProfileNames`) e vão ao backend com `PATCH /api/me` quando o perfil
+  carrega. Quem não tem nome completo recebe o pedido uma única vez por aparelho ("Agora não" não volta
+  a perguntar); o nome completo só aparece no Perfil e, para administradores da liga, na lista de membros.
+- Ícone do app: fundo laranja escuro (`#DC6A1E`) com raquete vazada em branco inclinada 45° para a direita (cabo embaixo à esquerda) e, dentro do aro, nivelado, um pódio branco (1º no meio, 2º à esquerda, 3º à direita) com os números em laranja; fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)
 

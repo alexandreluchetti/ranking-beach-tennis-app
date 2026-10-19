@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/storage/local_store.dart';
+import '../about/app_info.dart';
 import '../me/me_repository.dart';
 import 'auth_providers.dart';
 import 'auth_repository.dart';
@@ -15,18 +17,22 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _form = GlobalKey<FormState>();
+  final _fullName = TextEditingController();
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
   bool _registering = false;
   bool _busy = false;
   String? _error;
 
   @override
   void dispose() {
+    _fullName.dispose();
     _name.dispose();
     _email.dispose();
     _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -55,12 +61,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     final auth = ref.read(authRepositoryProvider);
+    final store = ref.read(localStoreProvider);
     await _run(() async {
       if (_registering) {
-        await auth.registerWithEmail(_name.text, _email.text, _password.text);
-        // The profile may already exist with a provisional name; set the chosen one.
-        await ref.read(meRepositoryProvider).updateDisplayName(_name.text.trim());
-        ref.invalidate(meProvider);
+        // Saved before signing in: this screen goes away as soon as the
+        // account exists, and the profile sends both names to the backend.
+        await PendingProfileNames.save(store, email: _email.text, displayName: _name.text, fullName: _fullName.text);
+        await auth.registerWithEmail(normalizeDisplayName(_name.text), _email.text, _password.text);
       } else {
         await auth.signInWithEmail(_email.text, _password.text);
       }
@@ -83,7 +90,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final version = ref.watch(appVersionProvider).value;
     return Scaffold(
+      // Footer with the app version (hidden while unknown).
+      bottomNavigationBar: version == null
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Versão $version',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                ),
+              ),
+            ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -129,11 +150,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 16),
                     if (_registering) ...[
                       TextFormField(
+                        key: const Key('fullName'),
+                        controller: _fullName,
+                        textCapitalization: TextCapitalization.words,
+                        autofillHints: const [AutofillHints.name],
+                        decoration: const InputDecoration(labelText: 'Nome completo'),
+                        validator: validateFullName,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
                         key: const Key('name'),
                         controller: _name,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(labelText: 'Nome de exibição'),
-                        validator: (v) => (v == null || v.trim().length < 2 || v.trim().length > 40)
+                        decoration: const InputDecoration(
+                          labelText: 'Como quer ser chamado',
+                          helperText: 'Aparece no ranking e nas partidas.',
+                        ),
+                        validator: (v) => (normalizeDisplayName(v ?? '').length < 2 ||
+                                normalizeDisplayName(v ?? '').length > 40)
                             ? 'Informe um nome entre 2 e 40 caracteres.'
                             : null,
                       ),
@@ -158,6 +192,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       validator: (v) =>
                           (v == null || v.length < 6) ? 'A senha deve ter pelo menos 6 caracteres.' : null,
                     ),
+                    if (_registering) ...[
+                      const SizedBox(height: 12),
+                      // Compared only here: the password goes straight to Firebase.
+                      TextFormField(
+                        key: const Key('confirmPassword'),
+                        controller: _confirmPassword,
+                        obscureText: true,
+                        decoration: const InputDecoration(labelText: 'Confirmar senha'),
+                        validator: (v) => v != _password.text ? 'As senhas não coincidem.' : null,
+                      ),
+                    ],
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Text(_error!, style: TextStyle(color: theme.colorScheme.error)),

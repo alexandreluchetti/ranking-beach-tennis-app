@@ -122,7 +122,7 @@ class PlayerProfileScreen extends ConsumerWidget {
                   ),
                   _StatsCard(
                     title: 'Carreira',
-                    subtitle: 'Todas as partidas válidas, inclusive com convidado e fora de temporada',
+                    subtitle: 'Todas as partidas válidas, inclusive fora de temporada',
                     stats: profile.career,
                   ),
                   if (profile.pastSeasons.isNotEmpty) ...[

@@ -12,24 +12,39 @@ import '../../helpers.dart';
 
 class _FakeMeRepository implements MeRepository {
   Me current = anaMe;
+  /// Display names sent, in order.
   final saved = <String>[];
+  final savedFullNames = <String>[];
   ApiException? failNextWith;
 
   @override
   Future<Me> load() async => current;
 
   @override
-  Future<GlobalStats> statistics() async => noStatistics;
+  Future<GlobalStats> statistics() async {
+    statisticsLoads++;
+    return GlobalStats(
+        matchesPlayed: statisticsLoads, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0, gameDifference: 0);
+  }
+
+  int statisticsLoads = 0;
 
   @override
-  Future<Me> updateDisplayName(String name) async {
+  Future<Me> updateNames({String? displayName, String? fullName}) async {
     final failure = failNextWith;
     if (failure != null) {
       failNextWith = null;
       throw failure;
     }
-    saved.add(name);
-    current = Me(id: current.id, displayName: name, email: current.email, admin: current.admin);
+    if (displayName != null) saved.add(displayName);
+    if (fullName != null) savedFullNames.add(fullName);
+    current = Me(
+      id: current.id,
+      displayName: displayName ?? current.displayName,
+      fullName: fullName ?? current.fullName,
+      email: current.email,
+      admin: current.admin,
+    );
     return current;
   }
 }
@@ -41,7 +56,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     await pumpScreen(tester, const ProfileScreen(), leagues: null, overrides: [
-      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
+      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore(),
+          statistics: null),
       sharedPreferencesProvider.overrideWithValue(preferences),
       meRepositoryProvider.overrideWithValue(me),
     ]);
@@ -58,17 +74,30 @@ void main() {
     expect(validateDisplayName('a' * 41), isNotNull);
   });
 
+  testWidgets('pulling down reloads the profile and the statistics', (tester) async {
+    await pumpProfile(tester);
+    expect(me.statisticsLoads, 1);
+
+    await tester.fling(find.text('Ana'), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+
+    expect(me.statisticsLoads, 2);
+    final card = find.ancestor(of: find.text('Minhas estatísticas'), matching: find.byType(Card));
+    expect(find.descendant(of: card, matching: find.text('2')), findsOneWidget, reason: 'the new numbers');
+  });
+
   testWidgets('changes the display name', (tester) async {
     await pumpProfile(tester);
     expect(find.text('Ana'), findsOneWidget);
 
-    await tester.tap(find.text('Ana'));
+    await tester.tap(find.byTooltip('Editar nomes'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField), '  Ana   Paula ');
+    await tester.enterText(find.byKey(const Key('displayName')), '  Ana   Paula ');
     await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
 
     expect(me.saved, ['Ana Paula']);
+    expect(me.savedFullNames, isEmpty, reason: 'only what changed is sent');
     expect(find.text('Nome atualizado.'), findsOneWidget);
     expect(find.text('Ana Paula'), findsOneWidget);
   });
@@ -76,9 +105,9 @@ void main() {
   testWidgets('rejects a name that is too short without calling the backend', (tester) async {
     await pumpProfile(tester);
 
-    await tester.tap(find.text('Ana'));
+    await tester.tap(find.byTooltip('Editar nomes'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField), 'A');
+    await tester.enterText(find.byKey(const Key('displayName')), 'A');
     await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
 
@@ -90,13 +119,34 @@ void main() {
     me.failNextWith = const ApiException('Sem conexão com o servidor. Verifique sua internet.');
     await pumpProfile(tester);
 
-    await tester.tap(find.text('Ana'));
+    await tester.tap(find.byTooltip('Editar nomes'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField), 'Ana Paula');
+    await tester.enterText(find.byKey(const Key('displayName')), 'Ana Paula');
     await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sem conexão com o servidor. Verifique sua internet.'), findsOneWidget);
-    expect(find.text('Nome de exibição'), findsOneWidget);
+    expect(find.text('Seus nomes'), findsOneWidget);
+  });
+
+  testWidgets('one block with both names and the e-mail, edited by a single button', (tester) async {
+    await pumpProfile(tester);
+    expect(find.text('Ana Souza\nana@example.com'), findsOneWidget);
+    expect(find.byIcon(Icons.edit), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Editar nomes'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('fullName')), 'Ana');
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Informe nome e sobrenome.'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('fullName')), 'Ana  Paula Souza');
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(me.savedFullNames, ['Ana Paula Souza']);
+    expect(me.saved, isEmpty);
+    expect(find.text('Ana Paula Souza\nana@example.com'), findsOneWidget);
   });
 }

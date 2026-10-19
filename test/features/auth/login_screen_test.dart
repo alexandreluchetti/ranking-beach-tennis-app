@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ranking_beach_tennis/features/about/app_info.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/auth/firebase_auth_repository.dart';
@@ -10,9 +11,12 @@ import '../../helpers.dart';
 void main() {
   late FakeAuthRepository auth;
 
-  Future<void> pumpLogin(WidgetTester tester) async {
+  Future<void> pumpLogin(WidgetTester tester, {String? version = '1.1.2'}) async {
     auth = FakeAuthRepository();
-    await pumpScreen(tester, const LoginScreen(), overrides: [authRepositoryProvider.overrideWithValue(auth)]);
+    await pumpScreen(tester, const LoginScreen(), overrides: [
+      authRepositoryProvider.overrideWithValue(auth),
+      appVersionProvider.overrideWith((ref) async => version),
+    ]);
   }
 
   testWidgets('shows the app logo', (tester) async {
@@ -22,6 +26,18 @@ void main() {
     expect((logo.image as AssetImage).assetName, 'assets/branding/app_icon.png');
     expect(find.bySemanticsLabel('Logo do Ranking Beach Tennis'), findsOneWidget);
     expect(find.textContaining('Desenvolvido por'), findsNothing, reason: 'credit only in Sobre o app');
+  });
+
+  testWidgets('shows the app version in the footer', (tester) async {
+    await pumpLogin(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Versão 1.1.2'), findsOneWidget);
+  });
+
+  testWidgets('without a known version the footer is empty', (tester) async {
+    await pumpLogin(tester, version: null);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Versão'), findsNothing);
   });
 
   testWidgets('validates e-mail and password before calling the provider', (tester) async {
@@ -53,10 +69,13 @@ void main() {
 
     await tester.tap(find.text('Criar conta com e-mail'));
     await tester.pump();
+    await tester.ensureVisible(find.text('Criar conta'));
     await tester.tap(find.text('Criar conta'));
     await tester.pump();
 
     expect(find.byKey(const Key('name')), findsOneWidget);
+    expect(find.text('Como quer ser chamado'), findsOneWidget);
+    expect(find.text('Informe nome e sobrenome.'), findsOneWidget);
     expect(find.text('Informe um nome entre 2 e 40 caracteres.'), findsOneWidget);
   });
 

@@ -147,6 +147,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Corrigir partida'), findsOneWidget);
+    expect(find.text('Data e hora da partida'), findsOneWidget, reason: 'corrections still edit date and time');
+    expect(find.byKey(const Key('matchDay')), findsNothing);
     expect(find.text('Ana'), findsOneWidget);
     expect(find.text('Zé (convidado)'), findsOneWidget);
     expect(tester.widget<TextField>(find.byKey(const Key('gamesB'))).controller!.text, '4');
@@ -157,9 +159,6 @@ void main() {
     await tester.enterText(find.byKey(const Key('correctionReason')), 'Placar anotado errado');
     await tester.scrollUntilVisible(find.text('Salvar correção'), 200, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Salvar correção'));
-    await tester.pumpAndSettle();
-    // The sample match has a guest: the usual warning comes first.
-    await tester.tap(find.text('Salvar mesmo assim'));
     await tester.pumpAndSettle();
 
     final call = admin.calls.single;
@@ -191,9 +190,9 @@ void main() {
     final loadsBefore = matches.loaded.length;
 
     await tester.scrollUntilVisible(find.text('Salvar correção'), 200, scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('Salvar correção'));
+    await tester.ensureVisible(find.text('Salvar correção'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Salvar mesmo assim'));
+    await tester.tap(find.text('Salvar correção'));
     await tester.pumpAndSettle();
 
     expect(find.text('Partida alterada'), findsOneWidget);
