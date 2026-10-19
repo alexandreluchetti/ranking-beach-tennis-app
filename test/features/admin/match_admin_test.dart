@@ -147,6 +147,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Corrigir partida'), findsOneWidget);
+    expect(find.text('Data e hora da partida'), findsOneWidget, reason: 'corrections still edit date and time');
+    expect(find.byKey(const Key('matchDay')), findsNothing);
     expect(find.text('Ana'), findsOneWidget);
     expect(find.text('Zé (convidado)'), findsOneWidget);
     expect(tester.widget<TextField>(find.byKey(const Key('gamesB'))).controller!.text, '4');
