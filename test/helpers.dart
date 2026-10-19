@@ -145,6 +145,18 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> sendPasswordReset(String email) async => calls.add('reset:$email');
 
+  /// The password the fake accepts as the current one.
+  String password = 'secret1';
+
+  @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    calls.add('changePassword');
+    if (currentPassword != password) {
+      throw const AuthFailure('Senha atual incorreta.');
+    }
+    password = newPassword;
+  }
+
   @override
   Future<void> signOut() async {
     _session = null;

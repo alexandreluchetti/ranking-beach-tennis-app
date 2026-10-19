@@ -1,10 +1,13 @@
 /// The signed-in user as seen by the app, independent of the auth provider.
 class AuthSession {
-  const AuthSession({required this.uid, this.email, this.displayName});
+  const AuthSession({required this.uid, this.email, this.displayName, this.hasPassword = false});
 
   final String uid;
   final String? email;
   final String? displayName;
+
+  /// Signs in with e-mail and password (a Google-only account has none).
+  final bool hasPassword;
 }
 
 /// Sign-in failure with a message ready to be shown (pt-BR).
@@ -40,6 +43,10 @@ abstract class AuthRepository {
   Future<void> registerWithEmail(String name, String email, String password);
 
   Future<void> sendPasswordReset(String email);
+
+  /// Confirms [currentPassword] with the provider and sets [newPassword]; the
+  /// user stays signed in. The backend never sees passwords.
+  Future<void> changePassword({required String currentPassword, required String newPassword});
 
   Future<void> signOut();
 }
