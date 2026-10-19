@@ -102,7 +102,7 @@ Regras:
   ficam guardados no aparelho (`PendingProfileNames`) e vão ao backend com `PATCH /api/me` quando o perfil
   carrega. Quem não tem nome completo recebe o pedido uma única vez por aparelho ("Agora não" não volta
   a perguntar); o nome completo só aparece no Perfil e, para administradores da liga, na lista de membros.
-- Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro; fontes SVG em `assets/branding`.
+- Ícone do app: fundo laranja escuro (`#DC6A1E`) com raquete vazada em branco inclinada 45° para a direita (cabo embaixo à esquerda) e, dentro do aro, nivelado, um pódio branco (1º no meio, 2º à esquerda, 3º à direita) com os números em laranja; fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)
 
