@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/storage/local_store.dart';
 import '../me/me_repository.dart';
 import 'auth_providers.dart';
 import 'auth_repository.dart';
@@ -55,12 +56,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     final auth = ref.read(authRepositoryProvider);
+    final store = ref.read(localStoreProvider);
     await _run(() async {
       if (_registering) {
-        await auth.registerWithEmail(_name.text, _email.text, _password.text);
-        // The profile may already exist with a provisional name; set the chosen one.
-        await ref.read(meRepositoryProvider).updateDisplayName(_name.text.trim());
-        ref.invalidate(meProvider);
+        // Saved before signing in: this screen goes away as soon as the
+        // account exists, and the profile sends the name to the backend.
+        await PendingDisplayName.save(store, email: _email.text, name: _name.text);
+        await auth.registerWithEmail(normalizeDisplayName(_name.text), _email.text, _password.text);
       } else {
         await auth.signInWithEmail(_email.text, _password.text);
       }
@@ -133,7 +135,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: _name,
                         textCapitalization: TextCapitalization.words,
                         decoration: const InputDecoration(labelText: 'Nome de exibição'),
-                        validator: (v) => (v == null || v.trim().length < 2 || v.trim().length > 40)
+                        validator: (v) => (normalizeDisplayName(v ?? '').length < 2 ||
+                                normalizeDisplayName(v ?? '').length > 40)
                             ? 'Informe um nome entre 2 e 40 caracteres.'
                             : null,
                       ),

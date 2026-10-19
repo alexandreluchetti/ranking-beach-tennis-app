@@ -7,8 +7,7 @@ import '../matches/match_repository.dart';
 import '../me/me_repository.dart';
 import '../ranking/ranking_repository.dart';
 
-/// Same rule as the backend: whitespace trimmed and collapsed, 2 to 40 characters.
-String normalizeDisplayName(String name) => name.trim().replaceAll(RegExp(r'\s+'), ' ');
+export '../me/me_repository.dart' show normalizeDisplayName;
 
 String? validateDisplayName(String? name) {
   final normalized = normalizeDisplayName(name ?? '');

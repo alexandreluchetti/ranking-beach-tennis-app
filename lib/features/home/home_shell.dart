@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../leagues/league_repository.dart';
+import '../me/me_repository.dart';
 import '../notifications/notification_inbox.dart';
 
 /// The five main areas, the same for every player. The administrator's extra
@@ -17,6 +18,9 @@ class HomeShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadNotificationsProvider);
+    // Loads the profile as soon as the app opens, even without a league: it
+    // also sends the name typed when the account was created (PendingDisplayName).
+    ref.listen(meProvider, (_, _) {});
     final destinations = [
       const NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Ranking'),
       const NavigationDestination(icon: Icon(Icons.sports_tennis_outlined), selectedIcon: Icon(Icons.sports_tennis), label: 'Partidas'),
