@@ -33,7 +33,13 @@ class RegisterMatchScreen extends ConsumerStatefulWidget {
 class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
   /// Kept for the whole form: retries after a failure never create a second match.
   late final String _id;
+
+  /// Date and time, edited only when correcting a match.
   DateTime _playedAt = DateTime.now();
+
+  /// Registering: only the day is chosen; the time is the moment of
+  /// registration (an edited pending match keeps its original time).
+  DateTime _day = DateUtils.dateOnly(DateTime.now());
   MatchFormat _format = MatchFormat.standard;
   final List<DraftPosition?> _positions = [null, null, null, null];
   final _teamAGames = TextEditingController();
@@ -65,6 +71,7 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     if (pending != null) {
       final draft = pending.draft;
       _playedAt = draft.playedAt;
+      _day = DateUtils.dateOnly(draft.playedAt);
       _format = draft.format;
       _positions.setAll(0, draft.positions);
       _teamAGames.text = draft.teamAGames?.toString() ?? '';
@@ -82,6 +89,7 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
       : DraftPosition.player(PlayerSummary(id: p.playerId!, displayName: p.displayName ?? 'Jogador'));
 
   static final _dateTime = DateFormat("dd/MM/yyyy 'às' HH:mm", 'pt_BR');
+  static final _date = DateFormat('dd/MM/yyyy', 'pt_BR');
 
   bool get _correcting => widget.correcting != null;
 
@@ -93,9 +101,21 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     super.dispose();
   }
 
-  MatchDraft get _draft => MatchDraft(
+  /// When the match was played, as sent: the chosen day at the current time of
+  /// day for a new match (captured once, so offline resends keep it).
+  DateTime _playedAtFor(DateTime now) {
+    if (_correcting) {
+      return _playedAt;
+    }
+    final time = widget.pendingId == null ? now : _playedAt;
+    return DateTime(_day.year, _day.month, _day.day, time.hour, time.minute, time.second);
+  }
+
+  MatchDraft get _draft => _draftAt(DateTime.now());
+
+  MatchDraft _draftAt(DateTime now) => MatchDraft(
         id: _id,
-        playedAt: _playedAt,
+        playedAt: _playedAtFor(now),
         format: _format,
         positions: _positions,
         teamAGames: int.tryParse(_teamAGames.text),
@@ -123,13 +143,23 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
         data: (players) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.event),
-              title: Text(_dateTime.format(_playedAt)),
-              subtitle: const Text('Data e hora da partida'),
-              onTap: _pickDateTime,
-            ),
+            if (_correcting)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event),
+                title: Text(_dateTime.format(_playedAt)),
+                subtitle: const Text('Data e hora da partida'),
+                onTap: _pickDateTime,
+              )
+            else
+              ListTile(
+                key: const Key('matchDay'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event),
+                title: Text(_date.format(_day)),
+                subtitle: const Text('Data da partida (a hora é a do registro)'),
+                onTap: _pickDay,
+              ),
             const SizedBox(height: 8),
             SegmentedButton<MatchFormat>(
               segments: [
@@ -247,6 +277,19 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
   String _teamLabel(int firstIndex) =>
       [_positions[firstIndex], _positions[firstIndex + 1]].map((p) => p?.label ?? '?').join(' e ');
 
+  Future<void> _pickDay() async {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _day.isAfter(today) ? today : _day,
+      firstDate: DateTime(2020),
+      lastDate: today,
+    );
+    if (date != null && mounted) {
+      setState(() => _day = date);
+    }
+  }
+
   Future<void> _pickDateTime() async {
     final date = await showDatePicker(
       context: context,
@@ -346,7 +389,8 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
       false;
 
   Future<void> _save() async {
-    final draft = _draft;
+    // The time of registration is captured here, once.
+    final draft = _draftAt(DateTime.now());
     final problem = draft.problem;
     if (problem != null) {
       setState(() => _error = problem);
