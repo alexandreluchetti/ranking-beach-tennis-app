@@ -61,9 +61,8 @@ class ScoringRules extends StatelessWidget {
         bullet('O tie-break conta como um game para quem venceu: 6–6 vira 7–6 e 4–4 vira 5–4.'),
         bullet('Os pontos do tie-break são opcionais e ficam só no histórico; não mudam a pontuação.'),
         title('Partidas com convidado'),
-        paragraph('Se qualquer um dos quatro for convidado (sem conta no app), ninguém recebe pontos e a '
-            'partida não conta no ranking nem nas estatísticas da temporada. Ela vale só para as '
-            'estatísticas de carreira (perfil do jogador e "Minhas estatísticas").'),
+        paragraph('Partidas com convidado (pessoa sem conta no app) contam normalmente; o convidado não '
+            'recebe pontos.'),
         title('Desempate no ranking'),
         paragraph('Cada jogador tem uma posição própria (1º, 2º, 3º…). Em caso de empate, vale, nesta ordem:'),
         bullet('1º  Mais pontos.'),

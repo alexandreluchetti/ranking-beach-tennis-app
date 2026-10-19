@@ -126,7 +126,7 @@ void main() {
     expect(find.byKey(const Key('tiebreakA')), findsOneWidget);
   });
 
-  testWidgets('warns that a guest match gives no points before saving', (tester) async {
+  testWidgets('a guest match is registered like any other, without a warning', (tester) async {
     await pumpForm(tester);
     await fillRegularMatch(tester);
     await choose(tester, 3, 'Convidado');
@@ -135,17 +135,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Zé (convidado)'), findsOneWidget);
-    expect(find.text('Partida com convidado não vale pontos para nenhum dos participantes.'), findsOneWidget);
+    expect(find.textContaining('não vale pontos'), findsNothing);
 
     await save(tester);
-    expect(find.text('Partida com convidado'), findsOneWidget);
-    await tester.tap(find.text('Voltar'));
-    await tester.pumpAndSettle();
-    expect(repository.registered, isEmpty);
-
-    await save(tester);
-    await tester.tap(find.text('Registrar mesmo assim'));
-    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
     expect(repository.registered.single['teamB'], [
       {'playerId': 'p-caio'},
       {'guest': true, 'guestName': 'Zé'},
@@ -241,8 +234,6 @@ void main() {
     await tester.enterText(find.byKey(const Key('gamesB')), '4');
     await tester.pumpAndSettle();
     await save(tester);
-    await tester.tap(find.text('Registrar mesmo assim'));
-    await tester.pumpAndSettle();
 
     expect(repository.registered.single['id'], 'pending-1');
     expect(repository.registered.single['teamBGames'], 4);

@@ -169,18 +169,6 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
                 '(${_teamLabel(winner == Team.a ? 0 : 2)})',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
-            if (draft.hasGuest) ...[
-              const SizedBox(height: 12),
-              Card(
-                color: Theme.of(context).colorScheme.tertiaryContainer,
-                child: const ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Partida com convidado não vale pontos para nenhum dos participantes.'),
-                  subtitle: Text('Ela fica no histórico e conta só nas estatísticas de carreira, '
-                      'não no ranking da temporada.'),
-                ),
-              ),
-            ],
             if (_correcting) ...[
               const SizedBox(height: 12),
               TextField(
@@ -331,34 +319,11 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     );
   }
 
-  Future<bool> _confirm(String title, String message, String confirmLabel) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(title),
-          content: Text(message),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(confirmLabel)),
-          ],
-        ),
-      ) ??
-      false;
-
   Future<void> _save() async {
     final draft = _draft;
     final problem = draft.problem;
     if (problem != null) {
       setState(() => _error = problem);
-      return;
-    }
-    if (draft.hasGuest &&
-        !await _confirm(
-          'Partida com convidado',
-          'Como há convidado entre os participantes, esta partida não atribuirá pontos a nenhum dos quatro '
-              'jogadores. Ela ficará no histórico e contará nas estatísticas.',
-          _correcting ? 'Salvar mesmo assim' : 'Registrar mesmo assim',
-        )) {
       return;
     }
     if (_correcting) {
