@@ -3,7 +3,7 @@
     "short_name": "Ranking BT",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F47721",
+    "background_color": "#DC6A1E",
     "theme_color": "#F47721",
     "description": "Ranking de beach tennis do grupo",
     "orientation": "portrait-primary",
