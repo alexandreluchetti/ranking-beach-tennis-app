@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/theme_mode_controller.dart';
+import '../auth/auth_providers.dart';
 import '../auth/sign_out.dart';
 import '../me/me_repository.dart';
 import 'display_name_dialog.dart';
@@ -37,6 +38,14 @@ class ProfileScreen extends ConsumerWidget {
                 icon: const Icon(Icons.edit),
                 onPressed: () => _editNames(context, me),
               ),
+            ),
+          // Only accounts with e-mail and password have one to change.
+          if (ref.watch(sessionProvider).value?.hasPassword ?? false)
+            ListTile(
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Alterar senha'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/profile/password'),
             ),
           const Divider(),
           section('Tema'),

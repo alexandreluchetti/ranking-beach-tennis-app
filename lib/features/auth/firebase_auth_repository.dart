@@ -72,6 +72,26 @@ class FirebaseAuthRepository implements AuthRepository {
       _guard(() => _auth.sendPasswordResetEmail(email: email.trim()));
 
   @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null) {
+      throw const AuthFailure('Não foi possível alterar a senha. Entre novamente e tente de novo.');
+    }
+    try {
+      // Firebase asks for a recent sign-in before changing the password.
+      await user.reauthenticateWithCredential(EmailAuthProvider.credential(email: email, password: currentPassword));
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(switch (e.code) {
+        'invalid-credential' || 'wrong-password' => 'Senha atual incorreta.',
+        'weak-password' || 'too-many-requests' || 'network-request-failed' => messageFor(e.code),
+        _ => 'Não foi possível alterar a senha. Tente novamente.',
+      });
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     if (kIsWeb) {
       await _auth.signOut();
@@ -87,7 +107,12 @@ class FirebaseAuthRepository implements AuthRepository {
 
   static AuthSession? _session(User? user) => user == null
       ? null
-      : AuthSession(uid: user.uid, email: user.email, displayName: user.displayName);
+      : AuthSession(
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          hasPassword: user.providerData.any((p) => p.providerId == EmailAuthProvider.PROVIDER_ID),
+        );
 
   static Future<void> _guard(Future<void> Function() action) async {
     try {

@@ -21,6 +21,7 @@ import '../../features/matches/match_history_screen.dart';
 import '../../features/matches/register_match_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/players/players_screen.dart';
+import '../../features/profile/change_password_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
@@ -213,6 +214,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (_, _) => const ProfileScreen(),
               routes: [
                 GoRoute(path: 'about', builder: (_, _) => const AboutScreen()),
+                GoRoute(path: 'password', builder: (_, _) => const ChangePasswordScreen()),
               ],
             ),
           ]),
