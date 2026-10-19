@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../leagues/league_repository.dart';
 import '../me/me_repository.dart';
 import '../notifications/notification_inbox.dart';
+import '../profile/display_name_dialog.dart';
 
 /// The five main areas, the same for every player. The administrator's extra
 /// tools are a section of "Perfil" (and the match details menu).
@@ -19,8 +20,16 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadNotificationsProvider);
     // Loads the profile as soon as the app opens, even without a league: it
-    // also sends the name typed when the account was created (PendingDisplayName).
-    ref.listen(meProvider, (_, _) {});
+    // also sends the names typed when the account was created (PendingProfileNames).
+    final me = ref.watch(meProvider).value;
+    if (me != null && me.fullName == null) {
+      // After this frame: the one-time request for the full name opens over the app.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          FullNamePrompt.maybeAsk(context, ref, me);
+        }
+      });
+    }
     final destinations = [
       const NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Ranking'),
       const NavigationDestination(icon: Icon(Icons.sports_tennis_outlined), selectedIcon: Icon(Icons.sports_tennis), label: 'Partidas'),

@@ -228,7 +228,8 @@ class _MembersSection extends ConsumerWidget {
                   child: Text(member.displayName.isEmpty ? '?' : member.displayName.characters.first.toUpperCase()),
                 ),
                 title: Text(member.playerId == meId ? '${member.displayName} (você)' : member.displayName),
-                subtitle: Text('Desde ${_date.format(member.joinedAt)}'),
+                subtitle: Text([?member.fullName, 'Desde ${_date.format(member.joinedAt)}'].join('\n')),
+                isThreeLine: member.fullName != null,
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

@@ -13,19 +13,25 @@ import '../../helpers.dart';
 /// The backend created the profile from the e-mail (no name in the first token).
 class _FakeMeRepository implements MeRepository {
   Me current = const Me(id: 'p-new', displayName: 'teste', email: 'teste@gmail.com', admin: false);
-  final saved = <String>[];
+  final saved = <Map<String, String?>>[];
   bool offline = false;
 
   @override
   Future<Me> load() async => current;
 
   @override
-  Future<Me> updateDisplayName(String name) async {
+  Future<Me> updateNames({String? displayName, String? fullName}) async {
     if (offline) {
       throw const ApiException('Sem conexão com o servidor. Verifique sua internet.');
     }
-    saved.add(name);
-    return current = Me(id: current.id, displayName: name, email: current.email, admin: false);
+    saved.add({'displayName': displayName, 'fullName': fullName});
+    return current = Me(
+      id: current.id,
+      displayName: displayName ?? current.displayName,
+      fullName: fullName ?? current.fullName,
+      email: current.email,
+      admin: false,
+    );
   }
 
   @override
@@ -47,65 +53,114 @@ void main() {
     return container;
   }
 
+  Future<void> savePending({String email = 'teste@gmail.com', String displayName = 'Alex'}) =>
+      PendingProfileNames.save(store, email: email, displayName: displayName, fullName: ' Alexandre   Lucchetta ');
+
   setUp(() {
     store = MemoryLocalStore();
     me = _FakeMeRepository();
   });
 
-  test('the name typed when creating the account replaces the one from the e-mail', () async {
-    await PendingDisplayName.save(store, email: 'teste@gmail.com', name: '  Alex  ');
+  test('the names typed when creating the account replace the one from the e-mail', () async {
+    await savePending(displayName: '  Alex  ');
 
     final loaded = await open().read(meProvider.future);
 
     expect(loaded!.displayName, 'Alex');
-    expect(me.saved, ['Alex']);
-    expect(store.readSync(PendingDisplayName.storageKey), isNull, reason: 'confirmed by the backend');
+    expect(loaded.fullName, 'Alexandre Lucchetta');
+    expect(me.saved, [
+      {'displayName': 'Alex', 'fullName': 'Alexandre Lucchetta'},
+    ]);
+    expect(store.readSync(PendingProfileNames.storageKey), isNull, reason: 'confirmed by the backend');
   });
 
-  test('without a connection the name is kept and sent on the next start', () async {
-    await PendingDisplayName.save(store, email: 'teste@gmail.com', name: 'Alex');
+  test('without a connection the names are kept and sent on the next start', () async {
+    await savePending();
     me.offline = true;
 
     expect((await open().read(meProvider.future))!.displayName, 'teste');
-    expect(store.readSync(PendingDisplayName.storageKey), isNotNull);
+    expect(store.readSync(PendingProfileNames.storageKey), isNotNull);
 
     me.offline = false;
     expect((await open().read(meProvider.future))!.displayName, 'Alex');
-    expect(store.readSync(PendingDisplayName.storageKey), isNull);
+    expect(store.readSync(PendingProfileNames.storageKey), isNull);
   });
 
-  test('a name typed for another account is not applied', () async {
-    await PendingDisplayName.save(store, email: 'outra@gmail.com', name: 'Alex');
+  test('names typed for another account are not applied', () async {
+    await savePending(email: 'outra@gmail.com');
 
     expect((await open().read(meProvider.future))!.displayName, 'teste');
     expect(me.saved, isEmpty);
   });
 
-  test('nothing is sent when the backend already has the name', () async {
-    await PendingDisplayName.save(store, email: 'teste@gmail.com', name: 'teste');
+  test('only the names that differ are sent', () async {
+    me.current = const Me(id: 'p-new', displayName: 'Alex', email: 'teste@gmail.com', admin: false);
+    await savePending();
 
     await open().read(meProvider.future);
 
-    expect(me.saved, isEmpty);
-    expect(store.readSync(PendingDisplayName.storageKey), isNull);
+    expect(me.saved, [
+      {'displayName': null, 'fullName': 'Alexandre Lucchetta'},
+    ]);
   });
 
-  testWidgets('creating an account with e-mail keeps the typed name for the backend', (tester) async {
-    final auth = FakeAuthRepository();
-    await pumpScreen(tester, const LoginScreen(), leagues: null, overrides: [
-      authRepositoryProvider.overrideWithValue(auth),
-      localStoreProvider.overrideWithValue(store),
-    ]);
+  test('the full name needs name and surname', () {
+    expect(validateFullName('Alexandre'), 'Informe nome e sobrenome.');
+    expect(validateFullName('  A  '), 'Informe nome e sobrenome.');
+    expect(validateFullName('Alexandre   Lucchetta'), isNull);
+    expect(validateFullName('A B'), isNull);
+    expect(validateFullName('A ${'b' * 99}'), 'Informe nome e sobrenome.', reason: 'over 100 characters');
+  });
 
-    await tester.tap(find.text('Criar conta com e-mail'));
-    await tester.pump();
-    await tester.enterText(find.byKey(const Key('name')), ' Alex   Souza ');
-    await tester.enterText(find.byKey(const Key('email')), 'Teste@gmail.com');
-    await tester.enterText(find.byKey(const Key('password')), 'secret1');
-    await tester.tap(find.text('Criar conta'));
-    await tester.pumpAndSettle();
+  group('creating an account with e-mail', () {
+    late FakeAuthRepository auth;
 
-    expect(auth.calls, ['register:Alex Souza:Teste@gmail.com']);
-    expect(store.readSync(PendingDisplayName.storageKey), {'email': 'teste@gmail.com', 'name': 'Alex Souza'});
+    Future<void> fillAndSubmit(
+      WidgetTester tester, {
+      String fullName = 'Alexandre  Lucchetta',
+      String name = ' Alex ',
+      String confirm = 'secret1',
+    }) async {
+      auth = FakeAuthRepository();
+      await pumpScreen(tester, const LoginScreen(), leagues: null, overrides: [
+        authRepositoryProvider.overrideWithValue(auth),
+        localStoreProvider.overrideWithValue(store),
+      ]);
+      await tester.tap(find.text('Criar conta com e-mail'));
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('fullName')), fullName);
+      await tester.enterText(find.byKey(const Key('name')), name);
+      await tester.enterText(find.byKey(const Key('email')), 'Teste@gmail.com');
+      await tester.enterText(find.byKey(const Key('password')), 'secret1');
+      await tester.enterText(find.byKey(const Key('confirmPassword')), confirm);
+      await tester.ensureVisible(find.text('Criar conta'));
+      await tester.tap(find.text('Criar conta'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('keeps both typed names for the backend', (tester) async {
+      await fillAndSubmit(tester);
+
+      expect(auth.calls, ['register:Alex:Teste@gmail.com']);
+      expect(store.readSync(PendingProfileNames.storageKey), {
+        'email': 'teste@gmail.com',
+        'displayName': 'Alex',
+        'fullName': 'Alexandre Lucchetta',
+      });
+    });
+
+    testWidgets('a full name with one word blocks the sign-up', (tester) async {
+      await fillAndSubmit(tester, fullName: 'Alexandre');
+
+      expect(find.text('Informe nome e sobrenome.'), findsOneWidget);
+      expect(auth.calls, isEmpty);
+    });
+
+    testWidgets('different passwords block the sign-up', (tester) async {
+      await fillAndSubmit(tester, confirm: 'secret2');
+
+      expect(find.text('As senhas não coincidem.'), findsOneWidget);
+      expect(auth.calls, isEmpty);
+    });
   });
 }

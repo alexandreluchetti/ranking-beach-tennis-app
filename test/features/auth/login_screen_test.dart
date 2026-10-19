@@ -53,10 +53,13 @@ void main() {
 
     await tester.tap(find.text('Criar conta com e-mail'));
     await tester.pump();
+    await tester.ensureVisible(find.text('Criar conta'));
     await tester.tap(find.text('Criar conta'));
     await tester.pump();
 
     expect(find.byKey(const Key('name')), findsOneWidget);
+    expect(find.text('Como quer ser chamado'), findsOneWidget);
+    expect(find.text('Informe nome e sobrenome.'), findsOneWidget);
     expect(find.text('Informe um nome entre 2 e 40 caracteres.'), findsOneWidget);
   });
 

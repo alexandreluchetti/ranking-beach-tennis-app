@@ -256,8 +256,9 @@ const adminLeague = League(
   canAdminister: true,
 );
 
-const anaMe = Me(id: 'p-ana', displayName: 'Ana', email: 'ana@example.com', admin: false);
-const adminMe = Me(id: 'p-admin', displayName: 'Admin', email: 'admin@example.com', admin: true);
+const anaMe = Me(id: 'p-ana', displayName: 'Ana', fullName: 'Ana Souza', email: 'ana@example.com', admin: false);
+const adminMe =
+    Me(id: 'p-admin', displayName: 'Admin', fullName: 'Admin Geral', email: 'admin@example.com', admin: true);
 
 final primavera = Season(
   id: 's1',

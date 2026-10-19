@@ -25,13 +25,18 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Perfil')),
       body: ListView(
         children: [
+          // One block: display name, full name and e-mail, with a single edit button.
           if (me != null)
             ListTile(
               leading: const Icon(Icons.person_outline),
               title: Text(me.displayName),
-              subtitle: Text(me.email ?? ''),
-              trailing: const Icon(Icons.edit),
-              onTap: () => _editName(context, me.displayName),
+              subtitle: Text([me.fullName ?? 'Nome completo não informado', ?me.email].join('\n')),
+              isThreeLine: me.email != null,
+              trailing: IconButton(
+                tooltip: 'Editar nomes',
+                icon: const Icon(Icons.edit),
+                onPressed: () => _editNames(context, me),
+              ),
             ),
           const Divider(),
           section('Tema'),
@@ -81,11 +86,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _editName(BuildContext context, String current) async {
+  Future<void> _editNames(BuildContext context, Me me) async {
     final messenger = ScaffoldMessenger.of(context);
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => DisplayNameDialog(current: current),
+      builder: (_) => NamesDialog(me: me),
     );
     if (saved ?? false) {
       messenger.showSnackBar(const SnackBar(content: Text('Nome atualizado.')));
