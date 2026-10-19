@@ -21,7 +21,13 @@ class _FakeMeRepository implements MeRepository {
   Future<Me> load() async => current;
 
   @override
-  Future<GlobalStats> statistics() async => noStatistics;
+  Future<GlobalStats> statistics() async {
+    statisticsLoads++;
+    return GlobalStats(
+        matchesPlayed: statisticsLoads, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0, gameDifference: 0);
+  }
+
+  int statisticsLoads = 0;
 
   @override
   Future<Me> updateNames({String? displayName, String? fullName}) async {
@@ -50,7 +56,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     await pumpScreen(tester, const ProfileScreen(), leagues: null, overrides: [
-      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
+      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore(),
+          statistics: null),
       sharedPreferencesProvider.overrideWithValue(preferences),
       meRepositoryProvider.overrideWithValue(me),
     ]);
@@ -65,6 +72,18 @@ void main() {
     expect(validateDisplayName('Al'), isNull);
     expect(validateDisplayName('a' * 40), isNull);
     expect(validateDisplayName('a' * 41), isNotNull);
+  });
+
+  testWidgets('pulling down reloads the profile and the statistics', (tester) async {
+    await pumpProfile(tester);
+    expect(me.statisticsLoads, 1);
+
+    await tester.fling(find.text('Ana'), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+
+    expect(me.statisticsLoads, 2);
+    final card = find.ancestor(of: find.text('Minhas estatísticas'), matching: find.byType(Card));
+    expect(find.descendant(of: card, matching: find.text('2')), findsOneWidget, reason: 'the new numbers');
   });
 
   testWidgets('changes the display name', (tester) async {
