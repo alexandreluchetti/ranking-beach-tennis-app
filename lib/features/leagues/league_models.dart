@@ -113,17 +113,28 @@ class LeaguePage {
 }
 
 class LeagueMember {
-  const LeagueMember({required this.playerId, required this.displayName, required this.role, required this.joinedAt});
+  const LeagueMember({
+    required this.playerId,
+    required this.displayName,
+    this.fullName,
+    required this.role,
+    required this.joinedAt,
+  });
 
   factory LeagueMember.fromJson(Map<String, dynamic> json) => LeagueMember(
         playerId: json['playerId'] as String,
         displayName: json['displayName'] as String,
+        fullName: json['fullName'] as String?,
         role: LeagueRole.fromApi(json['role'] as String)!,
         joinedAt: DateTime.parse(json['joinedAt'] as String).toLocal(),
       );
 
   final String playerId;
   final String displayName;
+
+  /// Only sent to those who administer the league (D-024); null otherwise or
+  /// when the member has not filled it in.
+  final String? fullName;
   final LeagueRole role;
   final DateTime joinedAt;
 }
