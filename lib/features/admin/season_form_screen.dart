@@ -66,6 +66,9 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
   late final _name = TextEditingController(text: widget.season?.name ?? '');
   late DateTime? _start = widget.season?.startDate;
   late DateTime? _end = widget.season?.endDate;
+
+  /// Days of the week whose matches score (D-025), as [DateTime.weekday].
+  late final Set<int> _days = {...?widget.season?.playingDays};
   bool _saving = false;
   String? _error;
 
@@ -144,6 +147,31 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
               subtitle: const Text('Término (inclusive; não pode ser antes de hoje)'),
               onTap: () => _pickEnd(today),
             ),
+            const SizedBox(height: 12),
+            Text('Dias de jogo', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              _active
+                  ? 'Só partidas nesses dias valem pontos. Mudanças valem a partir de hoje.'
+                  : 'Só partidas nesses dias valem pontos.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (var day = DateTime.monday; day <= DateTime.sunday; day++)
+                  FilterChip(
+                    key: Key('day$day'),
+                    label: Text(weekdayShortNames[day - 1]),
+                    selected: _days.contains(day),
+                    onSelected: (on) => setState(() {
+                      on ? _days.add(day) : _days.remove(day);
+                    }),
+                  ),
+              ],
+            ),
             if (_creating)
               const Padding(
                 padding: EdgeInsets.only(top: 4),
@@ -208,7 +236,9 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
     if (!_form.currentState!.validate()) {
       return;
     }
-    final problem = _datesProblem(today);
+    // A season loaded without its days (unknown) can still be saved without touching them.
+    final daysMissing = _days.isEmpty && (_creating || widget.season!.playingDays.isNotEmpty);
+    final problem = _datesProblem(today) ?? (daysMissing ? 'Escolha pelo menos um dia de jogo.' : null);
     if (problem != null) {
       setState(() => _error = problem);
       return;
@@ -217,14 +247,22 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
     final season = widget.season;
     final admin = ref.read(adminRepositoryProvider);
     if (season == null) {
-      await _run(() => admin.createSeason(name: name, startDate: _start!, endDate: _end!), 'Temporada criada.');
+      await _run(
+        () => admin.createSeason(name: name, startDate: _start!, endDate: _end!, playingDays: _days.toList()..sort()),
+        'Temporada criada.',
+      );
       return;
     }
     final nameChanged = name != season.name;
     final startChanged = !_active && _start != season.startDate;
     final endChanged = _end != season.endDate;
-    if (!nameChanged && !startChanged && !endChanged) {
+    final days = _days.toList()..sort();
+    final daysChanged = days.join() != season.playingDays.join();
+    if (!nameChanged && !startChanged && !endChanged && !daysChanged) {
       context.pop();
+      return;
+    }
+    if (daysChanged && _active && !await _confirmDaysChange()) {
       return;
     }
     await _run(
@@ -233,9 +271,26 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
         name: nameChanged ? name : null,
         startDate: startChanged ? _start : null,
         endDate: endChanged ? _end : null,
+        playingDays: daysChanged ? days : null,
       ),
       'Temporada atualizada.',
     );
+  }
+
+  /// In an active season the new days apply from today on (D-025).
+  Future<bool> _confirmDaysChange() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Alterar dias de jogo?'),
+        content: const Text('A alteração vale a partir de hoje; partidas anteriores não são recalculadas.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Salvar')),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 
   Future<void> _closeToday(DateTime today) async {

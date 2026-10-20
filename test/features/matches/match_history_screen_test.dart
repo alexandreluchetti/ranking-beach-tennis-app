@@ -114,4 +114,9 @@ void main() {
     expect(sampleMatch().statusLabel, 'Contabilizada', reason: 'the sample match has a guest');
     expect(sampleMatch(counted: false, reason: 'GUEST_PRESENT').statusLabel, 'Não contabilizada: sem pontos');
   });
+
+  test('a match outside the season playing days says it gives no points', () {
+    expect(sampleMatch(counted: false, reason: 'NOT_A_PLAYING_DAY').statusLabel,
+        'Não vale pontos: dia fora da temporada');
+  });
 }

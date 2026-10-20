@@ -132,12 +132,16 @@ class MatchView {
     if (counted) {
       return 'Contabilizada';
     }
+    if (notCountedReason == 'NOT_A_PLAYING_DAY') {
+      return 'Não vale pontos: dia fora da temporada';
+    }
     return 'Não contabilizada: ${reasonLabel(notCountedReason)}';
   }
 
   /// Unknown reasons (e.g. ones the backend no longer sends) read "sem pontos".
   static String reasonLabel(String? reason) => switch (reason) {
         'NO_SEASON' => 'fora de temporada',
+        'NOT_A_PLAYING_DAY' => 'dia fora da temporada',
         'VOIDED' => 'anulada',
         _ => 'sem pontos',
       };

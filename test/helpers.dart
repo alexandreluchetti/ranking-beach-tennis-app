@@ -279,6 +279,7 @@ final primavera = Season(
   startDate: DateTime(2026, 10, 1),
   endDate: DateTime(2026, 12, 31),
   status: SeasonStatus.active,
+  playingDays: const [DateTime.tuesday, DateTime.thursday],
 );
 
 SeasonRanking sampleRanking() => SeasonRanking(season: primavera, entries: const [
@@ -395,19 +396,26 @@ class FakeAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<Season> createSeason({required String name, required DateTime startDate, required DateTime endDate}) async {
-    await _record({'op': 'create', 'name': name, 'startDate': startDate, 'endDate': endDate});
-    return Season(id: 'new', name: name, startDate: startDate, endDate: endDate, status: SeasonStatus.planned);
+  Future<Season> createSeason({
+    required String name,
+    required DateTime startDate,
+    required DateTime endDate,
+    required List<int> playingDays,
+  }) async {
+    await _record({'op': 'create', 'name': name, 'startDate': startDate, 'endDate': endDate, 'playingDays': playingDays});
+    return Season(
+        id: 'new', name: name, startDate: startDate, endDate: endDate, status: SeasonStatus.planned, playingDays: playingDays);
   }
 
   @override
-  Future<Season> updateSeason(String id, {String? name, DateTime? startDate, DateTime? endDate}) async {
+  Future<Season> updateSeason(String id, {String? name, DateTime? startDate, DateTime? endDate, List<int>? playingDays}) async {
     await _record({
       'op': 'update',
       'id': id,
       'name': ?name,
       'startDate': ?startDate,
       'endDate': ?endDate,
+      'playingDays': ?playingDays,
     });
     return primavera;
   }
