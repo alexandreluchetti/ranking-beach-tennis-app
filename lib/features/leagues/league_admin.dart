@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
+import '../../core/widgets/responsive.dart';
 import 'current_league.dart';
 import 'league_models.dart';
 import 'league_repository.dart';
@@ -372,90 +373,92 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     final league = ref.watch(leagueProvider(widget.leagueId)).value;
     return Scaffold(
       appBar: AppBar(title: const Text('Convidar')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('Convite por e-mail', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
-          const Text(
-            'Digite o e-mail exato da conta da pessoa no app. Ela recebe o convite nas notificações e decide se entra.',
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('invite-email'),
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            autocorrect: false,
-            decoration: InputDecoration(labelText: 'E-mail', errorText: _emailError),
-            onSubmitted: (_) => _invite(),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: _sending ? null : _invite, child: const Text('Enviar convite')),
-          const SizedBox(height: 32),
-          const Divider(),
-          const SizedBox(height: 16),
-          Text('Código de convite', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
-          const Text('Quem tiver o código ou o link entra direto, mesmo numa liga privada.'),
-          const SizedBox(height: 16),
-          ...code.when(
-            loading: () => const [Center(child: CircularProgressIndicator())],
-            error: (error, _) => [
-              SizedBox(
-                height: 200,
-                child: ErrorRetry(
-                  error: error,
-                  onRetry: () => ref.invalidate(leagueInviteCodeProvider(widget.leagueId)),
+      body: NarrowBody(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text('Convite por e-mail', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            const Text(
+              'Digite o e-mail exato da conta da pessoa no app. Ela recebe o convite nas notificações e decide se entra.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('invite-email'),
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              decoration: InputDecoration(labelText: 'E-mail', errorText: _emailError),
+              onSubmitted: (_) => _invite(),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: _sending ? null : _invite, child: const Text('Enviar convite')),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 16),
+            Text('Código de convite', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            const Text('Quem tiver o código ou o link entra direto, mesmo numa liga privada.'),
+            const SizedBox(height: 16),
+            ...code.when(
+              loading: () => const [Center(child: CircularProgressIndicator())],
+              error: (error, _) => [
+                SizedBox(
+                  height: 200,
+                  child: ErrorRetry(
+                    error: error,
+                    onRetry: () => ref.invalidate(leagueInviteCodeProvider(widget.leagueId)),
+                  ),
                 ),
-              ),
-            ],
-            data: (code) => code == null
-                ? [
-                    const Text('Nenhum código gerado ainda.'),
-                    const SizedBox(height: 12),
-                    FilledButton(onPressed: () => _generate(null), child: const Text('Gerar código')),
-                  ]
-                : [
-                    Center(
-                      child: SelectableText(
-                        code,
-                        style: theme.textTheme.headlineMedium?.copyWith(letterSpacing: 4, fontWeight: FontWeight.w600),
+              ],
+              data: (code) => code == null
+                  ? [
+                      const Text('Nenhum código gerado ainda.'),
+                      const SizedBox(height: 12),
+                      FilledButton(onPressed: () => _generate(null), child: const Text('Gerar código')),
+                    ]
+                  : [
+                      Center(
+                        child: SelectableText(
+                          code,
+                          style: theme.textTheme.headlineMedium?.copyWith(letterSpacing: 4, fontWeight: FontWeight.w600),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Center(child: Text(inviteLink(code), style: theme.textTheme.bodySmall)),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              await Clipboard.setData(ClipboardData(text: inviteLink(code)));
-                              messenger.showSnackBar(const SnackBar(content: Text('Link copiado.')));
-                            },
-                            icon: const Icon(Icons.copy),
-                            label: const Text('Copiar link'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => ref.read(shareTextProvider)(
-                              'Entre na liga ${league?.name ?? ''} no Ranking Beach Tennis: ${inviteLink(code)} '
-                              '(código $code)',
+                      const SizedBox(height: 4),
+                      Center(child: Text(inviteLink(code), style: theme.textTheme.bodySmall)),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                await Clipboard.setData(ClipboardData(text: inviteLink(code)));
+                                messenger.showSnackBar(const SnackBar(content: Text('Link copiado.')));
+                              },
+                              icon: const Icon(Icons.copy),
+                              label: const Text('Copiar link'),
                             ),
-                            icon: const Icon(Icons.share),
-                            label: const Text('Compartilhar'),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(onPressed: () => _generate(code), child: const Text('Gerar novo código')),
-                  ],
-          ),
-        ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () => ref.read(shareTextProvider)(
+                                'Entre na liga ${league?.name ?? ''} no Ranking Beach Tennis: ${inviteLink(code)} '
+                                '(código $code)',
+                              ),
+                              icon: const Icon(Icons.share),
+                              label: const Text('Compartilhar'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(onPressed: () => _generate(code), child: const Text('Gerar novo código')),
+                    ],
+            ),
+          ],
+        ),
       ),
     );
   }

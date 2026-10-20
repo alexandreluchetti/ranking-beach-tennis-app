@@ -38,6 +38,10 @@ void main() {
 
   Future<void> pumpAdmin(WidgetTester tester, {String location = '/leagues/l-admin/seasons'}) async {
     await initializeDateFormatting('pt_BR');
+    // The form is long and, in its narrow column, taller than the default test screen.
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 1400);
+    addTearDown(tester.view.reset);
     final router = GoRouter(initialLocation: location, routes: [
       GoRoute(
         path: '/leagues/l-admin/seasons',

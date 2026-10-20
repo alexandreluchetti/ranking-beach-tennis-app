@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
+import '../../core/widgets/responsive.dart';
 import '../matches/match_history.dart';
 import '../ranking/ranking_models.dart';
 import '../ranking/ranking_repository.dart';
@@ -112,93 +113,95 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
     final season = widget.season;
     return Scaffold(
       appBar: AppBar(title: Text(_creating ? 'Nova temporada' : 'Editar temporada')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (season != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Chip(label: Text(season.status.label)),
-              ),
-            TextFormField(
-              controller: _name,
-              maxLength: 60,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Nome', hintText: 'Ex.: Verão 2027'),
-              validator: validateName,
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              key: const Key('startDate'),
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.event),
-              title: Text(_start == null ? 'Escolher data' : _date.format(_start!)),
-              subtitle: Text(_active ? 'Início (não muda com a temporada em andamento)' : 'Início'),
-              enabled: !_active,
-              onTap: _active ? null : () => _pickStart(today),
-            ),
-            ListTile(
-              key: const Key('endDate'),
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.event_available),
-              title: Text(_end == null ? 'Escolher data' : _date.format(_end!)),
-              subtitle: const Text('Término (inclusive; não pode ser antes de hoje)'),
-              onTap: () => _pickEnd(today),
-            ),
-            const SizedBox(height: 12),
-            Text('Dias de jogo', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text(
-              _active
-                  ? 'Só partidas nesses dias valem pontos. Mudanças valem a partir de hoje.'
-                  : 'Só partidas nesses dias valem pontos.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (var day = DateTime.monday; day <= DateTime.sunday; day++)
-                  FilterChip(
-                    key: Key('day$day'),
-                    label: Text(weekdayShortNames[day - 1]),
-                    selected: _days.contains(day),
-                    onSelected: (on) => setState(() {
-                      on ? _days.add(day) : _days.remove(day);
-                    }),
-                  ),
-              ],
-            ),
-            if (_creating)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text(
-                  'O início pode ser no passado: partidas já jogadas nesse período passam a contar.',
+      body: NarrowBody(
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (season != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Chip(label: Text(season.status.label)),
                 ),
+              TextFormField(
+                controller: _name,
+                maxLength: 60,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Nome', hintText: 'Ex.: Verão 2027'),
+                validator: validateName,
               ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _saving ? null : () => _save(today),
-              child: _saving
-                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(_creating ? 'Criar temporada' : 'Salvar alterações'),
-            ),
-            if (_active && season!.endDate != today) ...[
               const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _saving ? null : () => _closeToday(today),
-                icon: const Icon(Icons.flag),
-                label: const Text('Encerrar hoje'),
+              ListTile(
+                key: const Key('startDate'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event),
+                title: Text(_start == null ? 'Escolher data' : _date.format(_start!)),
+                subtitle: Text(_active ? 'Início (não muda com a temporada em andamento)' : 'Início'),
+                enabled: !_active,
+                onTap: _active ? null : () => _pickStart(today),
               ),
+              ListTile(
+                key: const Key('endDate'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event_available),
+                title: Text(_end == null ? 'Escolher data' : _date.format(_end!)),
+                subtitle: const Text('Término (inclusive; não pode ser antes de hoje)'),
+                onTap: () => _pickEnd(today),
+              ),
+              const SizedBox(height: 12),
+              Text('Dias de jogo', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
+              Text(
+                _active
+                    ? 'Só partidas nesses dias valem pontos. Mudanças valem a partir de hoje.'
+                    : 'Só partidas nesses dias valem pontos.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (var day = DateTime.monday; day <= DateTime.sunday; day++)
+                    FilterChip(
+                      key: Key('day$day'),
+                      label: Text(weekdayShortNames[day - 1]),
+                      selected: _days.contains(day),
+                      onSelected: (on) => setState(() {
+                        on ? _days.add(day) : _days.remove(day);
+                      }),
+                    ),
+                ],
+              ),
+              if (_creating)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text(
+                    'O início pode ser no passado: partidas já jogadas nesse período passam a contar.',
+                  ),
+                ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ],
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _saving ? null : () => _save(today),
+                child: _saving
+                    ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(_creating ? 'Criar temporada' : 'Salvar alterações'),
+              ),
+              if (_active && season!.endDate != today) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _saving ? null : () => _closeToday(today),
+                  icon: const Icon(Icons.flag),
+                  label: const Text('Encerrar hoje'),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

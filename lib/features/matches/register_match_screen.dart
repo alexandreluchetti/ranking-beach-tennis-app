@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
+import '../../core/widgets/responsive.dart';
 import '../admin/admin_repository.dart';
 import '../admin/match_admin_actions.dart';
 import '../ranking/ranking_models.dart';
@@ -139,95 +140,97 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
                 ? 'Registrar partida'
                 : 'Editar partida pendente'),
       ),
-      body: players.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),
-        data: (players) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_correcting)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.event),
-                title: Text(_dateTime.format(_playedAt)),
-                subtitle: const Text('Data e hora da partida'),
-                onTap: _pickDateTime,
-              )
-            else
-              ListTile(
-                key: const Key('matchDay'),
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.event),
-                title: Text(_date.format(_day)),
-                subtitle: const Text('Data da partida (a hora é a do registro)'),
-                onTap: _pickDay,
+      body: NarrowBody(
+        child: players.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),
+          data: (players) => ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (_correcting)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event),
+                  title: Text(_dateTime.format(_playedAt)),
+                  subtitle: const Text('Data e hora da partida'),
+                  onTap: _pickDateTime,
+                )
+              else
+                ListTile(
+                  key: const Key('matchDay'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event),
+                  title: Text(_date.format(_day)),
+                  subtitle: const Text('Data da partida (a hora é a do registro)'),
+                  onTap: _pickDay,
+                ),
+              const SizedBox(height: 8),
+              SegmentedButton<MatchFormat>(
+                segments: [
+                  for (final f in MatchFormat.values)
+                    ButtonSegment(value: f, label: Text('${f.label} (${f.targetGames} games)')),
+                ],
+                selected: {_format},
+                onSelectionChanged: (s) => setState(() => _format = s.single),
               ),
-            const SizedBox(height: 8),
-            SegmentedButton<MatchFormat>(
-              segments: [
-                for (final f in MatchFormat.values)
-                  ButtonSegment(value: f, label: Text('${f.label} (${f.targetGames} games)')),
-              ],
-              selected: {_format},
-              onSelectionChanged: (s) => setState(() => _format = s.single),
-            ),
-            const SizedBox(height: 16),
-            _teamSection('Dupla A', 0, players),
-            const SizedBox(height: 8),
-            _teamSection('Dupla B', 2, players),
-            const SizedBox(height: 16),
-            Text('Placar final', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: _gamesField(_teamAGames, 'Dupla A', const Key('gamesA'))),
-              const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('×')),
-              Expanded(child: _gamesField(_teamBGames, 'Dupla B', const Key('gamesB'))),
-            ]),
-            if (draft.decidedByTiebreak) ...[
-              const SizedBox(height: 12),
-              Text('Pontos do tie-break (opcional, só para o histórico)',
-                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 16),
+              _teamSection('Dupla A', 0, players),
+              const SizedBox(height: 8),
+              _teamSection('Dupla B', 2, players),
+              const SizedBox(height: 16),
+              Text('Placar final', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: _gamesField(_tiebreakA, 'Dupla A', const Key('tiebreakA'))),
+                Expanded(child: _gamesField(_teamAGames, 'Dupla A', const Key('gamesA'))),
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('×')),
-                Expanded(child: _gamesField(_tiebreakB, 'Dupla B', const Key('tiebreakB'))),
+                Expanded(child: _gamesField(_teamBGames, 'Dupla B', const Key('gamesB'))),
               ]),
-            ],
-            const SizedBox(height: 12),
-            if (winner != null)
-              Text(
-                'Vencedora: Dupla ${winner == Team.a ? 'A' : 'B'} '
-                '(${_teamLabel(winner == Team.a ? 0 : 2)})',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            if (_correcting) ...[
+              if (draft.decidedByTiebreak) ...[
+                const SizedBox(height: 12),
+                Text('Pontos do tie-break (opcional, só para o histórico)',
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: _gamesField(_tiebreakA, 'Dupla A', const Key('tiebreakA'))),
+                  const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('×')),
+                  Expanded(child: _gamesField(_tiebreakB, 'Dupla B', const Key('tiebreakB'))),
+                ]),
+              ],
               const SizedBox(height: 12),
-              TextField(
-                key: const Key('correctionReason'),
-                controller: _reason,
-                maxLength: 500,
-                maxLines: 3,
-                minLines: 1,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Justificativa (opcional)',
-                  helperText: 'Os participantes serão notificados da correção.',
+              if (winner != null)
+                Text(
+                  'Vencedora: Dupla ${winner == Team.a ? 'A' : 'B'} '
+                  '(${_teamLabel(winner == Team.a ? 0 : 2)})',
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
+              if (_correcting) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('correctionReason'),
+                  controller: _reason,
+                  maxLength: 500,
+                  maxLines: 3,
+                  minLines: 1,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Justificativa (opcional)',
+                    helperText: 'Os participantes serão notificados da correção.',
+                  ),
+                ),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ],
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _busy ? null : _save,
+                child: _busy
+                    ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(_correcting ? 'Salvar correção' : 'Salvar partida'),
               ),
             ],
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: _busy
-                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(_correcting ? 'Salvar correção' : 'Salvar partida'),
-            ),
-          ],
+          ),
         ),
       ),
     );
