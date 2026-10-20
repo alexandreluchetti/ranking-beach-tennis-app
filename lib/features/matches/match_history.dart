@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/async_states.dart';
+import '../../core/widgets/list_detail.dart';
 import 'match_card.dart';
 import 'match_models.dart';
 import 'match_repository.dart';
@@ -84,7 +84,12 @@ class MatchHistorySliver extends ConsumerWidget {
               );
             }
             final match = state.items[i];
-            return MatchCard(match: match, onTap: () => context.push('/matches/${match.id}'));
+            final path = '/matches/${match.id}';
+            return MatchCard(
+              match: match,
+              selected: isOpenInDetail(context, path),
+              onTap: () => openDetail(context, path),
+            );
           },
         );
       },

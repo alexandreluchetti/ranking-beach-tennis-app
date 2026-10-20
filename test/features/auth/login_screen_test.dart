@@ -64,6 +64,17 @@ void main() {
     expect(auth.calls, ['email:ana@example.com']);
   });
 
+  testWidgets('Enter in the password signs in', (tester) async {
+    await pumpLogin(tester);
+
+    await tester.enterText(find.byKey(const Key('email')), 'ana@example.com');
+    await tester.enterText(find.byKey(const Key('password')), 'secret1');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(auth.calls, ['email:ana@example.com']);
+  });
+
   testWidgets('registration asks for a display name', (tester) async {
     await pumpLogin(tester);
 

@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 
 import 'ranking_models.dart';
 
+/// A difference with its sign: +3, 0, -2.
+String formatSigned(int value) => value > 0 ? '+$value' : '$value';
+
 /// Season header followed by one row per player. Designed for a quick look on a
 /// phone between matches: position, name and points stand out; the other
 /// numbers sit on a second line. Tapping a player expands a compact panel with
@@ -76,7 +79,6 @@ class _RankingRow extends StatelessWidget {
   final bool expanded;
   final VoidCallback onTap;
 
-  static String signed(int value) => value > 0 ? '+$value' : '$value';
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +98,7 @@ class _RankingRow extends StatelessWidget {
             ),
             title: Text(entry.displayName, style: TextStyle(fontWeight: highlighted ? FontWeight.bold : null)),
             subtitle: Text(
-              '${entry.wins} V · ${entry.losses} D · ${entry.matchesPlayed} J · saldo de games ${signed(entry.gameDifference)}',
+              '${entry.wins} V · ${entry.losses} D · ${entry.matchesPlayed} J · saldo de games ${formatSigned(entry.gameDifference)}',
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -163,7 +165,7 @@ class _StatsPanel extends StatelessWidget {
               const SizedBox(height: 8),
               Row(children: [
                 stat('$played', 'jogos'),
-                stat(_RankingRow.signed(entry.gameDifference), 'saldo de games'),
+                stat(formatSigned(entry.gameDifference), 'saldo de games'),
                 stat(winRate, 'aproveitamento'),
               ]),
               TextButton(

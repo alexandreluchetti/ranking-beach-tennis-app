@@ -178,4 +178,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('19 pts'), findsOneWidget);
   });
+
+  testWidgets('a wide screen opens the table, with the game difference and the win rate', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 900);
+    addTearDown(tester.view.reset);
+    await pumpScreen(tester, const RankingScreen(), overrides: [
+      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking())),
+      meProvider.overrideWith((ref) async => anaMe),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pts'), findsOneWidget, reason: 'the table is the default here');
+    expect(find.text('SG'), findsOneWidget);
+    expect(find.text('%'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Ver em lista'));
+    await tester.pumpAndSettle();
+    expect(find.text('19 pts'), findsOneWidget);
+  });
 }
