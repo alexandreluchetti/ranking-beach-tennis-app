@@ -25,6 +25,7 @@ import '../../features/profile/change_password_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
+import '../widgets/responsive.dart';
 import 'router_restart.dart';
 
 /// Code of an invite link (/convite/{code}) kept while the user signs in.
@@ -113,35 +114,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       // Invite links; the redirect above sends them to "Entrar com código".
       GoRoute(path: '/convite/:code', builder: (_, _) => const SizedBox.shrink()),
+      // Screens outside the tabs keep the centered column on wide screens (ContentFrame).
       GoRoute(
         path: '/leagues',
-        builder: (_, _) => const LeaguesScreen(),
+        builder: (_, _) => const ContentFrame(child: LeaguesScreen()),
         routes: [
-          GoRoute(path: 'new', builder: (_, _) => const CreateLeagueScreen()),
+          GoRoute(path: 'new', builder: (_, _) => const ContentFrame(child: CreateLeagueScreen())),
           GoRoute(
             path: 'join',
-            builder: (_, state) => JoinByCodeScreen(initialCode: state.uri.queryParameters['code']),
+            builder: (_, state) => ContentFrame(
+              child: JoinByCodeScreen(initialCode: state.uri.queryParameters['code']),
+            ),
           ),
           GoRoute(
             path: ':id',
-            builder: (_, state) => LeagueDetailScreen(leagueId: state.pathParameters['id']!),
+            builder: (_, state) => ContentFrame(child: LeagueDetailScreen(leagueId: state.pathParameters['id']!)),
             // Administration; the backend checks the permission.
             routes: [
-              GoRoute(path: 'edit', builder: (_, state) => EditLeagueScreen(leagueId: state.pathParameters['id']!)),
+              GoRoute(
+                path: 'edit',
+                builder: (_, state) => ContentFrame(child: EditLeagueScreen(leagueId: state.pathParameters['id']!)),
+              ),
               GoRoute(
                 path: 'requests',
-                builder: (_, state) => JoinRequestsScreen(leagueId: state.pathParameters['id']!),
+                builder: (_, state) => ContentFrame(child: JoinRequestsScreen(leagueId: state.pathParameters['id']!)),
               ),
-              GoRoute(path: 'invite', builder: (_, state) => InviteScreen(leagueId: state.pathParameters['id']!)),
+              GoRoute(
+                path: 'invite',
+                builder: (_, state) => ContentFrame(child: InviteScreen(leagueId: state.pathParameters['id']!)),
+              ),
               // Seasons of the current league only (see the redirect).
               GoRoute(
                 path: 'seasons',
-                builder: (_, _) => const SeasonsAdminScreen(),
+                builder: (_, _) => const ContentFrame(child: SeasonsAdminScreen()),
                 routes: [
-                  GoRoute(path: 'new', builder: (_, _) => const SeasonFormScreen()),
+                  GoRoute(path: 'new', builder: (_, _) => const ContentFrame(child: SeasonFormScreen())),
                   GoRoute(
                     path: ':seasonId',
-                    builder: (_, state) => SeasonFormScreen(seasonId: state.pathParameters['seasonId']!),
+                    builder: (_, state) => ContentFrame(
+                      child: SeasonFormScreen(seasonId: state.pathParameters['seasonId']!),
+                    ),
                   ),
                 ],
               ),
@@ -152,7 +164,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Full screen over any area; league administrators only (see the redirect above).
       GoRoute(
         path: '/admin/matches/:id/correct',
-        builder: (_, state) => CorrectMatchScreen(matchId: state.pathParameters['id']!),
+        builder: (_, state) => ContentFrame(child: CorrectMatchScreen(matchId: state.pathParameters['id']!)),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(navigationShell: shell),

@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/widgets/async_states.dart';
+import '../../core/widgets/list_detail.dart';
 import '../leagues/current_league.dart';
 import '../leagues/league_switcher.dart';
 import '../leagues/no_league_view.dart';
 import '../ranking/ranking_repository.dart';
 import '../sync/pending_matches_sliver.dart';
+import 'match_detail_screen.dart';
 import 'match_history.dart';
 import 'match_models.dart';
 import 'match_repository.dart';
@@ -47,67 +50,75 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
               icon: const Icon(Icons.add),
               label: const Text('Registrar partida'),
             ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.refresh(matchHistoryProvider(_filter).future),
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                child: Row(
-                  children: [
-                    _chip(
-                      label: seasonName ?? 'Temporada',
-                      selected: seasonName != null,
-                      onTap: () => _pick<String>(
-                        title: 'Temporada',
-                        options: {for (final s in seasons) s.id: s.name},
-                        onSelected: (id) => setState(() => _filter = _filter.copyWith(seasonId: () => id)),
-                      ),
-                    ),
-                    _chip(
-                      label: playerName ?? 'Jogador',
-                      selected: playerName != null,
-                      onTap: () => _pick<String>(
-                        title: 'Jogador',
-                        options: {for (final p in players) p.id: p.displayName},
-                        onSelected: (id) => setState(() => _filter = _filter.copyWith(playerId: () => id)),
-                      ),
-                    ),
-                    _chip(
-                      label: _filter.from == null
-                          ? 'Período'
-                          : '${_day.format(_filter.from!)} a ${_day.format(_filter.to!)}',
-                      selected: _filter.from != null,
-                      onTap: _pickPeriod,
-                    ),
-                    for (final outcome in MatchOutcome.values)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(outcome.label),
-                          selected: _filter.outcomes.contains(outcome),
-                          onSelected: (on) => setState(() {
-                            final outcomes = {..._filter.outcomes};
-                            on ? outcomes.add(outcome) : outcomes.remove(outcome);
-                            _filter = _filter.copyWith(outcomes: outcomes);
-                          }),
+      body: ListDetail(
+        pathPrefix: '/matches/',
+        detailBuilder: (id) => MatchDetailScreen(matchId: id),
+        placeholder: const EmptyMessage(
+          icon: Icons.touch_app_outlined,
+          title: 'Escolha uma partida para ver os detalhes.',
+        ),
+        list: RefreshIndicator(
+          onRefresh: () => ref.refresh(matchHistoryProvider(_filter).future),
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                  child: Row(
+                    children: [
+                      _chip(
+                        label: seasonName ?? 'Temporada',
+                        selected: seasonName != null,
+                        onTap: () => _pick<String>(
+                          title: 'Temporada',
+                          options: {for (final s in seasons) s.id: s.name},
+                          onSelected: (id) => setState(() => _filter = _filter.copyWith(seasonId: () => id)),
                         ),
                       ),
-                    if (!_filter.isEmpty)
-                      TextButton(
-                        onPressed: () => setState(() => _filter = const MatchFilter()),
-                        child: const Text('Limpar'),
+                      _chip(
+                        label: playerName ?? 'Jogador',
+                        selected: playerName != null,
+                        onTap: () => _pick<String>(
+                          title: 'Jogador',
+                          options: {for (final p in players) p.id: p.displayName},
+                          onSelected: (id) => setState(() => _filter = _filter.copyWith(playerId: () => id)),
+                        ),
                       ),
-                  ],
+                      _chip(
+                        label: _filter.from == null
+                            ? 'Período'
+                            : '${_day.format(_filter.from!)} a ${_day.format(_filter.to!)}',
+                        selected: _filter.from != null,
+                        onTap: _pickPeriod,
+                      ),
+                      for (final outcome in MatchOutcome.values)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(outcome.label),
+                            selected: _filter.outcomes.contains(outcome),
+                            onSelected: (on) => setState(() {
+                              final outcomes = {..._filter.outcomes};
+                              on ? outcomes.add(outcome) : outcomes.remove(outcome);
+                              _filter = _filter.copyWith(outcomes: outcomes);
+                            }),
+                          ),
+                        ),
+                      if (!_filter.isEmpty)
+                        TextButton(
+                          onPressed: () => setState(() => _filter = const MatchFilter()),
+                          child: const Text('Limpar'),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const PendingMatchesSliver(),
-            MatchHistorySliver(filter: _filter),
-            const SliverToBoxAdapter(child: SizedBox(height: 88)),
-          ],
+              const PendingMatchesSliver(),
+              MatchHistorySliver(filter: _filter),
+              const SliverToBoxAdapter(child: SizedBox(height: 88)),
+            ],
+          ),
         ),
       ),
     );

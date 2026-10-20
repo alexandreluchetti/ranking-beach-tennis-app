@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/responsive.dart';
 import '../auth/auth_providers.dart';
 import '../auth/auth_repository.dart';
 
@@ -74,51 +75,53 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Alterar senha')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              key: const Key('currentPassword'),
-              controller: _current,
-              obscureText: true,
-              autofillHints: const [AutofillHints.password],
-              decoration: const InputDecoration(labelText: 'Senha atual'),
-              validator: (v) => (v == null || v.isEmpty) ? 'Informe a senha atual.' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              key: const Key('newPassword'),
-              controller: _password,
-              obscureText: true,
-              autofillHints: const [AutofillHints.newPassword],
-              decoration: const InputDecoration(labelText: 'Nova senha'),
-              validator: (v) => (v == null || v.length < 6) ? 'A senha deve ter pelo menos 6 caracteres.' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              key: const Key('confirmNewPassword'),
-              controller: _confirm,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirmar nova senha'),
-              validator: (v) => v != _password.text ? 'As senhas não coincidem.' : null,
-              onFieldSubmitted: (_) => _busy ? null : _save(),
-            ),
-            if (_error != null) ...[
+      body: NarrowBody(
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TextFormField(
+                key: const Key('currentPassword'),
+                controller: _current,
+                obscureText: true,
+                autofillHints: const [AutofillHints.password],
+                decoration: const InputDecoration(labelText: 'Senha atual'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Informe a senha atual.' : null,
+              ),
               const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+              TextFormField(
+                key: const Key('newPassword'),
+                controller: _password,
+                obscureText: true,
+                autofillHints: const [AutofillHints.newPassword],
+                decoration: const InputDecoration(labelText: 'Nova senha'),
+                validator: (v) => (v == null || v.length < 6) ? 'A senha deve ter pelo menos 6 caracteres.' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('confirmNewPassword'),
+                controller: _confirm,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Confirmar nova senha'),
+                validator: (v) => v != _password.text ? 'As senhas não coincidem.' : null,
+                onFieldSubmitted: (_) => _busy ? null : _save(),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+              ],
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _busy ? null : _save,
+                child: _busy
+                    ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Alterar senha'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(onPressed: _busy ? null : _forgot, child: const Text('Esqueci minha senha atual')),
             ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: _busy
-                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Alterar senha'),
-            ),
-            const SizedBox(height: 8),
-            TextButton(onPressed: _busy ? null : _forgot, child: const Text('Esqueci minha senha atual')),
-          ],
+          ),
         ),
       ),
     );

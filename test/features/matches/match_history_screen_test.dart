@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranking_beach_tennis/core/theme/app_theme.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
+import 'package:ranking_beach_tennis/features/matches/match_card.dart';
+import 'package:ranking_beach_tennis/features/matches/match_detail_screen.dart';
 import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
 import 'package:ranking_beach_tennis/features/matches/match_history_screen.dart';
 import 'package:ranking_beach_tennis/features/matches/match_models.dart';
@@ -38,6 +40,28 @@ void main() {
     expect(chipColor('Contabilizada'), AppColors.successContainerLight);
     expect(chipColor('Anulada'), isNot(AppColors.successContainerLight));
     expect(find.text('Caio e Zé (convidado)'), findsNWidgets(3));
+  });
+
+  testWidgets('on a wide screen a match opens beside the list', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 900);
+    addTearDown(tester.view.reset);
+    final repository = FakeMatchRepository(matches: [sampleMatch(id: 'm1'), sampleMatch(id: 'm2')]);
+    await pumpScreen(tester, const MatchHistoryScreen(), leagues: null, overrides: [
+      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), MemoryLocalStore()),
+      matchRepositoryProvider.overrideWithValue(repository),
+      seasonsProvider.overrideWith((ref) async => [primavera]),
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.text('Escolha uma partida para ver os detalhes.'), findsOneWidget);
+
+    await tester.tap(find.byType(MatchCard).first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MatchDetailScreen), findsOneWidget);
+    expect(find.byType(MatchCard), findsNWidgets(2), reason: 'the list stays on screen');
+    expect(tester.widget<MatchCard>(find.byType(MatchCard).first).selected, isTrue);
+    expect(find.text('Escolha uma partida para ver os detalhes.'), findsNothing);
   });
 
   testWidgets('outcome filters are sent to the backend', (tester) async {

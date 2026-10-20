@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/widgets/responsive.dart';
 import 'current_league.dart';
 import 'league_repository.dart';
 
@@ -56,30 +57,32 @@ class _JoinByCodeScreenState extends ConsumerState<JoinByCodeScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Entrar com código')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text('Peça o código de convite a um administrador da liga.'),
-          const SizedBox(height: 16),
-          TextField(
-            key: const Key('invite-code'),
-            controller: _code,
-            textCapitalization: TextCapitalization.characters,
-            autocorrect: false,
-            decoration: InputDecoration(labelText: 'Código de convite', errorText: _error),
-            onSubmitted: (_) => _join(),
-          ),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _busy ? null : _join,
-            child: _busy
-                ? SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.onPrimary),
-                  )
-                : const Text('Entrar na liga'),
-          ),
-        ],
+      body: NarrowBody(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text('Peça o código de convite a um administrador da liga.'),
+            const SizedBox(height: 16),
+            TextField(
+              key: const Key('invite-code'),
+              controller: _code,
+              textCapitalization: TextCapitalization.characters,
+              autocorrect: false,
+              decoration: InputDecoration(labelText: 'Código de convite', errorText: _error),
+              onSubmitted: (_) => _join(),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _busy ? null : _join,
+              child: _busy
+                  ? SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.onPrimary),
+                    )
+                  : const Text('Entrar na liga'),
+            ),
+          ],
+        ),
       ),
     );
   }

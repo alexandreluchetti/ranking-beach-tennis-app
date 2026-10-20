@@ -154,6 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: _fullName,
                         textCapitalization: TextCapitalization.words,
                         autofillHints: const [AutofillHints.name],
+                        textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(labelText: 'Nome completo'),
                         validator: validateFullName,
                       ),
@@ -162,6 +163,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         key: const Key('name'),
                         controller: _name,
                         textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(
                           labelText: 'Como quer ser chamado',
                           helperText: 'Aparece no ranking e nas partidas.',
@@ -178,6 +180,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(labelText: 'E-mail'),
                       validator: (v) =>
                           (v == null || !v.contains('@')) ? 'Informe um e-mail válido.' : null,
@@ -188,6 +191,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _password,
                       obscureText: true,
                       autofillHints: const [AutofillHints.password],
+                      // Enter signs in; when creating an account it moves on to the confirmation.
+                      textInputAction: _registering ? TextInputAction.next : TextInputAction.done,
+                      onFieldSubmitted: (_) => _registering || _busy ? null : _submitEmail(),
                       decoration: const InputDecoration(labelText: 'Senha'),
                       validator: (v) =>
                           (v == null || v.length < 6) ? 'A senha deve ter pelo menos 6 caracteres.' : null,
@@ -199,6 +205,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         key: const Key('confirmPassword'),
                         controller: _confirmPassword,
                         obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _busy ? null : _submitEmail(),
                         decoration: const InputDecoration(labelText: 'Confirmar senha'),
                         validator: (v) => v != _password.text ? 'As senhas não coincidem.' : null,
                       ),

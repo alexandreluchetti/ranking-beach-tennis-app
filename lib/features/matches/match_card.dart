@@ -42,10 +42,13 @@ class MatchStatusChip extends StatelessWidget {
 
 /// One match in a list: date, both teams with the winners in bold, score and status.
 class MatchCard extends StatelessWidget {
-  const MatchCard({super.key, required this.match, this.onTap});
+  const MatchCard({super.key, required this.match, this.onTap, this.selected = false});
 
   final MatchView match;
   final VoidCallback? onTap;
+
+  /// Open beside the list (wide screens).
+  final bool selected;
 
   static final _date = DateFormat("EEE, dd/MM 'às' HH:mm", 'pt_BR');
 
@@ -58,6 +61,7 @@ class MatchCard extends StatelessWidget {
     String names(List<MatchParticipant> team) => team.map((p) => p.name).join(' e ');
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      color: selected ? theme.colorScheme.secondaryContainer : null,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

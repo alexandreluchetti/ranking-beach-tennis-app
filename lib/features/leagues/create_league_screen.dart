@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
+import '../../core/widgets/responsive.dart';
 import 'current_league.dart';
 import 'league_models.dart';
 import 'league_repository.dart';
@@ -109,69 +110,71 @@ class _LeagueFormScreenState extends ConsumerState<LeagueFormScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(_editing ? 'Editar liga' : 'Criar liga')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              key: const Key('league-name'),
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              maxLength: 60,
-              decoration: const InputDecoration(labelText: 'Nome da liga'),
-              validator: (v) {
-                final length = v?.trim().length ?? 0;
-                return length < 3 || length > 60 ? 'Informe um nome entre 3 e 60 caracteres.' : null;
-              },
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              key: const Key('league-description'),
-              controller: _description,
-              maxLength: 500,
-              minLines: 2,
-              maxLines: 5,
-              decoration: const InputDecoration(labelText: 'Descrição (opcional)'),
-            ),
-            const SizedBox(height: 16),
-            Text('Quem pode entrar', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            SegmentedButton<LeagueVisibility>(
-              segments: const [
-                ButtonSegment(value: LeagueVisibility.public, label: Text('Pública'), icon: Icon(Icons.public)),
-                ButtonSegment(value: LeagueVisibility.private, label: Text('Privada'), icon: Icon(Icons.lock_outline)),
-              ],
-              selected: {_visibility},
-              onSelectionChanged: (s) => setState(() => _visibility = s.single),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _visibility == LeagueVisibility.public
-                  ? 'Qualquer pessoa pode encontrar a liga e entrar.'
-                  : 'A liga aparece na busca, mas só entra quem for aceito por um administrador, '
-                      'convidado ou tiver o código de convite.',
-              style: theme.textTheme.bodySmall,
-            ),
-            if (!_editing) ...[
+      body: NarrowBody(
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TextFormField(
+                key: const Key('league-name'),
+                controller: _name,
+                textCapitalization: TextCapitalization.words,
+                maxLength: 60,
+                decoration: const InputDecoration(labelText: 'Nome da liga'),
+                validator: (v) {
+                  final length = v?.trim().length ?? 0;
+                  return length < 3 || length > 60 ? 'Informe um nome entre 3 e 60 caracteres.' : null;
+                },
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                key: const Key('league-description'),
+                controller: _description,
+                maxLength: 500,
+                minLines: 2,
+                maxLines: 5,
+                decoration: const InputDecoration(labelText: 'Descrição (opcional)'),
+              ),
+              const SizedBox(height: 16),
+              Text('Quem pode entrar', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              SegmentedButton<LeagueVisibility>(
+                segments: const [
+                  ButtonSegment(value: LeagueVisibility.public, label: Text('Pública'), icon: Icon(Icons.public)),
+                  ButtonSegment(value: LeagueVisibility.private, label: Text('Privada'), icon: Icon(Icons.lock_outline)),
+                ],
+                selected: {_visibility},
+                onSelectionChanged: (s) => setState(() => _visibility = s.single),
+              ),
               const SizedBox(height: 8),
               Text(
-                'Cada liga tem até 50 membros. Você será o administrador da liga.',
+                _visibility == LeagueVisibility.public
+                    ? 'Qualquer pessoa pode encontrar a liga e entrar.'
+                    : 'A liga aparece na busca, mas só entra quem for aceito por um administrador, '
+                        'convidado ou tiver o código de convite.',
                 style: theme.textTheme.bodySmall,
               ),
+              if (!_editing) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Cada liga tem até 50 membros. Você será o administrador da liga.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 16),
+                Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+              ],
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _busy ? null : _create,
+                child: _busy
+                    ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(_editing ? 'Salvar' : 'Criar liga'),
+              ),
             ],
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _busy ? null : _create,
-              child: _busy
-                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(_editing ? 'Salvar' : 'Criar liga'),
-            ),
-          ],
+          ),
         ),
       ),
     );

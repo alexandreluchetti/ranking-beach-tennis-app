@@ -62,6 +62,41 @@ void main() {
     expect(find.byTooltip('Configurações'), findsNothing);
   });
 
+  testWidgets('a computer screen navigates from a header and the content follows the window width', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 900);
+    addTearDown(tester.view.reset);
+    await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe);
+
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byTooltip('Menu'), findsNothing, reason: 'the areas fit side by side');
+    expect(tester.getSize(find.byType(Scaffold).last).width, 1440 * 0.85);
+    expect(tester.getTopLeft(find.byType(Image).first).dx, tester.getTopLeft(find.byType(Scaffold).last).dx + 16,
+        reason: 'the logo lines up with the content');
+
+    await tester.tap(find.text('Partidas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Registrar partida'), findsOneWidget);
+
+    // Narrower: the areas collapse into the menu button.
+    tester.view.physicalSize = const Size(1000, 800);
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(Scaffold).last).width, 850);
+    expect(tester.getTopRight(find.byIcon(Icons.menu)).dx, tester.getTopRight(find.byType(Scaffold).last).dx - 16,
+        reason: 'the menu button lines up with the right side of the content');
+    await tester.tap(find.byTooltip('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Jogadores').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationDrawer), findsNothing);
+
+    // A phone lying down keeps the bottom bar.
+    tester.view.physicalSize = const Size(900, 400);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byTooltip('Menu'), findsNothing);
+  });
+
   testWidgets('without a league the league tabs show how to join or create one', (tester) async {
     await pumpApp(tester, session: const AuthSession(uid: 'u1'), me: anaMe, leagues: const []);
 

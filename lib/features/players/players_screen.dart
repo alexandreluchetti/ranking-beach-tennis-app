@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/async_states.dart';
+import '../../core/widgets/list_detail.dart';
 import '../leagues/current_league.dart';
 import '../leagues/league_switcher.dart';
 import '../leagues/no_league_view.dart';
 import '../matches/match_history.dart';
+import '../matches/match_models.dart';
 import '../matches/match_repository.dart';
 import '../me/me_repository.dart';
 import 'player_profile.dart';
@@ -30,55 +32,79 @@ class _PlayersScreenState extends ConsumerState<PlayersScreen> {
     final players = ref.watch(playersProvider);
     return Scaffold(
       appBar: AppBar(title: const LeagueTitle()),
-      body: players.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),
-        data: (players) {
-          final visible = players
-              .where((p) => p.displayName.toLowerCase().contains(_query.trim().toLowerCase()))
-              .toList();
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(playersProvider.future),
-            child: ListView(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: TextField(
-                    decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar jogador'),
-                    onChanged: (v) => setState(() => _query = v),
-                  ),
-                ),
-                // Numbered only for counting: the last number is how many are listed.
-                for (final (index, player) in visible.indexed)
-                  ListTile(
-                    contentPadding: const EdgeInsetsDirectional.only(start: 4, end: 16),
-                    leading: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 36,
-                          child: Text(
-                            '${index + 1}',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        CircleAvatar(child: Text(player.displayName.characters.first.toUpperCase())),
-                      ],
+      body: ListDetail(
+        pathPrefix: '/players/',
+        detailBuilder: (id) => PlayerProfileScreen(playerId: id),
+        placeholder: const EmptyMessage(
+          icon: Icons.touch_app_outlined,
+          title: 'Escolha um jogador para ver o perfil.',
+        ),
+        list: players.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playersProvider)),
+          data: (players) {
+            final visible = players
+                .where((p) => p.displayName.toLowerCase().contains(_query.trim().toLowerCase()))
+                .toList();
+            return RefreshIndicator(
+              onRefresh: () => ref.refresh(playersProvider.future),
+              child: ListView(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: TextField(
+                      decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar jogador'),
+                      onChanged: (v) => setState(() => _query = v),
                     ),
-                    title: Text(player.displayName),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/players/${player.id}'),
                   ),
-              ],
-            ),
-          );
-        },
+                  // Numbered only for counting: the last number is how many are listed.
+                  for (final (index, player) in visible.indexed)
+                    _PlayerTile(player: player, number: index + 1),
+                ],
+              ),
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+/// One player in the list, numbered. Builds in its own context, below the
+/// list-detail layout, so a wide screen opens the profile beside the list.
+class _PlayerTile extends StatelessWidget {
+  const _PlayerTile({required this.player, required this.number});
+
+  final PlayerSummary player;
+  final int number;
+
+  @override
+  Widget build(BuildContext context) {
+    final path = '/players/${player.id}';
+    return ListTile(
+      contentPadding: const EdgeInsetsDirectional.only(start: 4, end: 16),
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 36,
+            child: Text(
+              '$number',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          CircleAvatar(child: Text(player.displayName.characters.first.toUpperCase())),
+        ],
+      ),
+      title: Text(player.displayName),
+      trailing: const Icon(Icons.chevron_right),
+      selected: isOpenInDetail(context, path),
+      onTap: () => openDetail(context, path),
     );
   }
 }
