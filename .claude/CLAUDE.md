@@ -43,7 +43,7 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/core/config` | `AppConfig` (`--dart-define`: `API_BASE_URL`, `GOOGLE_SERVER_CLIENT_ID`) |
 | `lib/core/network` | Dio com o ID token do Firebase; erros viram `ApiException` |
 | `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Perfil; as mesmas abas para todos); `routerRestartProvider` recria o router ao trocar de liga |
-| `lib/core/widgets` | `responsive.dart` (`isWideLayout`, `ContentFrame`, `NarrowBody`) e estados de carregamento/erro |
+| `lib/core/widgets` | `responsive.dart` (`isWideLayout`, `ContentFrame`, `NarrowBody`), `list_detail.dart` e estados de carregamento/erro |
 | `lib/core/storage` | `LocalStore` (arquivo JSON atômico no celular; SharedPreferences/localStorage na web, via `openLocalStore`), `Cached<T>` (cópia offline), SharedPreferences |
 | `lib/features/auth` | `AuthRepository` (Firebase + google_sign_in 7), login, `signOutProvider` |
 | `lib/features/me` | `/api/me` (perfil, flag de administrador geral, apelido `displayName` e nome completo `fullName`, D-024) e estatísticas globais (`/api/me/statistics`) |
@@ -108,6 +108,8 @@ Regras:
   1100 px as áreas recolhem num ☰ à direita que abre o menu pela direita. O conteúdo (`ContentFrame`) ocupa
   85% da largura (mínimo 840), com as margens na mesma cor do fundo; a marca e o menu se alinham às bordas
   do conteúdo. Formulários limitados a 560 px (`NarrowBody`). Tela de carregamento no `web/index.html`.
+  Em tela larga o ranking abre em tabela (com SG e %), e Partidas e Jogadores abrem o item ao lado da lista
+  (`ListDetail`; os itens abrem com `openDetail`, que sem espaço faz o `push` de sempre).
 - Ícone do app: fundo em degradê laranja (`#F47721` → `#B9501A`), raquete em contorno branco grosso (cabeça oval, garganta e cabo com fenda) inclinada 45° para a direita e, dentro do aro, nivelado, um pódio branco de blocos arredondados sem números (1º no meio, mais alto) com uma estrela branca sobre o 1º; fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)
