@@ -107,6 +107,11 @@ class RankingGrid extends StatelessWidget {
             style: theme.textTheme.bodyMedium,
           ),
         ),
+        if (season.playingDaysLabel case final days?)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Text(days, style: theme.textTheme.bodySmall),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(

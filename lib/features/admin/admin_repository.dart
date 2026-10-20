@@ -15,26 +15,43 @@ class AdminRepository {
   final Dio _dio;
   final String? _leagueId;
 
+  static List<String> _days(List<int> days) => [for (final d in days.toSet().toList()..sort()) weekdayApiNames[d - 1]];
+
   static String _date(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  Future<Season> createSeason({required String name, required DateTime startDate, required DateTime endDate}) =>
+  /// [playingDays] as [DateTime.weekday] values (D-025), at least one.
+  Future<Season> createSeason({
+    required String name,
+    required DateTime startDate,
+    required DateTime endDate,
+    required List<int> playingDays,
+  }) =>
       apiCall(() async {
         final response = await _dio.post<Map<String, dynamic>>(leaguePath(_leagueId, 'seasons'), data: {
           'name': name,
           'startDate': _date(startDate),
           'endDate': _date(endDate),
+          'playingDays': _days(playingDays),
         });
         return Season.fromJson(response.data!);
       });
 
   /// Partial update: only the given fields change.
-  Future<Season> updateSeason(String id, {String? name, DateTime? startDate, DateTime? endDate}) =>
+  /// In an active season new [playingDays] apply from today on.
+  Future<Season> updateSeason(
+    String id, {
+    String? name,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<int>? playingDays,
+  }) =>
       apiCall(() async {
         final response = await _dio.patch<Map<String, dynamic>>(leaguePath(_leagueId, 'seasons/$id'), data: {
           'name': ?name,
           if (startDate != null) 'startDate': _date(startDate),
           if (endDate != null) 'endDate': _date(endDate),
+          if (playingDays != null) 'playingDays': _days(playingDays),
         });
         return Season.fromJson(response.data!);
       });

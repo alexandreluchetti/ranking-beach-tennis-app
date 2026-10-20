@@ -23,6 +23,7 @@ void main() {
     startDate: DateTime(2027, 1, 1),
     endDate: DateTime(2027, 3, 31),
     status: SeasonStatus.planned,
+    playingDays: const [DateTime.saturday, DateTime.sunday],
   );
   final closed = Season(
     id: 's0',
@@ -70,8 +71,8 @@ void main() {
   testWidgets('lists every season with its status; a closed one cannot be opened', (tester) async {
     await pumpAdmin(tester);
 
-    expect(find.text('01/01/2027 a 31/03/2027 · Planejada'), findsOneWidget);
-    expect(find.text('01/10/2026 a 31/12/2026 · Em andamento'), findsOneWidget);
+    expect(find.text('01/01/2027 a 31/03/2027 · Planejada\nDias válidos: Sáb, Dom'), findsOneWidget);
+    expect(find.text('01/10/2026 a 31/12/2026 · Em andamento\nDias válidos: Ter, Qui'), findsOneWidget);
     expect(find.text('01/06/2026 a 30/09/2026 · Encerrada'), findsOneWidget);
 
     await tester.tap(find.text('Inverno'));
@@ -102,11 +103,27 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Criar temporada'));
+    await tester.tap(find.text('Criar temporada'));
+    await tester.pumpAndSettle();
+    expect(find.text('Escolha pelo menos um dia de jogo.'), findsOneWidget, reason: 'playing days are required');
+
+    await tester.ensureVisible(find.byKey(const Key('day4')));
+    await tester.tap(find.byKey(const Key('day4')));
+    await tester.tap(find.byKey(const Key('day2')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Criar temporada'));
     await tester.tap(find.text('Criar temporada'));
     await tester.pumpAndSettle();
 
     expect(admin.calls, [
-      {'op': 'create', 'name': 'Primavera 2027', 'startDate': today, 'endDate': today},
+      {
+        'op': 'create',
+        'name': 'Primavera 2027',
+        'startDate': today,
+        'endDate': today,
+        'playingDays': [DateTime.tuesday, DateTime.thursday],
+      },
     ]);
     expect(find.text('Temporada criada.'), findsOneWidget);
     expect(find.text('Temporadas'), findsOneWidget);
@@ -118,11 +135,41 @@ void main() {
     expect(find.text('Encerrar hoje'), findsNothing);
 
     await tester.enterText(find.byType(TextFormField), 'Verão 2027');
+    await tester.ensureVisible(find.text('Salvar alterações'));
     await tester.tap(find.text('Salvar alterações'));
     await tester.pumpAndSettle();
 
     expect(admin.calls, [
       {'op': 'update', 'id': 's2', 'name': 'Verão 2027'},
+    ]);
+  });
+
+  testWidgets('changing the days of an active season warns that it applies from today', (tester) async {
+    await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s1');
+    expect(tester.widget<FilterChip>(find.byKey(const Key('day2'))).selected, isTrue);
+
+    await tester.ensureVisible(find.byKey(const Key('day6')));
+    await tester.tap(find.byKey(const Key('day6')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Salvar alterações'));
+    await tester.tap(find.text('Salvar alterações'));
+    await tester.pumpAndSettle();
+    expect(find.text('A alteração vale a partir de hoje; partidas anteriores não são recalculadas.'), findsOneWidget);
+    await tester.tap(find.text('Voltar'));
+    await tester.pumpAndSettle();
+    expect(admin.calls, isEmpty);
+
+    await tester.tap(find.text('Salvar alterações'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(admin.calls, [
+      {
+        'op': 'update',
+        'id': 's1',
+        'playingDays': [DateTime.tuesday, DateTime.thursday, DateTime.saturday],
+      },
     ]);
   });
 
@@ -160,6 +207,7 @@ void main() {
     await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s2');
 
     await tester.enterText(find.byType(TextFormField), 'Verão 2027');
+    await tester.ensureVisible(find.text('Salvar alterações'));
     await tester.tap(find.text('Salvar alterações'));
     await tester.pumpAndSettle();
 

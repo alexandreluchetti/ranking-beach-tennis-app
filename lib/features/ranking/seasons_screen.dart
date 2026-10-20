@@ -35,7 +35,10 @@ class SeasonsScreen extends ConsumerWidget {
               final season = started[i];
               return ListTile(
                 title: Text(season.name),
-                subtitle: Text('${_date.format(season.startDate)} a ${_date.format(season.endDate)}'),
+                subtitle: Text([
+                  '${_date.format(season.startDate)} a ${_date.format(season.endDate)}',
+                  ?season.playingDaysLabel,
+                ].join('\n')),
                 trailing: season.status == SeasonStatus.active
                     ? const Chip(label: Text('Em andamento'))
                     : const Icon(Icons.chevron_right),
