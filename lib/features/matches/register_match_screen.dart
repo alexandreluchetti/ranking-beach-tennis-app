@@ -9,6 +9,8 @@ import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
 import '../admin/admin_repository.dart';
 import '../admin/match_admin_actions.dart';
+import '../ranking/ranking_models.dart';
+import '../ranking/ranking_repository.dart';
 import '../sync/pending_match.dart';
 import '../sync/sync_controller.dart';
 import 'match_draft.dart';
@@ -374,6 +376,9 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
       await _saveCorrection(draft);
       return;
     }
+    if (!await _confirmPlayingDay(draft.playedAt)) {
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -384,6 +389,30 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
       setState(() => _busy = false);
       await _handle(result);
     }
+  }
+
+  /// A match on a day of the current season that is not one of its playing
+  /// days (D-025) gives no points: the user confirms before sending it.
+  Future<bool> _confirmPlayingDay(DateTime playedAt) async {
+    final season = ref.read(currentRankingProvider).value?.value?.season;
+    if (season == null || !season.includesDate(playedAt) || season.countsOn(playedAt)) {
+      return true;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Dia fora da temporada'),
+        content: Text(
+          'Na temporada ${season.name}, só valem pontos as partidas de ${weekdaysLabel(season.playingDays)}. '
+          'Esta partida fica no histórico, mas não vale pontos.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Registrar mesmo assim')),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 
   Future<void> _handle(SubmitResult result) async {

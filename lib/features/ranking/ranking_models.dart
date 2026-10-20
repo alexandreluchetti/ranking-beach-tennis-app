@@ -1,5 +1,15 @@
 enum SeasonStatus { planned, active, closed }
 
+/// Days of the week as the API names them, Monday first (index + 1 is
+/// [DateTime.weekday]).
+const weekdayApiNames = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
+/// Short pt-BR names, Monday first.
+const weekdayShortNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+/// "Ter, Qui" for [days] given as [DateTime.weekday] values.
+String weekdaysLabel(Iterable<int> days) => (days.toSet().toList()..sort()).map((d) => weekdayShortNames[d - 1]).join(', ');
+
 class Season {
   const Season({
     required this.id,
@@ -7,6 +17,7 @@ class Season {
     required this.startDate,
     required this.endDate,
     required this.status,
+    this.playingDays = const [],
   });
 
   factory Season.fromJson(Map<String, dynamic> json) => Season(
@@ -15,6 +26,10 @@ class Season {
         startDate: DateTime.parse(json['startDate'] as String),
         endDate: DateTime.parse(json['endDate'] as String),
         status: SeasonStatus.values.byName((json['status'] as String).toLowerCase()),
+        playingDays: [
+          for (final day in (json['playingDays'] as List?) ?? const [])
+            if (weekdayApiNames.contains(day)) weekdayApiNames.indexOf(day as String) + 1,
+        ]..sort(),
       );
 
   final String id;
@@ -23,12 +38,33 @@ class Season {
   final DateTime endDate;
   final SeasonStatus status;
 
+  /// Days of the week whose matches score (D-025), as [DateTime.weekday]
+  /// values, Monday first. Empty when unknown (e.g. an older offline copy).
+  final List<int> playingDays;
+
+  /// "Dias válidos: Ter, Qui", or null when the days are unknown.
+  String? get playingDaysLabel => playingDays.isEmpty ? null : 'Dias válidos: ${weekdaysLabel(playingDays)}';
+
+  /// Whether a match played on [day] would score in this season (dates and
+  /// days of the week). Unknown days never block.
+  bool countsOn(DateTime day) {
+    final date = DateTime(day.year, day.month, day.day);
+    final inDates = !date.isBefore(startDate) && !date.isAfter(endDate);
+    return inDates && (playingDays.isEmpty || playingDays.contains(date.weekday));
+  }
+
+  bool includesDate(DateTime day) {
+    final date = DateTime(day.year, day.month, day.day);
+    return !date.isBefore(startDate) && !date.isAfter(endDate);
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
         'startDate': _date(startDate),
         'endDate': _date(endDate),
         'status': status.name.toUpperCase(),
+        'playingDays': [for (final d in playingDays) weekdayApiNames[d - 1]],
       };
 
   static String _date(DateTime d) =>

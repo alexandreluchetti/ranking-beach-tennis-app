@@ -35,9 +35,16 @@ class _RankingTableState extends State<RankingTable> {
         if (i == 0) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text(
-              '${season.name} · ${_date.format(season.startDate)} a ${_date.format(season.endDate)}',
-              style: Theme.of(context).textTheme.bodyMedium,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${season.name} · ${_date.format(season.startDate)} a ${_date.format(season.endDate)}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                if (season.playingDaysLabel case final days?)
+                  Text(days, style: Theme.of(context).textTheme.bodySmall),
+              ],
             ),
           );
         }

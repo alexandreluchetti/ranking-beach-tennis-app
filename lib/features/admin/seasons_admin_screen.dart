@@ -54,7 +54,10 @@ class SeasonsAdminScreen extends ConsumerWidget {
                   key: ValueKey(season.id),
                   title: Text(season.name),
                   subtitle: Text(
-                    '${_date.format(season.startDate)} a ${_date.format(season.endDate)} · ${season.status.label}',
+                    [
+                      '${_date.format(season.startDate)} a ${_date.format(season.endDate)} · ${season.status.label}',
+                      ?season.playingDaysLabel,
+                    ].join('\n'),
                   ),
                   trailing: season.status == SeasonStatus.closed
                       ? const Icon(Icons.lock_outline, semanticLabel: 'Não pode ser alterada')
