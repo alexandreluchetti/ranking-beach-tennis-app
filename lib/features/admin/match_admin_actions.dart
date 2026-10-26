@@ -1,18 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
-import '../matches/match_history.dart';
 import '../matches/match_models.dart';
 import '../matches/match_repository.dart';
 import '../matches/register_match_screen.dart';
-import '../me/me_repository.dart';
-import '../players/player_profile.dart';
 import '../leagues/current_league.dart';
 import '../notifications/notification_inbox.dart';
-import '../ranking/ranking_repository.dart';
+import '../sync/data_refresh.dart';
 import 'admin_repository.dart';
 
 /// Reloads everything a match change can affect: the match, its audit trail,
@@ -21,12 +20,8 @@ void refreshAfterMatchChange(WidgetRef ref, String matchId) {
   ref
     ..invalidate(matchProvider(matchId))
     ..invalidate(matchAuditProvider(matchId))
-    ..invalidate(matchHistoryProvider)
-    ..invalidate(currentRankingProvider)
-    ..invalidate(seasonRankingProvider)
-    ..invalidate(playerProfileProvider)
-    ..invalidate(myStatisticsProvider)
     ..invalidate(notificationInboxProvider);
+  unawaited(ref.dataRefresh.afterMatchChange(ref.read(currentLeagueIdProvider)));
 }
 
 enum _MatchAction { correct, voidMatch, revertVoid }

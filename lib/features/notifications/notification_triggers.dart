@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/routing/app_router.dart';
 import '../auth/auth_providers.dart';
 import '../leagues/league_repository.dart';
+import '../sync/data_refresh.dart';
 import 'notification_inbox.dart';
 import 'notification_targets.dart';
 import 'push_messaging.dart';
@@ -65,6 +66,10 @@ class _NotificationTriggersState extends ConsumerState<NotificationTriggers> {
     await _initialNavigationDone(router);
     if (!mounted) {
       return;
+    }
+    if (opened.leagueId case final leagueId?) {
+      // The push says that league changed: its copies on the device are outdated.
+      unawaited(ref.dataRefresh.afterLeagueNotification(leagueId));
     }
     final notificationId = opened.notificationId;
     if (notificationId != null) {

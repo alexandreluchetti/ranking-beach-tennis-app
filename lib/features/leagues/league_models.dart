@@ -137,6 +137,14 @@ class LeagueMember {
   final String? fullName;
   final LeagueRole role;
   final DateTime joinedAt;
+
+  Map<String, dynamic> toJson() => {
+        'playerId': playerId,
+        'displayName': displayName,
+        'fullName': fullName,
+        'role': role.apiValue,
+        'joinedAt': joinedAt.toUtc().toIso8601String(),
+      };
 }
 
 /// An invitation the user received to a league (D-019).

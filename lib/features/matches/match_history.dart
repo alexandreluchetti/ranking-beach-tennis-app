@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/storage/read_cache.dart';
 import '../../core/widgets/async_states.dart';
 import '../../core/widgets/list_detail.dart';
+import '../leagues/current_league.dart';
 import 'match_card.dart';
 import 'match_models.dart';
 import 'match_repository.dart';
@@ -15,7 +17,8 @@ class MatchHistoryState {
   final bool loadingMore;
 }
 
-/// Most recent matches first, loaded page by page for one filter.
+/// Most recent matches first, loaded page by page for one filter. The first
+/// page comes from the device first (see [cachedRead]).
 class MatchHistory extends AsyncNotifier<MatchHistoryState> {
   MatchHistory(this.filter);
 
@@ -25,7 +28,15 @@ class MatchHistory extends AsyncNotifier<MatchHistoryState> {
   @override
   Future<MatchHistoryState> build() async {
     _page = 0;
-    final page = await ref.watch(matchRepositoryProvider).search(filter);
+    final repository = ref.watch(matchRepositoryProvider);
+    final page = await cachedRead(
+      ref,
+      resource: 'matches.${filter.cacheKey}',
+      leagueId: ref.watch(currentLeagueIdProvider),
+      fetch: () => repository.search(filter),
+      encode: (page) => page.toJson(),
+      decode: (json) => MatchPage.fromJson(json as Map<String, dynamic>),
+    );
     return MatchHistoryState(items: page.items, hasNext: page.hasNext);
   }
 

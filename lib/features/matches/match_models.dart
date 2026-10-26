@@ -54,6 +54,15 @@ class MatchParticipant {
   final int points;
 
   String get name => guest ? (guestName == null ? 'Convidado' : '$guestName (convidado)') : (displayName ?? 'Jogador');
+
+  Map<String, dynamic> toJson() => {
+        'slot': slot,
+        'playerId': playerId,
+        'displayName': displayName,
+        'guest': guest,
+        'guestName': guestName,
+        'points': points,
+      };
 }
 
 class MatchView {
@@ -118,6 +127,26 @@ class MatchView {
   final String? voidReason;
   final int version;
 
+  /// The backend's shape, as [MatchView.fromJson] reads it (for the device copy).
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'playedAt': playedAt.toUtc().toIso8601String(),
+        'format': format.apiValue,
+        'teamAGames': teamAGames,
+        'teamBGames': teamBGames,
+        'tiebreakTeamAPoints': tiebreakTeamAPoints,
+        'tiebreakTeamBPoints': tiebreakTeamBPoints,
+        'winner': winner == Team.a ? 'A' : 'B',
+        'status': voided ? 'VOIDED' : 'VALID',
+        'counted': counted,
+        'notCountedReason': notCountedReason,
+        'season': seasonName == null ? null : {'name': seasonName},
+        'teamA': [for (final p in teamA) p.toJson()],
+        'teamB': [for (final p in teamB) p.toJson()],
+        'voiding': voidReason == null ? null : {'reason': voidReason},
+        'version': version,
+      };
+
   String get score {
     final tiebreak = tiebreakTeamAPoints == null ? '' : ' ($tiebreakTeamAPoints–$tiebreakTeamBPoints)';
     return '$teamAGames–$teamBGames$tiebreak';
@@ -150,8 +179,15 @@ class MatchView {
 class MatchPage {
   const MatchPage({required this.items, required this.hasNext});
 
+  factory MatchPage.fromJson(Map<String, dynamic> json) => MatchPage(
+        items: (json['items'] as List).map((m) => MatchView.fromJson(m as Map<String, dynamic>)).toList(),
+        hasNext: json['hasNext'] as bool,
+      );
+
   final List<MatchView> items;
   final bool hasNext;
+
+  Map<String, dynamic> toJson() => {'items': [for (final m in items) m.toJson()], 'hasNext': hasNext};
 }
 
 class AuditEntry {

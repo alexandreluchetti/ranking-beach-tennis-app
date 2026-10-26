@@ -33,4 +33,24 @@ class FileLocalStore implements LocalStore {
     await temporary.writeAsString(jsonEncode(value), flush: true);
     await temporary.rename(target.path);
   }
+
+  @override
+  Future<void> delete(String name) async {
+    final file = _file(name);
+    if (file.existsSync()) {
+      await file.delete();
+    }
+  }
+
+  @override
+  Iterable<String> names() {
+    if (!directory.existsSync()) {
+      return const [];
+    }
+    return [
+      for (final entity in directory.listSync())
+        if (entity is File && entity.path.endsWith('.json'))
+          entity.uri.pathSegments.last.substring(0, entity.uri.pathSegments.last.length - '.json'.length),
+    ];
+  }
 }

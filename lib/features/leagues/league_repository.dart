@@ -2,9 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
-import '../../core/storage/local_store.dart';
 import '../../core/storage/offline_cache.dart';
-import '../auth/auth_providers.dart';
+import '../../core/storage/read_cache.dart';
 import 'league_models.dart';
 
 class LeagueRepository {
@@ -135,27 +134,45 @@ class LeagueRepository {
 
 final leagueRepositoryProvider = Provider<LeagueRepository>((ref) => LeagueRepository(ref.watch(dioProvider)));
 
-/// "Minhas ligas" of the signed-in user, with an offline copy so the app opens
-/// in the selected league without a connection.
+/// "Minhas ligas" of the signed-in user, from the device first (see
+/// [cachedRead]) so the app opens in the selected league at once.
 final myLeaguesProvider = FutureProvider<Cached<List<League>>>((ref) async {
-  final uid = ref.watch(sessionProvider.select((session) => session.value?.uid));
-  if (uid == null) {
+  // Signed in exactly when the user's cache exists (one source, no race at sign in).
+  if (ref.watch(readCacheProvider) == null) {
     return const Cached([]);
   }
-  return fetchWithOfflineCopy(
-    store: ref.watch(localStoreProvider),
-    key: 'leagues_mine.$uid',
+  return Cached(await cachedRead(
+    ref,
+    resource: 'leagues_mine',
     fetch: ref.watch(leagueRepositoryProvider).mine,
     encode: (leagues) => [for (final l in leagues) l.toJson()],
     decode: (json) => [for (final l in json as List) League.fromJson(l as Map<String, dynamic>)],
+  ));
+});
+
+final leagueProvider = FutureProvider.family<League, String>((ref, id) {
+  final repository = ref.watch(leagueRepositoryProvider);
+  return cachedRead(
+    ref,
+    resource: 'league',
+    leagueId: id,
+    fetch: () => repository.byId(id),
+    encode: (league) => league.toJson(),
+    decode: (json) => League.fromJson(json as Map<String, dynamic>),
   );
 });
 
-final leagueProvider =
-    FutureProvider.family<League, String>((ref, id) => ref.watch(leagueRepositoryProvider).byId(id));
-
-final leagueMembersProvider =
-    FutureProvider.family<List<LeagueMember>, String>((ref, id) => ref.watch(leagueRepositoryProvider).members(id));
+final leagueMembersProvider = FutureProvider.family<List<LeagueMember>, String>((ref, id) {
+  final repository = ref.watch(leagueRepositoryProvider);
+  return cachedRead(
+    ref,
+    resource: 'members',
+    leagueId: id,
+    fetch: () => repository.members(id),
+    encode: (members) => [for (final m in members) m.toJson()],
+    decode: (json) => [for (final m in json as List) LeagueMember.fromJson(m as Map<String, dynamic>)],
+  );
+});
 
 final leagueJoinRequestsProvider = FutureProvider.family<List<JoinRequest>, String>(
     (ref, id) => ref.watch(leagueRepositoryProvider).joinRequests(id));

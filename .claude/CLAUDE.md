@@ -44,7 +44,7 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/core/network` | Dio com o ID token do Firebase; erros viram `ApiException` |
 | `lib/core/routing` | go_router 17 com `StatefulShellRoute` (Ranking, Partidas, Jogadores, Notificações, Perfil; as mesmas abas para todos); `routerRestartProvider` recria o router ao trocar de liga |
 | `lib/core/widgets` | `responsive.dart` (`isWideLayout`, `ContentFrame`, `NarrowBody`), `list_detail.dart` e estados de carregamento/erro |
-| `lib/core/storage` | `LocalStore` (arquivo JSON atômico no celular; SharedPreferences/localStorage na web, via `openLocalStore`), `Cached<T>` (cópia offline), SharedPreferences |
+| `lib/core/storage` | `LocalStore` (arquivo JSON atômico no celular; SharedPreferences/localStorage na web, via `openLocalStore`), `ReadCache`/`cachedRead` (cópias das leituras), SharedPreferences |
 | `lib/features/auth` | `AuthRepository` (Firebase + google_sign_in 7), login, `signOutProvider` |
 | `lib/features/me` | `/api/me` (perfil, flag de administrador geral, apelido `displayName` e nome completo `fullName`, D-024) e estatísticas globais (`/api/me/statistics`) |
 | `lib/features/leagues` | Liga selecionada (`currentLeagueProvider`, `switchLeague`, `enterLeague`), seletor no título, tela Ligas (minhas, convites, explorar), criar/entrar/sair, página da liga e sua administração |
@@ -67,11 +67,18 @@ Regras:
   `ApiException.message` ao usuário e use `code` para fluxos específicos
   (`POSSIBLE_DUPLICATE_MATCH`, `MATCH_MODIFIED`).
 - Offline: partidas são salvas no celular e enviadas com id gerado no cliente (idempotente).
-  Só o autor edita ou descarta a pendência (D-016). Ranking e jogadores têm cópia offline;
-  notificações **não** (decisão aprovada).
-- Depois de ações que mudam dados, invalide os providers afetados
-  (ex.: `refreshAfterMatchChange` em `admin/match_admin_actions.dart`, `refreshLeague` em
-  `leagues/league_admin.dart`).
+  Só o autor edita ou descarta a pendência (D-016).
+- Leituras com stale-while-revalidate (`cachedRead` em `core/storage/read_cache.dart`): a tela abre com a
+  última resposta salva no aparelho e o servidor é consultado em segundo plano. Cópias por usuário
+  (`cache.<uid>.user|league.<id>.<recurso>`), apagadas ao sair da conta; 401/403/404 numa liga apaga as cópias
+  dela. Falha ao atualizar mantém a cópia e mostra `OutdatedNotice` ("Sem conexão — exibindo dados de 14:32").
+  Puxar para atualizar usa `ref.refreshFromServer(...)` (espera o servidor). Com cópia: me, estatísticas,
+  minhas ligas, liga, membros, jogadores, temporadas, rankings, perfis e a 1ª página do histórico por filtro.
+  Sem cópia (decisão aprovada): notificações, convites, pedidos, código de convite, detalhe e auditoria de partida.
+- Depois de escritas, use `ref.dataRefresh` (`sync/data_refresh.dart`): apaga as cópias afetadas e recarrega
+  (`afterMatchChange`, `afterSeasonChange`, `afterNamesChange`, `afterLeagueChange`,
+  `afterLeagueNotification`). Também `refreshAfterMatchChange` (`admin/match_admin_actions.dart`) e
+  `refreshLeague` (`leagues/league_admin.dart`).
 - Ligas: dados da liga só pelas rotas `/api/leagues/{leagueId}/...` (helper `leaguePath`); os
   repositórios recebem o id de `currentLeagueIdProvider` e se refazem ao trocar de liga. Permissão
   de administração **só** pelo `canAdminister` da liga (`canAdministerLeagueProvider`, falso se
@@ -164,6 +171,8 @@ flutter run -d <id do aparelho> --dart-define=API_BASE_URL=http://localhost:8080
   - Botões Filled/Outlined ocupam a largura toda pelo tema: em linha, use `AppTheme.inlineButton`.
   - `context.push` não muda `currentConfiguration.uri`: confira a tela, não o endereço.
   - Página da liga é longa: aumente a tela do teste (`tester.view.physicalSize`).
+  - Em `ProviderContainer`, providers sem ouvinte ficam pausados (Riverpod 3): ouça `sessionProvider` e o
+    provider testado antes de ler `.future`, senão `cachedRead` espera a sessão para sempre.
 
 ## Armadilhas do ambiente
 
