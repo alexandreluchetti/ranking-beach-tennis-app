@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,7 @@ import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
 import '../../core/widgets/responsive.dart';
+import '../sync/data_refresh.dart';
 import 'current_league.dart';
 import 'league_models.dart';
 import 'league_repository.dart';
@@ -24,11 +27,8 @@ final shareTextProvider = Provider<Future<void> Function(String text)>(
 
 /// Reloads what an administration change can affect.
 void refreshLeague(WidgetRef ref, String leagueId) {
-  ref
-    ..invalidate(leagueProvider(leagueId))
-    ..invalidate(leagueMembersProvider(leagueId))
-    ..invalidate(leagueJoinRequestsProvider(leagueId))
-    ..invalidate(myLeaguesProvider);
+  ref.invalidate(leagueJoinRequestsProvider(leagueId));
+  unawaited(ref.dataRefresh.afterLeagueChange(leagueId));
 }
 
 /// Runs an administration action, showing [done] or the backend message.

@@ -6,9 +6,10 @@ import 'package:intl/intl.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
 import '../../core/widgets/responsive.dart';
-import '../matches/match_history.dart';
+import '../leagues/current_league.dart';
 import '../ranking/ranking_models.dart';
 import '../ranking/ranking_repository.dart';
+import '../sync/data_refresh.dart';
 import 'admin_repository.dart';
 import 'seasons_admin_screen.dart';
 
@@ -333,12 +334,8 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
       });
       return;
     }
-    // Season dates decide which matches count and where.
-    ref
-      ..invalidate(seasonsProvider)
-      ..invalidate(currentRankingProvider)
-      ..invalidate(seasonRankingProvider)
-      ..invalidate(matchHistoryProvider);
+    // Season dates and playing days decide which matches count and where.
+    await ref.dataRefresh.afterSeasonChange(ref.read(currentLeagueIdProvider));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
       context.pop();

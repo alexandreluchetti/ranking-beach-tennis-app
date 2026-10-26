@@ -5,10 +5,8 @@ import '../../core/network/api_exception.dart';
 import '../../core/storage/local_store.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/auth_providers.dart';
-import '../matches/match_history.dart';
-import '../matches/match_repository.dart';
 import '../me/me_repository.dart';
-import '../ranking/ranking_repository.dart';
+import '../sync/data_refresh.dart';
 
 export '../me/me_repository.dart' show normalizeDisplayName;
 
@@ -79,12 +77,8 @@ class _NamesDialogState extends ConsumerState<NamesDialog> {
       });
       return;
     }
-    // The display name appears in the ranking, the players list and the matches.
-    ref
-      ..invalidate(meProvider)
-      ..invalidate(currentRankingProvider)
-      ..invalidate(playersProvider)
-      ..invalidate(matchHistoryProvider);
+    // The display name appears in rankings, players, members and matches of every league.
+    await ref.dataRefresh.afterNamesChange();
     if (mounted) {
       Navigator.pop(context, true);
     }

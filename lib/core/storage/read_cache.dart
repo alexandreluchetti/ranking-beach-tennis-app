@@ -74,6 +74,15 @@ class ReadCache {
   /// What was saved for every league, keeping the user-wide reads.
   Future<void> clearAllLeagues() => _deleteStartingWith('${_userPrefix}league.');
 
+  /// Deletes the copies a write made outdated: every resource starting with
+  /// one of [resources] (e.g. 'profile.' for all profiles), in [leagueId] or,
+  /// without it, among the user-wide reads. The next read waits for the server.
+  Future<void> forget(List<String> resources, {String? leagueId}) async {
+    for (final resource in resources) {
+      await _deleteStartingWith(keyFor(resource, leagueId: leagueId));
+    }
+  }
+
   Future<void> _deleteStartingWith(String prefix) async {
     for (final name in _store.names().where((n) => n.startsWith(prefix)).toList()) {
       await _store.delete(name);

@@ -8,13 +8,10 @@ import '../../core/storage/local_store.dart';
 import '../auth/auth_providers.dart';
 import '../leagues/current_league.dart';
 import '../matches/match_draft.dart';
-import '../matches/match_history.dart';
 import '../matches/match_models.dart';
 import '../matches/match_repository.dart';
-import '../me/me_repository.dart';
-import '../players/player_profile.dart';
-import '../ranking/ranking_repository.dart';
 import 'pending_match.dart';
+import 'data_refresh.dart';
 
 /// Result of trying to send one match right away.
 class SubmitResult {
@@ -163,12 +160,7 @@ class SyncController extends Notifier<List<PendingMatch>> {
       state = state.where((p) => p.id != id).toList();
       await _persist();
       // Everything the new match changes reloads (now if on screen).
-      ref
-        ..invalidate(currentRankingProvider)
-        ..invalidate(seasonRankingProvider)
-        ..invalidate(matchHistoryProvider)
-        ..invalidate(playerProfileProvider)
-        ..invalidate(myStatisticsProvider);
+      await ref.dataRefresh.afterMatchChange(item.leagueId);
       return SubmitResult.sent(match);
     } on ApiException catch (e) {
       final next = switch (e) {

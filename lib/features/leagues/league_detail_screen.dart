@@ -174,7 +174,7 @@ class _LeagueDetails extends ConsumerWidget {
     try {
       await ref.read(leagueRepositoryProvider).leave(league.id);
       messenger.showSnackBar(SnackBar(content: Text('Você saiu de ${league.name}.')));
-      await afterLeavingLeague(ref);
+      await afterLeavingLeague(ref, league.id);
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }

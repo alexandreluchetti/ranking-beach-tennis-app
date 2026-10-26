@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/routing/router_restart.dart';
 import '../../core/storage/local_store.dart';
-import '../../core/storage/read_cache.dart';
+import '../sync/data_refresh.dart';
 import 'league_models.dart';
 import 'league_repository.dart';
 
@@ -64,16 +64,18 @@ Future<void> switchLeague(WidgetRef ref, String leagueId, {String location = '/r
 /// it and opens its ranking.
 Future<void> enterLeague(WidgetRef ref, String leagueId) async {
   // Waits for the server: the saved list does not have the change yet.
-  await ref.refreshFromServer(myLeaguesProvider.future);
+  await ref.dataRefresh.afterLeagueChange(leagueId);
+  await ref.read(myLeaguesProvider.future);
   await ref.read(selectedLeagueIdProvider.notifier).select(leagueId);
   ref.read(routerRestartProvider.notifier).restartAt('/ranking');
 }
 
-/// After leaving a league: reloads "Minhas ligas" and starts over in the
+/// After leaving [leagueId]: reloads "Minhas ligas" and starts over in the
 /// remaining current league (or the leagues screen, without any).
-Future<void> afterLeavingLeague(WidgetRef ref) async {
+Future<void> afterLeavingLeague(WidgetRef ref, String leagueId) async {
   // Waits for the server: the saved list does not have the change yet.
-  await ref.refreshFromServer(myLeaguesProvider.future);
+  await ref.dataRefresh.afterLeagueChange(leagueId);
+  await ref.read(myLeaguesProvider.future);
   ref.read(routerRestartProvider.notifier).restartAt('/ranking');
 }
 
