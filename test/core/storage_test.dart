@@ -1,13 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/file_local_store.dart';
 import 'package:ranking_beach_tennis/core/storage/local_store.dart';
-import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../helpers.dart';
 
 void main() {
   test('file store round-trips JSON and leaves no temporary file behind', () async {
@@ -55,31 +51,30 @@ void main() {
     expect(PreferencesLocalStore(await SharedPreferences.getInstance()).readSync('outbox'), isNull);
   });
 
-  group('offline copy', () {
-    final store = MemoryLocalStore();
+  test('file store lists and deletes documents', () async {
+    final directory = Directory.systemTemp.createTempSync('rbt_store_');
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final store = FileLocalStore(directory);
+    expect(FileLocalStore(Directory('${directory.path}${Platform.pathSeparator}missing')).names(), isEmpty);
 
-    Future<Cached<int>> fetch(Future<int> Function() server) => fetchWithOfflineCopy<int>(
-          store: store,
-          key: 'n',
-          fetch: server,
-          encode: (v) => v,
-          decode: (json) => json as int,
-          now: () => DateTime.utc(2026, 10, 11, 21, 5),
-        );
+    await store.write('cache.u1.user.me', 1);
+    await store.write('outbox', []);
+    expect(store.names().toSet(), {'cache.u1.user.me', 'outbox'});
 
-    test('fresh data is saved; without connection the copy is returned and flagged', () async {
-      expect((await fetch(() async => 42)).fromCache, isFalse);
+    await store.delete('cache.u1.user.me');
+    await store.delete('never-saved');
+    expect(store.names(), ['outbox']);
+    expect(store.readSync('cache.u1.user.me'), isNull);
+  });
 
-      final cached = await fetch(() async => throw const ApiException('offline'));
+  test('web store lists and deletes only its own documents', () async {
+    SharedPreferences.setMockInitialValues({'theme': 'dark'});
+    final store = PreferencesLocalStore(await SharedPreferences.getInstance());
 
-      expect(cached.value, 42);
-      expect(cached.savedAt, DateTime.utc(2026, 10, 11, 21, 5).toLocal());
-    });
+    await store.write('cache.u1.user.me', 1);
+    expect(store.names(), ['cache.u1.user.me'], reason: 'other preferences are not documents');
 
-    test('server errors are not hidden by the copy', () async {
-      await fetch(() async => 42);
-
-      expect(() => fetch(() async => throw const ApiException('erro', statusCode: 500)), throwsA(isA<ApiException>()));
-    });
+    await store.delete('cache.u1.user.me');
+    expect(store.names(), isEmpty);
   });
 }

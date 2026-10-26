@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
+import '../../core/storage/read_cache.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
 import '../leagues/current_league.dart';
@@ -16,8 +16,6 @@ import 'scoring_rules_sheet.dart';
 /// Home screen: ranking of the active season.
 class RankingScreen extends ConsumerWidget {
   const RankingScreen({super.key});
-
-  static final _savedAt = DateFormat("dd/MM 'às' HH:mm", 'pt_BR');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,7 +44,7 @@ class RankingScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.refresh(currentRankingProvider.future),
+        onRefresh: () => reloadRead(ref.read(readCacheProvider), () => ref.refresh(currentRankingProvider.future)),
         child: ranking.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => _Scrollable(
@@ -76,24 +74,7 @@ class RankingScreen extends ConsumerWidget {
                     ),
                   )
                 : RankingContent(ranking: ranking, highlightPlayerId: me?.id);
-            if (!cached.fromCache) {
-              return content;
-            }
-            return Column(children: [
-              MaterialBanner(
-                leading: const Icon(Icons.cloud_off),
-                content: Text(
-                  'Sem conexão. Ranking de ${_savedAt.format(cached.savedAt!)}; pode estar desatualizado.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => ref.invalidate(currentRankingProvider),
-                    child: const Text('Atualizar'),
-                  ),
-                ],
-              ),
-              Expanded(child: content),
-            ]);
+            return content;
           },
         ),
       ),

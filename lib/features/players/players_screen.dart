@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/storage/read_cache.dart';
 import '../../core/widgets/async_states.dart';
 import '../../core/widgets/list_detail.dart';
 import '../leagues/current_league.dart';
@@ -47,7 +48,7 @@ class _PlayersScreenState extends ConsumerState<PlayersScreen> {
                 .where((p) => p.displayName.toLowerCase().contains(_query.trim().toLowerCase()))
                 .toList();
             return RefreshIndicator(
-              onRefresh: () => ref.refresh(playersProvider.future),
+              onRefresh: () => reloadRead(ref.read(readCacheProvider), () => ref.refresh(playersProvider.future)),
               child: ListView(
                 children: [
                   Padding(

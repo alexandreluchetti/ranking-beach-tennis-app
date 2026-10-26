@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
-import '../../core/storage/local_store.dart';
 import '../../core/storage/offline_cache.dart';
+import '../../core/storage/read_cache.dart';
 import '../leagues/current_league.dart';
 import 'ranking_models.dart';
 
@@ -37,15 +37,16 @@ class RankingRepository {
 final rankingRepositoryProvider =
     Provider<RankingRepository>((ref) => RankingRepository(ref.watch(dioProvider), ref.watch(currentLeagueIdProvider)));
 
-/// Without a connection, the last ranking seen on this phone (flagged as such).
+/// The ranking of the active season (null without one), from the device first.
 final currentRankingProvider = FutureProvider<Cached<SeasonRanking?>>(
-  (ref) => fetchWithOfflineCopy(
-    store: ref.watch(localStoreProvider),
-    key: 'ranking_current.${ref.watch(currentLeagueIdProvider)}',
+  (ref) async => Cached(await cachedRead(
+    ref,
+    resource: 'ranking_current',
+    leagueId: ref.watch(currentLeagueIdProvider),
     fetch: ref.watch(rankingRepositoryProvider).current,
     encode: (ranking) => ranking?.toJson(),
     decode: (json) => json == null ? null : SeasonRanking.fromJson(json as Map<String, dynamic>),
-  ),
+  )),
 );
 
 final seasonRankingProvider = FutureProvider.family<SeasonRanking, String>(

@@ -2,8 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
-import '../../core/storage/local_store.dart';
-import '../../core/storage/offline_cache.dart';
+import '../../core/storage/read_cache.dart';
 import '../leagues/current_league.dart';
 import 'match_draft.dart';
 import 'match_models.dart';
@@ -108,16 +107,16 @@ final matchRepositoryProvider = Provider<MatchRepository>((ref) => MatchReposito
 
 /// Members of the current league (D-020), kept on the phone so matches can be
 /// registered without a connection.
-final playersProvider = FutureProvider<List<PlayerSummary>>((ref) async {
-  final cached = await fetchWithOfflineCopy(
-    store: ref.watch(localStoreProvider),
-    key: 'players.${ref.watch(currentLeagueIdProvider)}',
+final playersProvider = FutureProvider<List<PlayerSummary>>(
+  (ref) => cachedRead(
+    ref,
+    resource: 'players',
+    leagueId: ref.watch(currentLeagueIdProvider),
     fetch: ref.watch(matchRepositoryProvider).players,
     encode: (players) => [for (final p in players) {'id': p.id, 'displayName': p.displayName}],
     decode: (json) => [for (final p in json as List) PlayerSummary.fromJson(p as Map<String, dynamic>)],
-  );
-  return cached.value;
-});
+  ),
+);
 
 final matchProvider =
     FutureProvider.family<MatchView, String>((ref, id) => ref.watch(matchRepositoryProvider).byId(id));

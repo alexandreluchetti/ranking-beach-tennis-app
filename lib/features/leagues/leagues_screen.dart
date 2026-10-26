@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/storage/read_cache.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_states.dart';
 import '../me/me_repository.dart';
@@ -76,7 +77,7 @@ class _MyLeaguesTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(myInvitationsProvider);
-        return ref.refresh(myLeaguesProvider.future);
+        return reloadRead(ref.read(readCacheProvider), () => ref.refresh(myLeaguesProvider.future));
       },
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),

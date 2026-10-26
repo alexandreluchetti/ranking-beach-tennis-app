@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranking_beach_tennis/core/network/api_exception.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
+import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/me/me_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
@@ -59,15 +62,21 @@ void main() {
     expect(find.text('Beto'), findsOneWidget);
   });
 
-  testWidgets('without connection shows the last ranking and warns it may be outdated', (tester) async {
-    await pumpScreen(tester, const RankingScreen(), overrides: [
-      currentRankingProvider.overrideWith((ref) async => Cached(sampleRanking(), savedAt: DateTime(2026, 10, 11, 18, 5))),
+  testWidgets('a saved ranking shows at once, without waiting for the network', (tester) async {
+    final store = MemoryLocalStore();
+    await store.write('cache.u1.league.l-arena.ranking_current', {
+      'savedAt': '2026-10-26T17:32:00Z',
+      'value': sampleRanking().toJson(),
+    });
+    await pumpScreen(tester, const RankingScreen(), leagues: null, overrides: [
+      ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u1')), store),
+      rankingRepositoryProvider.overrideWithValue(_SilentRankingRepository()),
       meProvider.overrideWith((ref) async => anaMe),
     ]);
     await tester.pumpAndSettle();
 
-    expect(find.text('Sem conexão. Ranking de 11/10 às 18:05; pode estar desatualizado.'), findsOneWidget);
     expect(find.text('Beto'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
   test('ranking survives the offline copy round trip', () {
@@ -197,4 +206,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('19 pts'), findsOneWidget);
   });
+}
+
+/// A server that never answers.
+class _SilentRankingRepository implements RankingRepository {
+  @override
+  Future<SeasonRanking?> current() => Completer<SeasonRanking?>().future;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => Completer<Never>().future;
 }
