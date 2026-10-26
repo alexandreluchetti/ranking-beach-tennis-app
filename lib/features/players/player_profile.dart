@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/storage/read_cache.dart';
 import '../leagues/current_league.dart';
 import '../ranking/ranking_models.dart';
 
@@ -26,6 +27,14 @@ class PlayerStats {
   final int losses;
   final int matchesPlayed;
   final int gameDifference;
+
+  Map<String, dynamic> toJson() => {
+        'points': points,
+        'wins': wins,
+        'losses': losses,
+        'matchesPlayed': matchesPlayed,
+        'gameDifference': gameDifference,
+      };
 }
 
 class SeasonStanding {
@@ -42,6 +51,13 @@ class SeasonStanding {
   final int position;
   final int rankedPlayers;
   final PlayerStats stats;
+
+  Map<String, dynamic> toJson() => {
+        'season': season.toJson(),
+        'position': position,
+        'rankedPlayers': rankedPlayers,
+        'stats': stats.toJson(),
+      };
 }
 
 class PlayerProfile {
@@ -70,13 +86,28 @@ class PlayerProfile {
   final SeasonStanding? currentSeason;
   final PlayerStats career;
   final List<SeasonStanding> pastSeasons;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'displayName': displayName,
+        'currentSeason': currentSeason?.toJson(),
+        'career': career.toJson(),
+        'pastSeasons': [for (final s in pastSeasons) s.toJson()],
+      };
 }
 
 final playerProfileProvider = FutureProvider.family<PlayerProfile, String>((ref, playerId) {
   final dio = ref.watch(dioProvider);
   final leagueId = ref.watch(currentLeagueIdProvider);
-  return apiCall(() async {
-    final response = await dio.get<Map<String, dynamic>>(leaguePath(leagueId, 'players/$playerId/profile'));
-    return PlayerProfile.fromJson(response.data!);
-  });
+  return cachedRead(
+    ref,
+    resource: 'profile.$playerId',
+    leagueId: leagueId,
+    fetch: () => apiCall(() async {
+      final response = await dio.get<Map<String, dynamic>>(leaguePath(leagueId, 'players/$playerId/profile'));
+      return PlayerProfile.fromJson(response.data!);
+    }),
+    encode: (profile) => profile.toJson(),
+    decode: (json) => PlayerProfile.fromJson(json as Map<String, dynamic>),
+  );
 });

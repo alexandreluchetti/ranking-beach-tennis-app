@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/local_store.dart';
+import '../../core/storage/read_cache.dart';
 import '../auth/auth_providers.dart';
 import '../auth/auth_repository.dart';
 
@@ -39,6 +40,14 @@ class Me {
   final String? fullName;
   final String? email;
   final bool admin;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'displayName': displayName,
+        'fullName': fullName,
+        'email': email,
+        'admin': admin,
+      };
 }
 
 /// The user's own statistics over every league (D-022): no points, since each
@@ -73,6 +82,16 @@ class GlobalStats {
 
   /// "Aproveitamento" in whole percent; null without matches (shown as "—").
   final int? winRate;
+
+  Map<String, dynamic> toJson() => {
+        'matchesPlayed': matchesPlayed,
+        'wins': wins,
+        'losses': losses,
+        'gamesWon': gamesWon,
+        'gamesLost': gamesLost,
+        'gameDifference': gameDifference,
+        'winRate': winRate,
+      };
 }
 
 class MeRepository {
@@ -103,8 +122,15 @@ class MeRepository {
 
 final meRepositoryProvider = Provider<MeRepository>((ref) => MeRepository(ref.watch(dioProvider)));
 
-final myStatisticsProvider =
-    FutureProvider<GlobalStats>((ref) => ref.watch(meRepositoryProvider).statistics());
+final myStatisticsProvider = FutureProvider<GlobalStats>(
+  (ref) => cachedRead(
+    ref,
+    resource: 'statistics',
+    fetch: ref.watch(meRepositoryProvider).statistics,
+    encode: (stats) => stats.toJson(),
+    decode: (json) => GlobalStats.fromJson(json as Map<String, dynamic>),
+  ),
+);
 
 /// The names typed when creating an account with e-mail, kept on the device
 /// until the backend has them. The new account's first ID token has no name,
@@ -167,6 +193,17 @@ final meProvider = FutureProvider<Me?>((ref) async {
     return null;
   }
   final repository = ref.watch(meRepositoryProvider);
-  final me = await repository.load();
-  return PendingProfileNames.apply(ref.read(localStoreProvider), repository, session, me);
+  final store = ref.read(localStoreProvider);
+  if (PendingProfileNames.hasFor(store, session)) {
+    // Right after signing up: straight from the server, so a refresh started
+    // before the names were sent cannot bring the old profile back.
+    return PendingProfileNames.apply(store, repository, session, await repository.load());
+  }
+  return cachedRead<Me>(
+    ref,
+    resource: 'me',
+    fetch: repository.load,
+    encode: (me) => me.toJson(),
+    decode: (json) => Me.fromJson(json as Map<String, dynamic>),
+  );
 });

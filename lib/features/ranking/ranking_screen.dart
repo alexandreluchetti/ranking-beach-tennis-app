@@ -44,7 +44,7 @@ class RankingScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => reloadRead(ref.read(readCacheProvider), () => ref.refresh(currentRankingProvider.future)),
+        onRefresh: () => ref.refreshFromServer(currentRankingProvider.future),
         child: ranking.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => _Scrollable(

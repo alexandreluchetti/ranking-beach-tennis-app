@@ -150,11 +150,29 @@ final myLeaguesProvider = FutureProvider<Cached<List<League>>>((ref) async {
   ));
 });
 
-final leagueProvider =
-    FutureProvider.family<League, String>((ref, id) => ref.watch(leagueRepositoryProvider).byId(id));
+final leagueProvider = FutureProvider.family<League, String>((ref, id) {
+  final repository = ref.watch(leagueRepositoryProvider);
+  return cachedRead(
+    ref,
+    resource: 'league',
+    leagueId: id,
+    fetch: () => repository.byId(id),
+    encode: (league) => league.toJson(),
+    decode: (json) => League.fromJson(json as Map<String, dynamic>),
+  );
+});
 
-final leagueMembersProvider =
-    FutureProvider.family<List<LeagueMember>, String>((ref, id) => ref.watch(leagueRepositoryProvider).members(id));
+final leagueMembersProvider = FutureProvider.family<List<LeagueMember>, String>((ref, id) {
+  final repository = ref.watch(leagueRepositoryProvider);
+  return cachedRead(
+    ref,
+    resource: 'members',
+    leagueId: id,
+    fetch: () => repository.members(id),
+    encode: (members) => [for (final m in members) m.toJson()],
+    decode: (json) => [for (final m in json as List) LeagueMember.fromJson(m as Map<String, dynamic>)],
+  );
+});
 
 final leagueJoinRequestsProvider = FutureProvider.family<List<JoinRequest>, String>(
     (ref, id) => ref.watch(leagueRepositoryProvider).joinRequests(id));

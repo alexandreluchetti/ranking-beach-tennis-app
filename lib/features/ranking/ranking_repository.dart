@@ -49,9 +49,25 @@ final currentRankingProvider = FutureProvider<Cached<SeasonRanking?>>(
   )),
 );
 
-final seasonRankingProvider = FutureProvider.family<SeasonRanking, String>(
-  (ref, seasonId) => ref.watch(rankingRepositoryProvider).bySeason(seasonId),
-);
+final seasonRankingProvider = FutureProvider.family<SeasonRanking, String>((ref, seasonId) {
+  final repository = ref.watch(rankingRepositoryProvider);
+  return cachedRead(
+    ref,
+    resource: 'ranking.$seasonId',
+    leagueId: ref.watch(currentLeagueIdProvider),
+    fetch: () => repository.bySeason(seasonId),
+    encode: (ranking) => ranking.toJson(),
+    decode: (json) => SeasonRanking.fromJson(json as Map<String, dynamic>),
+  );
+});
 
-final seasonsProvider =
-    FutureProvider<List<Season>>((ref) => ref.watch(rankingRepositoryProvider).seasons());
+final seasonsProvider = FutureProvider<List<Season>>(
+  (ref) => cachedRead(
+    ref,
+    resource: 'seasons',
+    leagueId: ref.watch(currentLeagueIdProvider),
+    fetch: ref.watch(rankingRepositoryProvider).seasons,
+    encode: (seasons) => [for (final s in seasons) s.toJson()],
+    decode: (json) => [for (final s in json as List) Season.fromJson(s as Map<String, dynamic>)],
+  ),
+);

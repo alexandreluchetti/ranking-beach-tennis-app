@@ -77,7 +77,7 @@ class _MyLeaguesTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(myInvitationsProvider);
-        return reloadRead(ref.read(readCacheProvider), () => ref.refresh(myLeaguesProvider.future));
+        return ref.refreshFromServer(myLeaguesProvider.future);
       },
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),

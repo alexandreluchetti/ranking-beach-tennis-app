@@ -19,6 +19,28 @@ class MatchFilter {
 
   bool get isEmpty => seasonId == null && playerId == null && from == null && to == null && outcomes.isEmpty;
 
+  /// Stable name of this filter for the device copy of its first page: "all"
+  /// without filters, else a short hash of the values (safe in a file name).
+  String get cacheKey {
+    if (isEmpty) {
+      return 'all';
+    }
+    String day(DateTime? d) => d == null ? '' : '${d.year}-${d.month}-${d.day}';
+    final text = [
+      seasonId ?? '',
+      playerId ?? '',
+      day(from),
+      day(to),
+      ([for (final o in outcomes) o.apiValue]..sort()).join('+'),
+    ].join('|');
+    // FNV-1a, 32 bits: the same on every run and platform.
+    var hash = 0x811c9dc5;
+    for (final unit in text.codeUnits) {
+      hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
+    }
+    return hash.toRadixString(16).padLeft(8, '0');
+  }
+
   MatchFilter copyWith({
     String? Function()? seasonId,
     String? Function()? playerId,
@@ -80,11 +102,7 @@ class MatchRepository {
           if (filter.to != null) 'to': date(filter.to!),
           if (filter.outcomes.isNotEmpty) 'outcome': filter.outcomes.map((o) => o.apiValue).toList(),
         });
-        final data = response.data!;
-        return MatchPage(
-          items: (data['items'] as List).map((m) => MatchView.fromJson(m as Map<String, dynamic>)).toList(),
-          hasNext: data['hasNext'] as bool,
-        );
+        return MatchPage.fromJson(response.data!);
       });
 
   Future<MatchView> byId(String id) => apiCall(() async {

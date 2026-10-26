@@ -64,7 +64,7 @@ Future<void> switchLeague(WidgetRef ref, String leagueId, {String location = '/r
 /// it and opens its ranking.
 Future<void> enterLeague(WidgetRef ref, String leagueId) async {
   // Waits for the server: the saved list does not have the change yet.
-  await reloadRead(ref.read(readCacheProvider), () => ref.refresh(myLeaguesProvider.future));
+  await ref.refreshFromServer(myLeaguesProvider.future);
   await ref.read(selectedLeagueIdProvider.notifier).select(leagueId);
   ref.read(routerRestartProvider.notifier).restartAt('/ranking');
 }
@@ -73,7 +73,7 @@ Future<void> enterLeague(WidgetRef ref, String leagueId) async {
 /// remaining current league (or the leagues screen, without any).
 Future<void> afterLeavingLeague(WidgetRef ref) async {
   // Waits for the server: the saved list does not have the change yet.
-  await reloadRead(ref.read(readCacheProvider), () => ref.refresh(myLeaguesProvider.future));
+  await ref.refreshFromServer(myLeaguesProvider.future);
   ref.read(routerRestartProvider.notifier).restartAt('/ranking');
 }
 

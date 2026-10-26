@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/storage/read_cache.dart';
 import '../../core/widgets/async_states.dart';
 import '../me/me_repository.dart';
 import 'current_league.dart';
@@ -27,10 +28,10 @@ class LeagueDetailScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(leagueProvider(leagueId))),
         data: (league) => RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(leagueMembersProvider(leagueId));
-            return ref.refresh(leagueProvider(leagueId).future);
-          },
+          onRefresh: () => Future.wait([
+            ref.refreshFromServer(leagueProvider(leagueId).future),
+            ref.refreshFromServer(leagueMembersProvider(leagueId).future),
+          ]),
           child: _LeagueDetails(league: league),
         ),
       ),

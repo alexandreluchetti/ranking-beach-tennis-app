@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Refreshable;
 
 import '../../features/auth/auth_providers.dart';
 import '../network/api_exception.dart';
@@ -141,7 +142,11 @@ Future<T> cachedRead<T>(
   required Object? Function(T value) encode,
   required T Function(Object? json) decode,
 }) async {
-  final cache = ref.watch(readCacheProvider);
+  // While the app opens the session is not known yet: wait for it instead of
+  // asking the server without the user's cache (and again once it exists).
+  final cache = ref.read(sessionProvider).isLoading
+      ? await _cacheOnceSessionKnown(ref)
+      : ref.watch(readCacheProvider);
   if (cache == null) {
     return fetch();
   }
@@ -205,6 +210,11 @@ Future<T> cachedRead<T>(
   return decode(saved.value);
 }
 
+Future<ReadCache?> _cacheOnceSessionKnown(Ref ref) async {
+  await ref.watch(sessionProvider.future);
+  return ref.watch(readCacheProvider);
+}
+
 /// Pull-to-refresh: rebuilds [refresh]'s read waiting for the server instead of
 /// showing the saved answer first.
 Future<T> reloadRead<T>(ReadCache? cache, Future<T> Function() refresh) {
@@ -214,4 +224,10 @@ Future<T> reloadRead<T>(ReadCache? cache, Future<T> Function() refresh) {
   } finally {
     cache?._forcing = false;
   }
+}
+
+extension RefreshFromServer on WidgetRef {
+  /// Pull-to-refresh of [read] (a provider's `.future`): waits for the server.
+  Future<T> refreshFromServer<T>(Refreshable<Future<T>> read) =>
+      reloadRead(this.read(readCacheProvider), () => refresh(read));
 }

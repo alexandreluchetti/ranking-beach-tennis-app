@@ -48,7 +48,7 @@ class _PlayersScreenState extends ConsumerState<PlayersScreen> {
                 .where((p) => p.displayName.toLowerCase().contains(_query.trim().toLowerCase()))
                 .toList();
             return RefreshIndicator(
-              onRefresh: () => reloadRead(ref.read(readCacheProvider), () => ref.refresh(playersProvider.future)),
+              onRefresh: () => ref.refreshFromServer(playersProvider.future),
               child: ListView(
                 children: [
                   Padding(
@@ -127,10 +127,10 @@ class PlayerProfileScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(playerProfileProvider(playerId))),
         data: (profile) => RefreshIndicator(
-          onRefresh: () {
-            ref.invalidate(matchHistoryProvider(filter));
-            return ref.refresh(playerProfileProvider(playerId).future);
-          },
+          onRefresh: () => Future.wait([
+            ref.refreshFromServer(playerProfileProvider(playerId).future),
+            ref.refreshFromServer(matchHistoryProvider(filter).future),
+          ]),
           child: CustomScrollView(
             slivers: [
               SliverPadding(
