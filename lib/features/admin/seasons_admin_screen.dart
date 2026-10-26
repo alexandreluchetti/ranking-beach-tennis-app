@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/storage/read_cache.dart';
 import '../../core/widgets/async_states.dart';
 import '../ranking/ranking_models.dart';
 import '../ranking/ranking_repository.dart';
@@ -39,7 +40,7 @@ class SeasonsAdminScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(seasonsProvider)),
         data: (all) => RefreshIndicator(
-          onRefresh: () => ref.refresh(seasonsProvider.future),
+          onRefresh: () => ref.refreshFromServer(seasonsProvider.future),
           child: ListView(
             padding: const EdgeInsets.only(bottom: 88),
             children: [

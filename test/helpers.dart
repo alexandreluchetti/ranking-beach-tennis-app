@@ -34,6 +34,12 @@ class MemoryLocalStore implements LocalStore {
 
   @override
   Future<void> write(String name, Object? value) async => documents[name] = jsonEncode(value);
+
+  @override
+  Future<void> delete(String name) async => documents.remove(name);
+
+  @override
+  Iterable<String> names() => documents.keys.toList();
 }
 
 /// Signed-in user, in-memory device storage, no connectivity events and fake

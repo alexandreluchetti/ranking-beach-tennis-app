@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_providers.dart';
+import '../sync/data_refresh.dart';
 import 'notification_repository.dart';
 
 class InboxState {
@@ -39,7 +42,26 @@ class NotificationInbox extends AsyncNotifier<InboxState> {
       return InboxState.empty;
     }
     final page = await ref.watch(notificationRepositoryProvider).list();
+    _refreshLeaguesOfNew(page.items);
     return InboxState(items: page.items, unreadCount: page.unreadCount, hasNext: page.hasNext);
+  }
+
+  /// A new unread notification means its league's data changed (a match,
+  /// a season): its copies on the device are refreshed. The first load only
+  /// takes note, since the screens refresh their data when they open anyway.
+  void _refreshLeaguesOfNew(List<AppNotification> items) {
+    final seen = ref.read(_seenNotificationsProvider);
+    final first = !seen.loaded;
+    final leagues = {
+      for (final n in items)
+        if (!first && !n.read && n.leagueId != null && !seen.ids.contains(n.id)) n.leagueId!,
+    };
+    seen
+      ..loaded = true
+      ..ids.addAll(items.map((n) => n.id));
+    for (final leagueId in leagues) {
+      unawaited(ref.dataRefresh.afterLeagueNotification(leagueId));
+    }
   }
 
   Future<void> loadMore() async {
@@ -107,3 +129,14 @@ final notificationInboxProvider =
 /// Badge on the "Notificações" tab; 0 while loading or offline.
 final unreadNotificationsProvider =
     Provider<int>((ref) => ref.watch(notificationInboxProvider).value?.unreadCount ?? 0);
+
+/// The notifications already listed for the signed-in user in this run.
+class _SeenNotifications {
+  bool loaded = false;
+  final ids = <String>{};
+}
+
+final _seenNotificationsProvider = Provider<_SeenNotifications>((ref) {
+  ref.watch(sessionProvider.select((session) => session.value?.uid));
+  return _SeenNotifications();
+});

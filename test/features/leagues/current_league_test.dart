@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranking_beach_tennis/core/network/api_client.dart';
 import 'package:ranking_beach_tennis/features/admin/admin_repository.dart';
+import 'package:ranking_beach_tennis/features/auth/auth_providers.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
 import 'package:ranking_beach_tennis/features/leagues/current_league.dart';
 import 'package:ranking_beach_tennis/features/leagues/league_models.dart';
@@ -164,6 +165,8 @@ void main() {
         dioProvider.overrideWithValue(_recordingDio(calls)),
       ]);
       addTearDown(container.dispose);
+      // As in the app, the session has a listener (unlistened providers are paused).
+      container.listen(sessionProvider, (_, _) {});
 
       await expectLater(container.read(playerProfileProvider('p1').future), throwsA(anything));
       await container.read(selectedLeagueIdProvider.notifier).select('l-admin');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/storage/read_cache.dart';
 import '../../core/theme/theme_mode_controller.dart';
 import '../auth/auth_providers.dart';
 import '../auth/sign_out.dart';
@@ -25,7 +26,10 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Perfil')),
       body: RefreshIndicator(
-        onRefresh: () => Future.wait([ref.refresh(meProvider.future), ref.refresh(myStatisticsProvider.future)]),
+        onRefresh: () => Future.wait([
+          ref.refreshFromServer(meProvider.future),
+          ref.refreshFromServer(myStatisticsProvider.future),
+        ]),
         child: ListView(
           // Pull to refresh works even when everything fits on the screen.
           physics: const AlwaysScrollableScrollPhysics(),

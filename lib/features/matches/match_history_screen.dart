@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/storage/read_cache.dart';
 import '../../core/widgets/async_states.dart';
 import '../../core/widgets/list_detail.dart';
 import '../leagues/current_league.dart';
@@ -58,7 +59,7 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
           title: 'Escolha uma partida para ver os detalhes.',
         ),
         list: RefreshIndicator(
-          onRefresh: () => ref.refresh(matchHistoryProvider(_filter).future),
+          onRefresh: () => ref.refreshFromServer(matchHistoryProvider(_filter).future),
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(

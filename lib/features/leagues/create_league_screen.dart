@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/widgets/async_states.dart';
 import '../../core/widgets/responsive.dart';
+import '../sync/data_refresh.dart';
 import 'current_league.dart';
 import 'league_models.dart';
 import 'league_repository.dart';
@@ -86,9 +87,7 @@ class _LeagueFormScreenState extends ConsumerState<LeagueFormScreen> {
           description: _description.text.trim(),
           visibility: _visibility,
         );
-        ref
-          ..invalidate(leagueProvider(editing.id))
-          ..invalidate(myLeaguesProvider);
+        await ref.dataRefresh.afterLeagueChange(editing.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Liga atualizada.')));
           Navigator.pop(context);

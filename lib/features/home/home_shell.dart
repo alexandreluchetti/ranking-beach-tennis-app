@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/outdated_notice.dart';
 import '../../core/widgets/responsive.dart';
 import '../leagues/league_repository.dart';
 import '../me/me_repository.dart';
@@ -95,6 +96,7 @@ class HomeShell extends ConsumerWidget {
                   selected: selected,
                   onSelected: select,
                 ),
+                const OutdatedNotice(),
                 Expanded(child: ContentFrame(child: navigationShell)),
               ],
             ),
@@ -103,7 +105,13 @@ class HomeShell extends ConsumerWidget {
       );
     }
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          Expanded(child: navigationShell),
+          // Above the tabs, out of the way of each screen's own bar.
+          const OutdatedNotice(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         destinations: destinations,

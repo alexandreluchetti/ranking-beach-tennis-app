@@ -2,8 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
-import '../../core/storage/local_store.dart';
-import '../../core/storage/offline_cache.dart';
+import '../../core/storage/read_cache.dart';
 import '../leagues/current_league.dart';
 import 'match_draft.dart';
 import 'match_models.dart';
@@ -19,6 +18,28 @@ class MatchFilter {
   final Set<MatchOutcome> outcomes;
 
   bool get isEmpty => seasonId == null && playerId == null && from == null && to == null && outcomes.isEmpty;
+
+  /// Stable name of this filter for the device copy of its first page: "all"
+  /// without filters, else a short hash of the values (safe in a file name).
+  String get cacheKey {
+    if (isEmpty) {
+      return 'all';
+    }
+    String day(DateTime? d) => d == null ? '' : '${d.year}-${d.month}-${d.day}';
+    final text = [
+      seasonId ?? '',
+      playerId ?? '',
+      day(from),
+      day(to),
+      ([for (final o in outcomes) o.apiValue]..sort()).join('+'),
+    ].join('|');
+    // FNV-1a, 32 bits: the same on every run and platform.
+    var hash = 0x811c9dc5;
+    for (final unit in text.codeUnits) {
+      hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
+    }
+    return hash.toRadixString(16).padLeft(8, '0');
+  }
 
   MatchFilter copyWith({
     String? Function()? seasonId,
@@ -81,11 +102,7 @@ class MatchRepository {
           if (filter.to != null) 'to': date(filter.to!),
           if (filter.outcomes.isNotEmpty) 'outcome': filter.outcomes.map((o) => o.apiValue).toList(),
         });
-        final data = response.data!;
-        return MatchPage(
-          items: (data['items'] as List).map((m) => MatchView.fromJson(m as Map<String, dynamic>)).toList(),
-          hasNext: data['hasNext'] as bool,
-        );
+        return MatchPage.fromJson(response.data!);
       });
 
   Future<MatchView> byId(String id) => apiCall(() async {
@@ -108,16 +125,16 @@ final matchRepositoryProvider = Provider<MatchRepository>((ref) => MatchReposito
 
 /// Members of the current league (D-020), kept on the phone so matches can be
 /// registered without a connection.
-final playersProvider = FutureProvider<List<PlayerSummary>>((ref) async {
-  final cached = await fetchWithOfflineCopy(
-    store: ref.watch(localStoreProvider),
-    key: 'players.${ref.watch(currentLeagueIdProvider)}',
+final playersProvider = FutureProvider<List<PlayerSummary>>(
+  (ref) => cachedRead(
+    ref,
+    resource: 'players',
+    leagueId: ref.watch(currentLeagueIdProvider),
     fetch: ref.watch(matchRepositoryProvider).players,
     encode: (players) => [for (final p in players) {'id': p.id, 'displayName': p.displayName}],
     decode: (json) => [for (final p in json as List) PlayerSummary.fromJson(p as Map<String, dynamic>)],
-  );
-  return cached.value;
-});
+  ),
+);
 
 final matchProvider =
     FutureProvider.family<MatchView, String>((ref, id) => ref.watch(matchRepositoryProvider).byId(id));
