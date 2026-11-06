@@ -71,15 +71,23 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
 
   /// Days of the week whose matches score (D-025), as [DateTime.weekday].
   late final Set<int> _days = {...?widget.season?.playingDays};
+
+  /// D-026: how the season ranks; the points of each placement in type B (D-028).
+  late RankingType _type = widget.season?.rankingType ?? RankingType.matchPoints;
+  late final _points = _PlacementFields(widget.season?.placementPoints ?? PlacementPoints.standard);
   bool _saving = false;
   String? _error;
 
   bool get _creating => widget.season == null;
   bool get _active => widget.season?.status == SeasonStatus.active;
 
+  /// The type and its table change only while the season is planned (D-026).
+  bool get _rankingLocked => !_creating && widget.season!.status != SeasonStatus.planned;
+
   @override
   void dispose() {
     _name.dispose();
+    _points.dispose();
     super.dispose();
   }
 
@@ -182,6 +190,49 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
                     'O início pode ser no passado: partidas já jogadas nesse período passam a contar.',
                   ),
                 ),
+              const SizedBox(height: 16),
+              Text('Tipo de ranking', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              SegmentedButton<RankingType>(
+                segments: [
+                  for (final type in RankingType.values)
+                    ButtonSegment(
+                      value: type,
+                      label: Text(type.label),
+                      icon: Icon(type == RankingType.matchPoints ? Icons.sports_tennis : Icons.emoji_events_outlined),
+                    ),
+                ],
+                selected: {_type},
+                onSelectionChanged: _rankingLocked ? null : (s) => setState(() => _type = s.single),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                [
+                  _type == RankingType.matchPoints
+                      ? 'Cada partida válida dá pontos aos jogadores.'
+                      : 'Em cada dia de jogo pode haver uma etapa; os pontos vêm da colocação em cada etapa.',
+                  if (_rankingLocked) 'O tipo e a tabela não mudam depois que a temporada começa.',
+                ].join(' '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (_type == RankingType.dailyTournament) ...[
+                const SizedBox(height: 12),
+                Text('Pontos por colocação', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                for (final (key, label, controller) in _points.fields)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextFormField(
+                      key: Key('points-$key'),
+                      controller: controller,
+                      enabled: !_rankingLocked,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: label, suffixText: 'pts'),
+                      validator: (value) =>
+                          (int.tryParse(value?.trim() ?? '') ?? -1) >= 0 ? null : 'Informe um número inteiro.',
+                    ),
+                  ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -250,9 +301,17 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
     final name = _name.text.trim();
     final season = widget.season;
     final admin = ref.read(adminRepositoryProvider);
+    final tournament = _type == RankingType.dailyTournament;
     if (season == null) {
       await _run(
-        () => admin.createSeason(name: name, startDate: _start!, endDate: _end!, playingDays: _days.toList()..sort()),
+        () => admin.createSeason(
+          name: name,
+          startDate: _start!,
+          endDate: _end!,
+          playingDays: _days.toList()..sort(),
+          rankingType: _type,
+          placementPoints: tournament ? _points.value : null,
+        ),
         'Temporada criada.',
       );
       return;
@@ -262,7 +321,9 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
     final endChanged = _end != season.endDate;
     final days = _days.toList()..sort();
     final daysChanged = days.join() != season.playingDays.join();
-    if (!nameChanged && !startChanged && !endChanged && !daysChanged) {
+    final typeChanged = !_rankingLocked && _type != season.rankingType;
+    final pointsChanged = !_rankingLocked && tournament && _points.value != season.placementPoints;
+    if (!nameChanged && !startChanged && !endChanged && !daysChanged && !typeChanged && !pointsChanged) {
       context.pop();
       return;
     }
@@ -276,6 +337,8 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
         startDate: startChanged ? _start : null,
         endDate: endChanged ? _end : null,
         playingDays: daysChanged ? days : null,
+        rankingType: typeChanged ? _type : null,
+        placementPoints: pointsChanged ? _points.value : null,
       ),
       'Temporada atualizada.',
     );
@@ -339,6 +402,48 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
       context.pop();
+    }
+  }
+}
+
+/// The five placement fields of a daily tournament season (D-028).
+class _PlacementFields {
+  _PlacementFields(PlacementPoints points)
+      : champion = TextEditingController(text: '${points.champion}'),
+        runnerUp = TextEditingController(text: '${points.runnerUp}'),
+        semifinal = TextEditingController(text: '${points.semifinal}'),
+        quarterfinal = TextEditingController(text: '${points.quarterfinal}'),
+        groupStage = TextEditingController(text: '${points.groupStage}');
+
+  final TextEditingController champion;
+  final TextEditingController runnerUp;
+  final TextEditingController semifinal;
+  final TextEditingController quarterfinal;
+  final TextEditingController groupStage;
+
+  List<(String, String, TextEditingController)> get fields => [
+        ('champion', 'Campeão', champion),
+        ('runnerUp', 'Vice', runnerUp),
+        ('semifinal', 'Semifinal', semifinal),
+        ('quarterfinal', 'Quartas de final', quarterfinal),
+        ('groupStage', 'Fase de grupos', groupStage),
+      ];
+
+  /// Read after the form validated them.
+  PlacementPoints get value {
+    int n(TextEditingController c) => int.parse(c.text.trim());
+    return PlacementPoints(
+      champion: n(champion),
+      runnerUp: n(runnerUp),
+      semifinal: n(semifinal),
+      quarterfinal: n(quarterfinal),
+      groupStage: n(groupStage),
+    );
+  }
+
+  void dispose() {
+    for (final (_, _, controller) in fields) {
+      controller.dispose();
     }
   }
 }

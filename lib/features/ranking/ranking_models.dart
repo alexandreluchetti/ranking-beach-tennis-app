@@ -7,8 +7,77 @@ const weekdayApiNames = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY',
 /// Short pt-BR names, Monday first.
 const weekdayShortNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
+/// "1 título", "2 títulos".
+String counted(int n, String one, String many) => '$n ${n == 1 ? one : many}';
+
 /// "Ter, Qui" for [days] given as [DateTime.weekday] values.
 String weekdaysLabel(Iterable<int> days) => (days.toSet().toList()..sort()).map((d) => weekdayShortNames[d - 1]).join(', ');
+
+/// How a season ranks its players (D-026).
+enum RankingType {
+  /// A: points per match (D-003).
+  matchPoints('MATCH_POINTS', 'Pontos por partida'),
+
+  /// B: daily tournament, points per placement in each stage (D-027/D-028).
+  dailyTournament('DAILY_TOURNAMENT', 'Torneio do dia');
+
+  const RankingType(this.apiValue, this.label);
+
+  final String apiValue;
+  final String label;
+
+  /// Seasons from before D-026 (and older device copies) are of type A.
+  static RankingType fromApi(String? value) =>
+      values.firstWhere((t) => t.apiValue == value, orElse: () => matchPoints);
+}
+
+/// Points per final placement in a daily tournament stage (D-028).
+class PlacementPoints {
+  const PlacementPoints({
+    required this.champion,
+    required this.runnerUp,
+    required this.semifinal,
+    required this.quarterfinal,
+    required this.groupStage,
+  });
+
+  factory PlacementPoints.fromJson(Map<String, dynamic> json) => PlacementPoints(
+        champion: json['champion'] as int,
+        runnerUp: json['runnerUp'] as int,
+        semifinal: json['semifinal'] as int,
+        quarterfinal: json['quarterfinal'] as int,
+        groupStage: json['groupStage'] as int,
+      );
+
+  /// The default table of D-028.
+  static const standard = PlacementPoints(champion: 100, runnerUp: 70, semifinal: 50, quarterfinal: 35, groupStage: 20);
+
+  final int champion;
+  final int runnerUp;
+  final int semifinal;
+  final int quarterfinal;
+  final int groupStage;
+
+  Map<String, dynamic> toJson() => {
+        'champion': champion,
+        'runnerUp': runnerUp,
+        'semifinal': semifinal,
+        'quarterfinal': quarterfinal,
+        'groupStage': groupStage,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is PlacementPoints &&
+      other.champion == champion &&
+      other.runnerUp == runnerUp &&
+      other.semifinal == semifinal &&
+      other.quarterfinal == quarterfinal &&
+      other.groupStage == groupStage;
+
+  @override
+  int get hashCode => Object.hash(champion, runnerUp, semifinal, quarterfinal, groupStage);
+}
 
 class Season {
   const Season({
@@ -18,6 +87,8 @@ class Season {
     required this.endDate,
     required this.status,
     this.playingDays = const [],
+    this.rankingType = RankingType.matchPoints,
+    this.placementPoints,
   });
 
   factory Season.fromJson(Map<String, dynamic> json) => Season(
@@ -30,6 +101,10 @@ class Season {
           for (final day in (json['playingDays'] as List?) ?? const [])
             if (weekdayApiNames.contains(day)) weekdayApiNames.indexOf(day as String) + 1,
         ]..sort(),
+        rankingType: RankingType.fromApi(json['rankingType'] as String?),
+        placementPoints: json['placementPoints'] == null
+            ? null
+            : PlacementPoints.fromJson(json['placementPoints'] as Map<String, dynamic>),
       );
 
   final String id;
@@ -41,6 +116,13 @@ class Season {
   /// Days of the week whose matches score (D-025), as [DateTime.weekday]
   /// values, Monday first. Empty when unknown (e.g. an older offline copy).
   final List<int> playingDays;
+
+  final RankingType rankingType;
+
+  /// Only in a daily tournament season.
+  final PlacementPoints? placementPoints;
+
+  bool get isDailyTournament => rankingType == RankingType.dailyTournament;
 
   /// "Dias válidos: Ter, Qui", or null when the days are unknown.
   String? get playingDaysLabel => playingDays.isEmpty ? null : 'Dias válidos: ${weekdaysLabel(playingDays)}';
@@ -65,6 +147,8 @@ class Season {
         'endDate': _date(endDate),
         'status': status.name.toUpperCase(),
         'playingDays': [for (final d in playingDays) weekdayApiNames[d - 1]],
+        'rankingType': rankingType.apiValue,
+        'placementPoints': placementPoints?.toJson(),
       };
 
   static String _date(DateTime d) =>
@@ -81,6 +165,9 @@ class RankingEntry {
     required this.losses,
     required this.matchesPlayed,
     required this.gameDifference,
+    this.stagesPlayed,
+    this.titles,
+    this.finals,
   });
 
   factory RankingEntry.fromJson(Map<String, dynamic> json) => RankingEntry(
@@ -92,6 +179,9 @@ class RankingEntry {
         losses: json['losses'] as int,
         matchesPlayed: json['matchesPlayed'] as int,
         gameDifference: json['gameDifference'] as int,
+        stagesPlayed: json['stagesPlayed'] as int?,
+        titles: json['titles'] as int?,
+        finals: json['finals'] as int?,
       );
 
   final int position;
@@ -103,6 +193,19 @@ class RankingEntry {
   final int matchesPlayed;
   final int gameDifference;
 
+  /// Daily tournament only (D-028); null in a points-per-match season.
+  final int? stagesPlayed;
+  final int? titles;
+  final int? finals;
+
+  /// The entry of a daily tournament season (D-028).
+  bool get isTournament => stagesPlayed != null;
+
+  /// "3 etapas · 1 título · 2 finais" (daily tournament only).
+  String get tournamentSummary =>
+      '${counted(stagesPlayed ?? 0, 'etapa', 'etapas')} · ${counted(titles ?? 0, 'título', 'títulos')} · '
+      '${counted(finals ?? 0, 'final', 'finais')}';
+
   Map<String, dynamic> toJson() => {
         'position': position,
         'playerId': playerId,
@@ -112,6 +215,9 @@ class RankingEntry {
         'losses': losses,
         'matchesPlayed': matchesPlayed,
         'gameDifference': gameDifference,
+        'stagesPlayed': stagesPlayed,
+        'titles': titles,
+        'finals': finals,
       };
 }
 

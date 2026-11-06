@@ -58,6 +58,7 @@ class SeasonsAdminScreen extends ConsumerWidget {
                     [
                       '${_date.format(season.startDate)} a ${_date.format(season.endDate)} · ${season.status.label}',
                       ?season.playingDaysLabel,
+                      if (season.isDailyTournament) RankingType.dailyTournament.label,
                     ].join('\n'),
                   ),
                   trailing: season.status == SeasonStatus.closed

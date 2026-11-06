@@ -77,6 +77,7 @@ class RankingGrid extends StatelessWidget {
     final season = ranking.season;
     final header = theme.textTheme.labelLarge?.copyWith(color: scheme.onSurfaceVariant);
     final wide = isWideLayout(context);
+    final tournament = season.isDailyTournament;
     final numberWidth = wide ? 72.0 : _numberWidth;
 
     Widget row({
@@ -128,15 +129,20 @@ class RankingGrid extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
-            'Pts = pontos · J = jogos · V = vitórias · D = derrotas'
-            '${wide ? ' · SG = saldo de games · % = aproveitamento' : ''}',
+            tournament
+                ? 'Pts = pontos · E = etapas · T = títulos · F = finais'
+                    '${wide ? ' · J = jogos · SG = saldo de games' : ''}'
+                : 'Pts = pontos · J = jogos · V = vitórias · D = derrotas'
+                    '${wide ? ' · SG = saldo de games · % = aproveitamento' : ''}',
             style: theme.textTheme.bodySmall?.copyWith(color: scheme.outline),
           ),
         ),
         row(
           position: '#',
           name: 'Jogador',
-          numbers: ['Pts', 'J', 'V', 'D', if (wide) ...['SG', '%']],
+          numbers: tournament
+              ? ['Pts', 'E', 'T', 'F', if (wide) ...['J', 'SG']]
+              : ['Pts', 'J', 'V', 'D', if (wide) ...['SG', '%']],
           style: header,
         ),
         const Divider(height: 1),
@@ -144,13 +150,21 @@ class RankingGrid extends StatelessWidget {
           row(
             position: '${entry.position}º',
             name: entry.displayName,
-            numbers: [
-              '${entry.points}',
-              '${entry.matchesPlayed}',
-              '${entry.wins}',
-              '${entry.losses}',
-              if (wide) ...[formatSigned(entry.gameDifference), _winRate(entry)],
-            ],
+            numbers: tournament
+                ? [
+                    '${entry.points}',
+                    '${entry.stagesPlayed ?? 0}',
+                    '${entry.titles ?? 0}',
+                    '${entry.finals ?? 0}',
+                    if (wide) ...['${entry.matchesPlayed}', formatSigned(entry.gameDifference)],
+                  ]
+                : [
+                    '${entry.points}',
+                    '${entry.matchesPlayed}',
+                    '${entry.wins}',
+                    '${entry.losses}',
+                    if (wide) ...[formatSigned(entry.gameDifference), _winRate(entry)],
+                  ],
             style: entry.playerId == highlightPlayerId
                 ? theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)
                 : theme.textTheme.bodyMedium,

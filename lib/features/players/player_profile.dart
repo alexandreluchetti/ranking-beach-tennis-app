@@ -37,14 +37,40 @@ class PlayerStats {
       };
 }
 
+/// The player's stages in a daily tournament season (D-028).
+class TournamentStats {
+  const TournamentStats({required this.stagesPlayed, required this.titles, required this.finals});
+
+  factory TournamentStats.fromJson(Map<String, dynamic> json) => TournamentStats(
+        stagesPlayed: json['stagesPlayed'] as int,
+        titles: json['titles'] as int,
+        finals: json['finals'] as int,
+      );
+
+  final int stagesPlayed;
+  final int titles;
+  final int finals;
+
+  Map<String, dynamic> toJson() => {'stagesPlayed': stagesPlayed, 'titles': titles, 'finals': finals};
+}
+
 class SeasonStanding {
-  const SeasonStanding({required this.season, required this.position, required this.rankedPlayers, required this.stats});
+  const SeasonStanding({
+    required this.season,
+    required this.position,
+    required this.rankedPlayers,
+    required this.stats,
+    this.tournament,
+  });
 
   factory SeasonStanding.fromJson(Map<String, dynamic> json) => SeasonStanding(
         season: Season.fromJson(json['season'] as Map<String, dynamic>),
         position: json['position'] as int,
         rankedPlayers: json['rankedPlayers'] as int,
         stats: PlayerStats.fromJson(json['stats'] as Map<String, dynamic>),
+        tournament: json['tournament'] == null
+            ? null
+            : TournamentStats.fromJson(json['tournament'] as Map<String, dynamic>),
       );
 
   final Season season;
@@ -52,11 +78,15 @@ class SeasonStanding {
   final int rankedPlayers;
   final PlayerStats stats;
 
+  /// Only in a daily tournament season.
+  final TournamentStats? tournament;
+
   Map<String, dynamic> toJson() => {
         'season': season.toJson(),
         'position': position,
         'rankedPlayers': rankedPlayers,
         'stats': stats.toJson(),
+        'tournament': tournament?.toJson(),
       };
 }
 

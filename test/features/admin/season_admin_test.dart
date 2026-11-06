@@ -133,6 +133,44 @@ void main() {
     expect(find.text('Temporadas'), findsOneWidget);
   });
 
+  testWidgets('creates a daily tournament season with its placement points', (tester) async {
+    await pumpAdmin(tester, location: '/leagues/l-admin/seasons/new');
+    await tester.enterText(find.byType(TextFormField).first, 'Torneio de verão');
+    await tester.tap(find.byKey(const Key('startDate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('endDate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('day6')));
+    await tester.tap(find.byKey(const Key('day6')));
+    await tester.ensureVisible(find.text('Torneio do dia'));
+    await tester.tap(find.text('Torneio do dia'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pontos por colocação'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('points-champion')), '120');
+    await tester.ensureVisible(find.text('Criar temporada'));
+    await tester.tap(find.text('Criar temporada'));
+    await tester.pumpAndSettle();
+
+    expect(admin.calls.single['rankingType'], RankingType.dailyTournament);
+    expect(
+      admin.calls.single['placementPoints'],
+      const PlacementPoints(champion: 120, runnerUp: 70, semifinal: 50, quarterfinal: 35, groupStage: 20),
+    );
+  });
+
+  testWidgets('the ranking type no longer changes once the season started', (tester) async {
+    await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s1');
+
+    final type = tester.widget<SegmentedButton<RankingType>>(find.byType(SegmentedButton<RankingType>));
+    expect(type.onSelectionChanged, isNull);
+    expect(find.textContaining('O tipo e a tabela não mudam depois que a temporada começa.'), findsOneWidget);
+  });
+
   testWidgets('a planned season sends only what changed', (tester) async {
     await pumpAdmin(tester, location: '/leagues/l-admin/seasons/s2');
     expect(find.text('Planejada'), findsOneWidget);

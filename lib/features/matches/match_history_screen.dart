@@ -39,12 +39,12 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
     String? seasonName = seasons.where((s) => s.id == _filter.seasonId).map((s) => s.name).firstOrNull;
     String? playerName = players.where((p) => p.id == _filter.playerId).map((p) => p.displayName).firstOrNull;
 
-    // An archived league is read-only.
-    final archived = ref.watch(currentLeagueProvider).value?.archived ?? false;
+    // Only who may enter scores in this league (D-029); never in an archived one.
+    final canRegister = ref.watch(canEnterScoresProvider);
 
     return Scaffold(
       appBar: AppBar(title: const LeagueTitle()),
-      floatingActionButton: archived
+      floatingActionButton: !canRegister
           ? null
           : FloatingActionButton.extended(
               onPressed: () => context.push('/matches/new'),

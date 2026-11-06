@@ -83,6 +83,7 @@ class MatchView {
     required this.teamB,
     this.voidReason,
     required this.version,
+    this.stageId,
   });
 
   factory MatchView.fromJson(Map<String, dynamic> json) {
@@ -107,6 +108,7 @@ class MatchView {
       teamB: team('teamB'),
       voidReason: voiding?['reason'] as String?,
       version: json['version'] as int,
+      stageId: json['stageId'] as String?,
     );
   }
 
@@ -127,6 +129,10 @@ class MatchView {
   final String? voidReason;
   final int version;
 
+  /// The daily tournament stage this game belongs to (D-027); corrected and
+  /// voided through the stage, never here.
+  final String? stageId;
+
   /// The backend's shape, as [MatchView.fromJson] reads it (for the device copy).
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -145,6 +151,7 @@ class MatchView {
         'teamB': [for (final p in teamB) p.toJson()],
         'voiding': voidReason == null ? null : {'reason': voidReason},
         'version': version,
+        'stageId': stageId,
       };
 
   String get score {
@@ -164,6 +171,9 @@ class MatchView {
     if (notCountedReason == 'NOT_A_PLAYING_DAY') {
       return 'Não vale pontos: dia fora da temporada';
     }
+    if (notCountedReason == 'NOT_A_TOURNAMENT_MATCH') {
+      return 'Não vale pontos: partida fora do torneio';
+    }
     return 'Não contabilizada: ${reasonLabel(notCountedReason)}';
   }
 
@@ -171,6 +181,7 @@ class MatchView {
   static String reasonLabel(String? reason) => switch (reason) {
         'NO_SEASON' => 'fora de temporada',
         'NOT_A_PLAYING_DAY' => 'dia fora da temporada',
+        'NOT_A_TOURNAMENT_MATCH' => 'partida fora do torneio',
         'VOIDED' => 'anulada',
         _ => 'sem pontos',
       };
