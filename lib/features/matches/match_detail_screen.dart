@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/widgets/async_states.dart';
 import '../admin/match_admin_actions.dart';
+import '../tournament/stage_screen.dart';
 import 'match_card.dart';
 import 'match_models.dart';
 import 'match_repository.dart';
@@ -42,6 +43,12 @@ class MatchDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             MatchStatusChip(match: match),
+            if (match.stageId case final stageId?) ...[
+              const SizedBox(height: 8),
+              const Text('Jogo de uma etapa do torneio do dia: placares são lançados e corrigidos na etapa.'),
+              const SizedBox(height: 4),
+              Align(alignment: Alignment.centerLeft, child: OpenStageButton(stageId: stageId)),
+            ],
             if (match.notCountedReason == 'NOT_A_TOURNAMENT_MATCH') ...[
               const SizedBox(height: 8),
               const Text('Nesta temporada os pontos vêm das etapas do torneio do dia.'),

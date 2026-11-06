@@ -25,6 +25,9 @@ import '../../features/profile/change_password_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/ranking/ranking_screen.dart';
 import '../../features/ranking/seasons_screen.dart';
+import '../../features/tournament/stage_attendance_screen.dart';
+import '../../features/tournament/stage_screen.dart';
+import '../../features/tournament/stages_screen.dart';
 import '../widgets/responsive.dart';
 import 'router_restart.dart';
 
@@ -92,6 +95,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // how to join or create one; nothing inside them can be opened.
       if (league.value == null) {
         final leagueScoped = RegExp(r'^/(ranking|matches|players)/').hasMatch(location) ||
+            location.startsWith('/stages') ||
             location.startsWith('/notifications/matches') ||
             location.startsWith('/admin');
         return location == '/login' || location == '/splash' || leagueScoped ? '/ranking' : null;
@@ -102,6 +106,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final canAdminister = ref.read(canAdministerLeagueProvider);
       if (location.startsWith('/admin') && !canAdminister) {
         return '/ranking';
+      }
+      // Marking who is present and drawing a stage is for the league administrators (D-027).
+      if (location == '/stages/new' && !canAdminister) {
+        return '/stages';
       }
       final seasons = RegExp(r'^/leagues/([^/]+)/seasons').firstMatch(location);
       if (seasons != null && (!canAdminister || seasons.group(1) != league.value!.id)) {
@@ -158,6 +166,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ],
               ),
             ],
+          ),
+        ],
+      ),
+      // Daily tournament stages of the current league (D-027), full screen over any area.
+      GoRoute(
+        path: '/stages',
+        builder: (_, _) => const ContentFrame(child: StagesScreen()),
+        routes: [
+          GoRoute(path: 'new', builder: (_, _) => const ContentFrame(child: StageAttendanceScreen())),
+          GoRoute(
+            path: ':id',
+            builder: (_, state) => ContentFrame(child: StageScreen(stageId: state.pathParameters['id']!)),
           ),
         ],
       ),
