@@ -124,7 +124,7 @@ Regras:
   dia seguinte no aparelho) e botão "Etapas". Presença: membros + convidados, 8 a 32, par (aviso antes de enviar),
   formato padrão Tradicional. Placar de jogo da etapa só na etapa (partida com `stageId` não tem Corrigir/Anular, tem
   "Abrir etapa"). "Registrar partida" segue `canEnterScores` da liga (`canEnterScoresProvider`).
-- Ícone do app: fundo em degradê laranja (`#F47721` → `#B9501A`), raquete em contorno branco grosso (cabeça oval, garganta e cabo com fenda) inclinada 45° para a direita e, dentro do aro, nivelado, um pódio branco de blocos arredondados sem números (1º no meio, mais alto) com uma estrela branca sobre o 1º; fontes SVG em `assets/branding`.
+- Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro em degradê (o ícone de antes do pódio, restaurado em 2026-11-06); fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)
 
