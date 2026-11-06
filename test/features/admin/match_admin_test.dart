@@ -68,6 +68,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('a stage game is not corrected or voided here', (tester) async {
+    matches = FakeMatchRepository(matches: [sampleMatch(id: 'm3', stageId: 'st1')]);
+    await pumpMatch(tester, '/matches/m3');
+
+    expect(find.byTooltip('Ações do administrador'), findsNothing);
+  });
+
   testWidgets('players do not see the administrator actions', (tester) async {
     await pumpMatch(tester, '/matches/m1', league: sampleLeague);
 

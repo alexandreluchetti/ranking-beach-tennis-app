@@ -223,9 +223,10 @@ class FakeMatchRepository implements MatchRepository {
   Future<List<AuditEntry>> audit(String id) async => const [];
 }
 
-MatchView sampleMatch({String id = 'm1', bool voided = false, bool counted = true, String? reason}) =>
+MatchView sampleMatch({String id = 'm1', bool voided = false, bool counted = true, String? reason, String? stageId}) =>
     MatchView.fromJson({
       'id': id,
+      'stageId': stageId,
       'playedAt': '2026-10-11T09:30:00-03:00',
       'format': 'STANDARD',
       'teamAGames': 6,
@@ -407,14 +408,32 @@ class FakeAdminRepository implements AdminRepository {
     required DateTime startDate,
     required DateTime endDate,
     required List<int> playingDays,
+    RankingType rankingType = RankingType.matchPoints,
+    PlacementPoints? placementPoints,
   }) async {
-    await _record({'op': 'create', 'name': name, 'startDate': startDate, 'endDate': endDate, 'playingDays': playingDays});
+    await _record({
+      'op': 'create',
+      'name': name,
+      'startDate': startDate,
+      'endDate': endDate,
+      'playingDays': playingDays,
+      if (rankingType != RankingType.matchPoints) 'rankingType': rankingType,
+      'placementPoints': ?placementPoints,
+    });
     return Season(
         id: 'new', name: name, startDate: startDate, endDate: endDate, status: SeasonStatus.planned, playingDays: playingDays);
   }
 
   @override
-  Future<Season> updateSeason(String id, {String? name, DateTime? startDate, DateTime? endDate, List<int>? playingDays}) async {
+  Future<Season> updateSeason(
+    String id, {
+    String? name,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<int>? playingDays,
+    RankingType? rankingType,
+    PlacementPoints? placementPoints,
+  }) async {
     await _record({
       'op': 'update',
       'id': id,
@@ -422,6 +441,8 @@ class FakeAdminRepository implements AdminRepository {
       'startDate': ?startDate,
       'endDate': ?endDate,
       'playingDays': ?playingDays,
+      'rankingType': ?rankingType,
+      'placementPoints': ?placementPoints,
     });
     return primavera;
   }
@@ -519,8 +540,13 @@ class FakeLeagueRepository implements LeagueRepository {
   }
 
   @override
-  Future<League> create({required String name, String? description, required LeagueVisibility visibility}) async {
-    await _record('create:$name:${visibility.apiValue}');
+  Future<League> create({
+    required String name,
+    String? description,
+    required LeagueVisibility visibility,
+    ScoreEntry scoreEntry = ScoreEntry.members,
+  }) async {
+    await _record('create:$name:${visibility.apiValue}${scoreEntry == ScoreEntry.admins ? ':ADMINS' : ''}');
     return _asMember(
       League(id: 'l-new', name: name, description: description, visibility: visibility, memberCount: 0, memberLimit: 50),
       role: LeagueRole.admin,
@@ -603,8 +629,14 @@ class FakeLeagueRepository implements LeagueRepository {
   }
 
   @override
-  Future<League> update(String id, {required String name, required String description, required LeagueVisibility visibility}) async {
-    await _record('update:$id:$name:$description:${visibility.apiValue}');
+  Future<League> update(
+    String id, {
+    required String name,
+    required String description,
+    required LeagueVisibility visibility,
+    ScoreEntry? scoreEntry,
+  }) async {
+    await _record('update:$id:$name:$description:${visibility.apiValue}${scoreEntry == null ? '' : ':${scoreEntry.apiValue}'}');
     final l = _find(id);
     final updated = League(
       id: id,

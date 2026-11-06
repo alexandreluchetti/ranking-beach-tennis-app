@@ -25,6 +25,19 @@ enum LeagueRole {
   static LeagueRole? fromApi(String? value) => value == null ? null : values.firstWhere((r) => r.apiValue == value);
 }
 
+/// Who records match scores in a league (D-029).
+enum ScoreEntry {
+  members('MEMBERS', 'Qualquer membro'),
+  admins('ADMINS', 'Só administradores');
+
+  const ScoreEntry(this.apiValue, this.label);
+
+  final String apiValue;
+  final String label;
+
+  static ScoreEntry? fromApi(String? value) => value == null ? null : values.firstWhere((s) => s.apiValue == value);
+}
+
 /// A league as the signed-in user sees it (D-017). Who may administer it comes
 /// from [canAdminister]; the app never deduces it otherwise.
 class League {
@@ -39,6 +52,8 @@ class League {
     this.myRole,
     this.canAdminister = false,
     this.joinRequestPending = false,
+    this.scoreEntry,
+    this.canEnterScores = true,
   });
 
   factory League.fromJson(Map<String, dynamic> json) => League(
@@ -52,6 +67,9 @@ class League {
         myRole: LeagueRole.fromApi(json['myRole'] as String?),
         canAdminister: json['canAdminister'] as bool,
         joinRequestPending: json['joinRequestPending'] as bool,
+        scoreEntry: ScoreEntry.fromApi(json['scoreEntry'] as String?),
+        // Missing in answers (and device copies) from before D-029: members could.
+        canEnterScores: json['canEnterScores'] as bool? ?? true,
       );
 
   final String id;
@@ -68,6 +86,12 @@ class League {
   final LeagueRole? myRole;
   final bool canAdminister;
   final bool joinRequestPending;
+
+  /// Who records match scores (D-029); only sent to members.
+  final ScoreEntry? scoreEntry;
+
+  /// Whether the user may register matches and enter stage scores here.
+  final bool canEnterScores;
 
   bool get isMember => myRole != null;
 
@@ -87,6 +111,8 @@ class League {
         'myRole': myRole?.apiValue,
         'canAdminister': canAdminister,
         'joinRequestPending': joinRequestPending,
+        'scoreEntry': scoreEntry?.apiValue,
+        'canEnterScores': canEnterScores,
       };
 }
 
@@ -102,6 +128,8 @@ extension LeagueCopy on League {
         myRole: myRole,
         canAdminister: canAdminister,
         joinRequestPending: joinRequestPending ?? this.joinRequestPending,
+        scoreEntry: scoreEntry,
+        canEnterScores: canEnterScores,
       );
 }
 

@@ -38,6 +38,7 @@ class SeasonsScreen extends ConsumerWidget {
                 subtitle: Text([
                   '${_date.format(season.startDate)} a ${_date.format(season.endDate)}',
                   ?season.playingDaysLabel,
+                  if (season.isDailyTournament) RankingType.dailyTournament.label,
                 ].join('\n')),
                 trailing: season.status == SeasonStatus.active
                     ? const Chip(label: Text('Em andamento'))

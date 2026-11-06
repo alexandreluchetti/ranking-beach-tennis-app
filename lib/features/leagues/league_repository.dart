@@ -39,11 +39,17 @@ class LeagueRepository {
   Future<League> byId(String id) => apiCall(() async => _league(await _dio.get<Map<String, dynamic>>('/api/leagues/$id')));
 
   /// The creator becomes its administrator.
-  Future<League> create({required String name, String? description, required LeagueVisibility visibility}) =>
+  Future<League> create({
+    required String name,
+    String? description,
+    required LeagueVisibility visibility,
+    ScoreEntry scoreEntry = ScoreEntry.members,
+  }) =>
       apiCall(() async => _league(await _dio.post<Map<String, dynamic>>('/api/leagues', data: {
             'name': name,
             if (description != null && description.isNotEmpty) 'description': description,
             'visibility': visibility.apiValue,
+            'scoreEntry': scoreEntry.apiValue,
           })));
 
   /// Public leagues only.
@@ -83,11 +89,18 @@ class LeagueRepository {
   // League administration (D-018). The backend checks the permission.
 
   /// An empty description removes it.
-  Future<League> update(String id, {required String name, required String description, required LeagueVisibility visibility}) =>
+  Future<League> update(
+    String id, {
+    required String name,
+    required String description,
+    required LeagueVisibility visibility,
+    ScoreEntry? scoreEntry,
+  }) =>
       apiCall(() async => _league(await _dio.patch<Map<String, dynamic>>('/api/leagues/$id', data: {
             'name': name,
             'description': description,
             'visibility': visibility.apiValue,
+            'scoreEntry': ?scoreEntry?.apiValue,
           })));
 
   /// Read-only from then on; only the system administrator can undo it.

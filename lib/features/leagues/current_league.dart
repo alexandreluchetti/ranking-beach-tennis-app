@@ -43,6 +43,13 @@ final currentLeagueProvider = Provider<AsyncValue<League?>>((ref) {
 /// changes, so their data follows the selected league.
 final currentLeagueIdProvider = Provider<String?>((ref) => ref.watch(currentLeagueProvider).value?.id);
 
+/// Registering matches and entering stage scores in the current league: who
+/// may is decided by the league (D-029); an archived league is read-only.
+final canEnterScoresProvider = Provider<bool>((ref) {
+  final league = ref.watch(currentLeagueProvider).value;
+  return league != null && league.canEnterScores && !league.archived;
+});
+
 /// Administration of the current league (seasons, corrections, voids). An
 /// archived league is read-only.
 final canAdministerLeagueProvider = Provider<bool>((ref) {

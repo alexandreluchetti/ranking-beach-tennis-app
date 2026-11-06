@@ -130,6 +130,8 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
   @override
   Widget build(BuildContext context) {
     final players = ref.watch(playersProvider);
+    // Loaded while the form is open: saving warns when the season will not score the match.
+    ref.watch(currentRankingProvider);
     final draft = _draft;
     final winner = draft.winner;
     return Scaffold(
@@ -394,21 +396,32 @@ class _RegisterMatchScreenState extends ConsumerState<RegisterMatchScreen> {
     }
   }
 
-  /// A match on a day of the current season that is not one of its playing
-  /// days (D-025) gives no points: the user confirms before sending it.
+  /// A match the current season will not score gives no points: the user
+  /// confirms before sending it. In a daily tournament season only stage games
+  /// score (D-026); otherwise, a day that is not a playing day (D-025).
   Future<bool> _confirmPlayingDay(DateTime playedAt) async {
     final season = ref.read(currentRankingProvider).value?.value?.season;
-    if (season == null || !season.includesDate(playedAt) || season.countsOn(playedAt)) {
+    if (season == null || !season.includesDate(playedAt)) {
+      return true;
+    }
+    final String title;
+    final String message;
+    if (season.isDailyTournament) {
+      title = 'Partida avulsa não vale pontos';
+      message = 'Nesta temporada os pontos vêm das etapas do torneio do dia. '
+          'Esta partida fica no histórico, mas não vale pontos.';
+    } else if (!season.countsOn(playedAt)) {
+      title = 'Dia fora da temporada';
+      message = 'Na temporada ${season.name}, só valem pontos as partidas de ${weekdaysLabel(season.playingDays)}. '
+          'Esta partida fica no histórico, mas não vale pontos.';
+    } else {
       return true;
     }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Dia fora da temporada'),
-        content: Text(
-          'Na temporada ${season.name}, só valem pontos as partidas de ${weekdaysLabel(season.playingDays)}. '
-          'Esta partida fica no histórico, mas não vale pontos.',
-        ),
+        title: Text(title),
+        content: Text(message),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Registrar mesmo assim')),

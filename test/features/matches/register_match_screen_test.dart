@@ -12,6 +12,7 @@ import 'package:ranking_beach_tennis/features/matches/match_draft.dart';
 import 'package:ranking_beach_tennis/features/matches/match_models.dart';
 import 'package:ranking_beach_tennis/features/matches/match_repository.dart';
 import 'package:ranking_beach_tennis/features/matches/register_match_screen.dart';
+import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
 import 'package:ranking_beach_tennis/features/sync/pending_match.dart';
 import 'package:ranking_beach_tennis/features/sync/sync_controller.dart';
@@ -23,7 +24,12 @@ void main() {
   late MemoryLocalStore store;
   late ProviderContainer container;
 
-  Future<void> pumpForm(WidgetTester tester, {String location = '/matches/new', MemoryLocalStore? withStore}) async {
+  Future<void> pumpForm(
+    WidgetTester tester, {
+    String location = '/matches/new',
+    MemoryLocalStore? withStore,
+    SeasonRanking? ranking,
+  }) async {
     store = withStore ?? MemoryLocalStore();
     await initializeDateFormatting('pt_BR');
     tester.view.physicalSize = const Size(1080, 2400);
@@ -49,7 +55,7 @@ void main() {
       overrides: [
         ...deviceOverrides(FakeAuthRepository(session: const AuthSession(uid: 'u-ana')), store),
         matchRepositoryProvider.overrideWithValue(repository),
-        currentRankingProvider.overrideWith((ref) async => const Cached(null)),
+        currentRankingProvider.overrideWith((ref) async => Cached(ranking)),
       ],
     );
     await tester.pumpWidget(UncontrolledProviderScope(
@@ -103,6 +109,30 @@ void main() {
     ]);
     expect(sent['confirmPossibleDuplicate'], isFalse);
     expect(find.text('detalhe ${sent['id']}'), findsOneWidget);
+  });
+
+  testWidgets('in a daily tournament season a stand-alone match warns that it gives no points', (tester) async {
+    final tournament = Season(
+      id: 's-t',
+      name: 'Torneio',
+      startDate: DateTime(2020),
+      endDate: DateTime(2100),
+      status: SeasonStatus.active,
+      rankingType: RankingType.dailyTournament,
+    );
+    await pumpForm(tester, ranking: SeasonRanking(season: tournament, entries: const []));
+    await fillRegularMatch(tester);
+    await save(tester);
+
+    expect(find.text('Partida avulsa não vale pontos'), findsOneWidget);
+    await tester.tap(find.text('Voltar'));
+    await tester.pumpAndSettle();
+    expect(repository.registered, isEmpty);
+
+    await save(tester);
+    await tester.tap(find.text('Registrar mesmo assim'));
+    await tester.pumpAndSettle();
+    expect(repository.registered, hasLength(1));
   });
 
   testWidgets('blocks invalid scores before calling the backend', (tester) async {
