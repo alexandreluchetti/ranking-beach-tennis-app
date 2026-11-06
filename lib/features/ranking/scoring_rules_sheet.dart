@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'ranking_models.dart';
+
 /// Opens the scoring rules as a draggable sheet over the current screen.
-Future<void> showScoringRules(BuildContext context) => showModalBottomSheet<void>(
+Future<void> showScoringRules(BuildContext context, {Season? season}) => showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -11,17 +13,19 @@ Future<void> showScoringRules(BuildContext context) => showModalBottomSheet<void
         initialChildSize: 0.75,
         minChildSize: 0.4,
         maxChildSize: 0.95,
-        builder: (context, scroll) => ScoringRules(controller: scroll),
+        builder: (context, scroll) => ScoringRules(controller: scroll, season: season),
       ),
     );
 
 /// How the ranking works, in the players' words. Only the approved rules
 /// (backend docs/decisions.md D-002 to D-006, D-013, D-014); the points
-/// themselves are always calculated by the backend.
+/// themselves are always calculated by the backend. A daily tournament season
+/// (D-026 to D-028) starts with how its stages score.
 class ScoringRules extends StatelessWidget {
-  const ScoringRules({super.key, this.controller});
+  const ScoringRules({super.key, this.controller, this.season});
 
   final ScrollController? controller;
+  final Season? season;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +54,25 @@ class ScoringRules extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       children: [
         Text('Regras de pontuação', style: theme.textTheme.headlineSmall),
-        title('Como os pontos são calculados'),
+        if (season case final s? when s.isDailyTournament) ...[
+          title('Torneio do dia'),
+          paragraph('Nesta temporada os pontos vêm das etapas: em cada dia de jogo pode haver uma etapa, e cada '
+              'jogador recebe os pontos da colocação final da sua dupla.'),
+          for (final (label, points) in _placements(s.placementPoints ?? PlacementPoints.standard))
+            bullet('$label: $points pontos'),
+          paragraph('O ranking soma as etapas. Desempate: pontos, títulos, finais e saldo de games.'),
+          title('Como é uma etapa'),
+          bullet('O administrador marca quem está presente (de 8 a 64 jogadores, em número par) e o app sorteia '
+              'duplas fixas para o dia.'),
+          bullet('As duplas jogam em grupos, todos contra todos, em rodadas; as duas primeiras de cada grupo '
+              'passam para o mata-mata (oitavas, quartas, semifinais, disputa de 3º lugar e final, conforme o '
+              'número de duplas).'),
+          bullet('Convidados jogam e ocupam lugar, mas não recebem pontos; o parceiro de um convidado pontua '
+              'normalmente.'),
+          bullet('Partidas avulsas, fora das etapas, ficam no histórico e nas estatísticas, mas não valem pontos.'),
+          title('Pontos por partida (outras temporadas)'),
+        ] else
+          title('Como os pontos são calculados'),
         paragraph('Cada jogador recebe os games feitos pela sua dupla. '
             'Os vencedores ganham mais 3 pontos de bônus.'),
         const SizedBox(height: 8),
@@ -88,6 +110,16 @@ class ScoringRules extends StatelessWidget {
     );
   }
 }
+
+List<(String, int)> _placements(PlacementPoints p) => [
+      ('Campeões', p.champion),
+      ('Vice', p.runnerUp),
+      ('3º lugar', p.thirdPlace),
+      ('4º lugar', p.fourthPlace),
+      ('Quartas de final', p.quarterfinal),
+      ('Oitavas de final', p.roundOf16),
+      ('Fase de grupos', p.groupStage),
+    ];
 
 class _ExamplesTable extends StatelessWidget {
   const _ExamplesTable();

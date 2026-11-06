@@ -61,29 +61,26 @@ Work branch names are lowercase kebab-case in English, e.g. `feat/profile-tab`,
    git push origin vX.Y.Z
    ```
 
-6. `dev` is synced with `main` automatically: after every merge into `main`, the
-   `sync-dev-with-main` workflow (`.github/workflows/sync-dev-with-main.yml`) opens a pull
-   request from `main` into `dev` and merges it (merge commit; no content changes). Afterwards
-   `git log origin/dev..origin/main` must be empty; then update your local `dev`:
-
-       git switch dev
-       git pull
-
-   If the workflow fails, sync by hand:
+6. Sync `dev` with `main` by hand after every merge into `main` (merge commit; no content
+   changes), then check that `git log origin/dev..origin/main` is empty and update your local
+   `dev`:
 
        gh pr create --base dev --head main --title "Sync dev with main" --body "Sync after release."
        gh pr merge --merge <number>
+       git switch dev
+       git pull
 
-Never commit directly to `dev` or `main`. `main` only accepts pull requests from `dev`: the
-`source-branch-is-dev` check (`.github/workflows/main-only-from-dev.yml`) fails for any other
-source branch.
+Never commit directly to `dev` or `main`. `main` only takes pull requests from `dev`: we check it
+ourselves before merging (the workflows `main-only-from-dev` and `sync-dev-with-main` were
+disabled on 2026-11-06 because GitHub Actions minutes are now billed).
 
 ## Repository settings (GitHub)
 
 - Ruleset `protected-branches` on `main` (default branch) and `dev` (pattern `dev`): require a pull
   request before merging (0 approvals, since nobody can approve their own pull request), block
   force pushes and deletion.
-- On `main` also: require the status check `source-branch-is-dev`.
+- Ruleset `main-only-from-dev` on `main`: block force pushes and deletion (no required status
+  check since the workflows were disabled).
 - "Automatically delete head branches" on, so merged work branches are removed from GitHub.
-- Settings → Actions → General → Workflow permissions: "Allow GitHub Actions to create and
-  approve pull requests" on, required by `sync-dev-with-main`.
+- The `main-only-from-dev` and `sync-dev-with-main` workflows are disabled (billed Actions);
+  `ios-unsigned` stays available, run by hand.

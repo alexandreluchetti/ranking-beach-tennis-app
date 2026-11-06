@@ -98,7 +98,9 @@ class _RankingRow extends StatelessWidget {
             ),
             title: Text(entry.displayName, style: TextStyle(fontWeight: highlighted ? FontWeight.bold : null)),
             subtitle: Text(
-              '${entry.wins} V · ${entry.losses} D · ${entry.matchesPlayed} J · saldo de games ${formatSigned(entry.gameDifference)}',
+              entry.isTournament
+                  ? entry.tournamentSummary
+                  : '${entry.wins} V · ${entry.losses} D · ${entry.matchesPlayed} J · saldo de games ${formatSigned(entry.gameDifference)}',
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -157,17 +159,31 @@ class _StatsPanel extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
           child: Column(
             children: [
-              Row(children: [
-                stat('${entry.points}', 'pontos'),
-                stat('${entry.wins}', 'vitórias'),
-                stat('${entry.losses}', 'derrotas'),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                stat('$played', 'jogos'),
-                stat(formatSigned(entry.gameDifference), 'saldo de games'),
-                stat(winRate, 'aproveitamento'),
-              ]),
+              if (entry.isTournament) ...[
+                Row(children: [
+                  stat('${entry.points}', 'pontos'),
+                  stat('${entry.titles}', 'títulos'),
+                  stat('${entry.finals}', 'finais'),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  stat('${entry.stagesPlayed}', 'etapas'),
+                  stat('$played', 'jogos'),
+                  stat(formatSigned(entry.gameDifference), 'saldo de games'),
+                ]),
+              ] else ...[
+                Row(children: [
+                  stat('${entry.points}', 'pontos'),
+                  stat('${entry.wins}', 'vitórias'),
+                  stat('${entry.losses}', 'derrotas'),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  stat('$played', 'jogos'),
+                  stat(formatSigned(entry.gameDifference), 'saldo de games'),
+                  stat(winRate, 'aproveitamento'),
+                ]),
+              ],
               TextButton(
                 onPressed: () => context.push('/players/${entry.playerId}'),
                 child: const Text('Ver perfil completo'),

@@ -50,6 +50,7 @@ class _LeagueFormScreenState extends ConsumerState<LeagueFormScreen> {
   late final _name = TextEditingController(text: widget.league?.name);
   late final _description = TextEditingController(text: widget.league?.description);
   late LeagueVisibility _visibility = widget.league?.visibility ?? LeagueVisibility.public;
+  late ScoreEntry _scoreEntry = widget.league?.scoreEntry ?? ScoreEntry.members;
 
   bool get _editing => widget.league != null;
   bool _busy = false;
@@ -78,6 +79,7 @@ class _LeagueFormScreenState extends ConsumerState<LeagueFormScreen> {
           name: _name.text.trim(),
           description: _description.text.trim(),
           visibility: _visibility,
+          scoreEntry: _scoreEntry,
         );
         await enterLeague(ref, league.id);
       } else {
@@ -86,6 +88,7 @@ class _LeagueFormScreenState extends ConsumerState<LeagueFormScreen> {
           name: _name.text.trim(),
           description: _description.text.trim(),
           visibility: _visibility,
+          scoreEntry: _scoreEntry,
         );
         await ref.dataRefresh.afterLeagueChange(editing.id);
         if (mounted) {
@@ -152,6 +155,28 @@ class _LeagueFormScreenState extends ConsumerState<LeagueFormScreen> {
                     ? 'Qualquer pessoa pode encontrar a liga e entrar.'
                     : 'A liga aparece na busca, mas só entra quem for aceito por um administrador, '
                         'convidado ou tiver o código de convite.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              Text('Quem lança os placares', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              SegmentedButton<ScoreEntry>(
+                segments: [
+                  for (final option in ScoreEntry.values)
+                    ButtonSegment(
+                      value: option,
+                      label: Text(option.label),
+                      icon: Icon(option == ScoreEntry.members ? Icons.groups_outlined : Icons.shield_outlined),
+                    ),
+                ],
+                selected: {_scoreEntry},
+                onSelectionChanged: (s) => setState(() => _scoreEntry = s.single),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _scoreEntry == ScoreEntry.members
+                    ? 'Qualquer membro registra partidas e lança placares. Corrigir e anular continua com os administradores.'
+                    : 'Só os administradores registram partidas e lançam placares.',
                 style: theme.textTheme.bodySmall,
               ),
               if (!_editing) ...[

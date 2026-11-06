@@ -103,6 +103,10 @@ void main() {
     });
 
     testWidgets('creating a league makes the user its administrator and opens it', (tester) async {
+      // The form is long (visibility and who records scores).
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 1400);
+      addTearDown(tester.view.reset);
       leagues = FakeLeagueRepository();
       await pumpApp(tester);
 
@@ -130,6 +134,10 @@ void main() {
     });
 
     testWidgets('the backend message is shown when the league cannot be created', (tester) async {
+      // The form is long (visibility and who records scores).
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 1400);
+      addTearDown(tester.view.reset);
       leagues = FakeLeagueRepository();
       await pumpApp(tester);
 

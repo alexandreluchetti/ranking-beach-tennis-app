@@ -21,11 +21,12 @@ precisar de mudança na API, descreva a necessidade para o usuário levar à ses
   `main`. Para cada mudança: atualize `dev`, crie `feat/`, `fix/`, `refactor/` ou `chore/<nome-em-kebab-case>`
   a partir dela, commite, faça push e abra um pull request para `dev` (`gh pr create --base dev`; a
   descrição termina com a linha de atribuição indicada pelo sistema). Depois de aprovado e mergeado,
-  apague a branch (no GitHub e local). `main` é produção e **só recebe pull request da `dev`** (verificação
-  `source-branch-is-dev`), quando o usuário pedir; cada release ganha a tag `vX.Y.Z`.
-- Depois de todo merge na `main`, a `dev` é sincronizada automaticamente pelo workflow
-  `sync-dev-with-main` (PR `main` → `dev` com merge commit). Confira que
-  `git log origin/dev..origin/main` ficou vazio; se o workflow falhar, faça o PR à mão.
+  apague a branch (no GitHub e local). `main` é produção e **só recebe pull request da `dev`**, quando o
+  usuário pedir; cada release ganha a tag `vX.Y.Z`.
+- Desde 2026-11-06 o controle é nosso (os workflows `main-only-from-dev` e `sync-dev-with-main` foram
+  desativados porque o GitHub passou a cobrar): eu mesmo faço o merge dos PRs para a `dev` quando o usuário
+  aprovar, confiro que o PR para a `main` sai da `dev` e, depois de todo merge na `main`, sincronizo a
+  `dev` com um PR `main` → `dev` (merge commit) e confiro que `git log origin/dev..origin/main` ficou vazio.
 - Não criar recursos na nuvem (Firebase, Google Cloud, lojas, hospedagem), publicar nada ou
   gerar custos sem aprovação explícita.
 - Idiomas:
@@ -53,7 +54,8 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/features/players` | Lista e perfis de jogadores |
 | `lib/features/sync` | Fila offline de partidas (`SyncController`) e gatilhos de sincronização |
 | `lib/features/notifications` | Caixa de notificações, contador, token FCM (`PushMessaging`), gatilhos |
-| `lib/features/admin` | Temporadas da liga atual (em `/leagues/{id}/seasons`) e ações de admin na partida |
+| `lib/features/admin` | Temporadas da liga atual (em `/leagues/{id}/seasons`, tipo de ranking e pontos por colocação) e ações de admin na partida |
+| `lib/features/tournament` | Torneio do dia (D-026 a D-030): etapas (`/stages`, `/stages/new` presença, `/stages/{id}`), placares, cartão da etapa no Ranking |
 | `lib/features/profile` | Aba Perfil: apelido e nome completo (`NamesDialog`), "Minhas estatísticas" (todas as ligas, sem pontos), "Minhas ligas", tema e sair |
 
 Regras:
@@ -117,7 +119,14 @@ Regras:
   do conteúdo. Formulários limitados a 560 px (`NarrowBody`). Tela de carregamento no `web/index.html`.
   Em tela larga o ranking abre em tabela (com SG e %), e Partidas e Jogadores abrem o item ao lado da lista
   (`ListDetail`; os itens abrem com `openDetail`, que sem espaço faz o `push` de sempre).
-- Ícone do app: fundo em degradê laranja (`#F47721` → `#B9501A`), raquete em contorno branco grosso (cabeça oval, garganta e cabo com fenda) inclinada 45° para a direita e, dentro do aro, nivelado, um pódio branco de blocos arredondados sem números (1º no meio, mais alto) com uma estrela branca sobre o 1º; fontes SVG em `assets/branding`.
+- Torneio do dia (D-026 a D-030): no Ranking de uma temporada de torneio, num dia com etapa, alternador "Etapa de
+  hoje | Ranking" (abre na etapa; `TournamentRankingBody`); a etapa (`StageView`) mostra a linha de fases (Grupos →
+  Oitavas → Quartas → Semi → 3º lugar → Final, só as que existem), grupos por rodada (`groupRound`) com a
+  classificação, jogos em cartões e o pódio (3º e 4º). Num dia de jogo sem etapa, "Hoje é dia de jogo. Vai ter etapa?" só para administradores ("Hoje não" esconde até o
+  dia seguinte no aparelho) e botão "Etapas". Presença: membros + convidados, 8 a 64, par (aviso antes de enviar),
+  formato padrão Tradicional. Placar de jogo da etapa só na etapa (partida com `stageId` não tem Corrigir/Anular, tem
+  "Abrir etapa"). "Registrar partida" segue `canEnterScores` da liga (`canEnterScoresProvider`).
+- Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro em degradê (o ícone de antes do pódio, restaurado em 2026-11-06); fontes SVG em `assets/branding`.
 
 ## Ambiente (Windows 11)
 

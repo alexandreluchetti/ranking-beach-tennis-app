@@ -146,6 +146,7 @@ class PlayerProfileScreen extends ConsumerWidget {
                         ? 'Nenhuma temporada ativa'
                         : '${profile.currentSeason!.position}º de ${profile.currentSeason!.rankedPlayers}',
                     stats: profile.currentSeason?.stats,
+                    tournament: profile.currentSeason?.tournament,
                   ),
                   _StatsCard(
                     title: 'Carreira',
@@ -179,11 +180,14 @@ class PlayerProfileScreen extends ConsumerWidget {
 }
 
 class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.title, required this.subtitle, required this.stats});
+  const _StatsCard({required this.title, required this.subtitle, required this.stats, this.tournament});
 
   final String title;
   final String subtitle;
   final PlayerStats? stats;
+
+  /// In a daily tournament season: stages, titles and finals next to the points.
+  final TournamentStats? tournament;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +202,18 @@ class _StatsCard extends StatelessWidget {
           children: [
             Text(title, style: theme.textTheme.labelLarge),
             Text(subtitle, style: theme.textTheme.bodySmall),
-            if (stats != null) ...[
+            if (tournament case final t?) ...[
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _number(context, '${stats?.points ?? 0}', 'pontos'),
+                  _number(context, '${t.stagesPlayed}', 'etapas'),
+                  _number(context, '${t.titles}', 'títulos'),
+                  _number(context, '${t.finals}', 'finais'),
+                ],
+              ),
+            ] else if (stats != null) ...[
               const SizedBox(height: 12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

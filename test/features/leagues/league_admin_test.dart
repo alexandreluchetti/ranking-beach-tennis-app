@@ -208,7 +208,7 @@ void main() {
     await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
 
-    expect(leagues.calls, contains('update:l-admin:Liga Renomeada:Quartas à noite:PUBLIC'));
+    expect(leagues.calls, contains('update:l-admin:Liga Renomeada:Quartas à noite:PUBLIC:MEMBERS'));
     expect(find.text('Liga atualizada.'), findsOneWidget);
     expect(find.text('Quartas à noite'), findsOneWidget);
   });

@@ -26,6 +26,8 @@ class AdminRepository {
     required DateTime startDate,
     required DateTime endDate,
     required List<int> playingDays,
+    RankingType rankingType = RankingType.matchPoints,
+    PlacementPoints? placementPoints,
   }) =>
       apiCall(() async {
         final response = await _dio.post<Map<String, dynamic>>(leaguePath(_leagueId, 'seasons'), data: {
@@ -33,18 +35,23 @@ class AdminRepository {
           'startDate': _date(startDate),
           'endDate': _date(endDate),
           'playingDays': _days(playingDays),
+          'rankingType': rankingType.apiValue,
+          'placementPoints': ?placementPoints?.toJson(),
         });
         return Season.fromJson(response.data!);
       });
 
   /// Partial update: only the given fields change.
-  /// In an active season new [playingDays] apply from today on.
+  /// In an active season new [playingDays] apply from today on; [rankingType]
+  /// and [placementPoints] change only while the season is planned (D-026).
   Future<Season> updateSeason(
     String id, {
     String? name,
     DateTime? startDate,
     DateTime? endDate,
     List<int>? playingDays,
+    RankingType? rankingType,
+    PlacementPoints? placementPoints,
   }) =>
       apiCall(() async {
         final response = await _dio.patch<Map<String, dynamic>>(leaguePath(_leagueId, 'seasons/$id'), data: {
@@ -52,6 +59,8 @@ class AdminRepository {
           if (startDate != null) 'startDate': _date(startDate),
           if (endDate != null) 'endDate': _date(endDate),
           if (playingDays != null) 'playingDays': _days(playingDays),
+          'rankingType': ?rankingType?.apiValue,
+          'placementPoints': ?placementPoints?.toJson(),
         });
         return Season.fromJson(response.data!);
       });

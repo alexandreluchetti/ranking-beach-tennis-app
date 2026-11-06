@@ -8,6 +8,8 @@ import '../matches/match_repository.dart';
 import '../me/me_repository.dart';
 import '../players/player_profile.dart';
 import '../ranking/ranking_repository.dart';
+import '../tournament/stage_models.dart';
+import '../tournament/stage_repository.dart';
 
 /// After a successful write: deletes the device copies it made outdated and
 /// reloads the reads (those on screen keep showing until the answer arrives).
@@ -32,6 +34,26 @@ class DataRefresh {
     ]);
   }
 
+  /// A stage written in [leagueId]: created, drawn again, a score entered,
+  /// corrected or cleared, groups reopened or deleted. [stage] is the updated
+  /// stage the backend answered: it shows at once.
+  Future<void> afterStageChange(String? leagueId, {Stage? stage}) async {
+    await _forgetLeague(leagueId, const ['stage', 'ranking', 'profile.', 'matches.']);
+    await _cache?.forget(const ['statistics']);
+    if (stage != null && leagueId != null) {
+      await _cache?.save(_cache.keyFor('stage.${stage.id}', leagueId: leagueId), stage.toJson());
+    }
+    _reload([
+      stagesProvider,
+      stageProvider,
+      currentRankingProvider,
+      seasonRankingProvider,
+      playerProfileProvider,
+      matchHistoryProvider,
+      myStatisticsProvider,
+    ]);
+  }
+
   /// A season created or edited in [leagueId], playing days included.
   Future<void> afterSeasonChange(String? leagueId) async {
     await _forgetLeague(leagueId, const ['seasons', 'ranking']);
@@ -45,6 +67,8 @@ class DataRefresh {
     await _cache?.clearAllLeagues();
     _reload([
       meProvider,
+      stagesProvider,
+      stageProvider,
       currentRankingProvider,
       seasonRankingProvider,
       playerProfileProvider,
@@ -64,8 +88,11 @@ class DataRefresh {
 
   /// A notification (push or in the list) about [leagueId]: its data changed.
   Future<void> afterLeagueNotification(String leagueId) async {
-    await _forgetLeague(leagueId, const ['ranking', 'seasons', 'profile.', 'matches.', 'members', 'players']);
+    await _forgetLeague(
+        leagueId, const ['ranking', 'seasons', 'profile.', 'matches.', 'members', 'players', 'stage']);
     _reload([
+      stagesProvider,
+      stageProvider,
       currentRankingProvider,
       seasonRankingProvider,
       seasonsProvider,

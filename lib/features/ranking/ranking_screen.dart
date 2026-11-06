@@ -9,6 +9,7 @@ import '../leagues/current_league.dart';
 import '../leagues/league_switcher.dart';
 import '../leagues/no_league_view.dart';
 import '../me/me_repository.dart';
+import '../tournament/tournament_ranking_body.dart';
 import 'ranking_repository.dart';
 import 'ranking_view.dart';
 import 'scoring_rules_sheet.dart';
@@ -26,15 +27,22 @@ class RankingScreen extends ConsumerWidget {
     final me = ref.watch(meProvider).value;
     final canAdminister = ref.watch(canAdministerLeagueProvider);
     final leagueId = ref.watch(currentLeagueIdProvider);
+    final tournament = ranking.value?.value?.season.isDailyTournament ?? false;
     return Scaffold(
       appBar: AppBar(
         title: const LeagueTitle(),
         actions: [
+          if (tournament)
+            IconButton(
+              tooltip: 'Etapas',
+              icon: const Icon(Icons.event_note),
+              onPressed: () => context.push('/stages'),
+            ),
           const RankingViewToggle(),
           IconButton(
             tooltip: 'Regras de pontuação',
             icon: const Icon(Icons.help_outline),
-            onPressed: () => showScoringRules(context),
+            onPressed: () => showScoringRules(context, season: ranking.value?.value?.season),
           ),
           IconButton(
             tooltip: 'Temporadas anteriores',
@@ -74,7 +82,11 @@ class RankingScreen extends ConsumerWidget {
                     ),
                   )
                 : RankingContent(ranking: ranking, highlightPlayerId: me?.id);
-            return content;
+            if (ranking == null || !ranking.season.isDailyTournament) {
+              return content;
+            }
+            // On a stage day, today's stage first (or the question to the administrator).
+            return TournamentRankingBody(season: ranking.season, ranking: content);
           },
         ),
       ),
