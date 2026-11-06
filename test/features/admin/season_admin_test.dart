@@ -159,7 +159,15 @@ void main() {
     expect(admin.calls.single['rankingType'], RankingType.dailyTournament);
     expect(
       admin.calls.single['placementPoints'],
-      const PlacementPoints(champion: 120, runnerUp: 70, semifinal: 50, quarterfinal: 35, groupStage: 20),
+      const PlacementPoints(
+        champion: 120,
+        runnerUp: 70,
+        thirdPlace: 55,
+        fourthPlace: 45,
+        quarterfinal: 35,
+        roundOf16: 25,
+        groupStage: 20,
+      ),
     );
   });
 

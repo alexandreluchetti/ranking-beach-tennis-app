@@ -55,7 +55,7 @@ Organizada por funcionalidade (sem geração de código):
 | `lib/features/sync` | Fila offline de partidas (`SyncController`) e gatilhos de sincronização |
 | `lib/features/notifications` | Caixa de notificações, contador, token FCM (`PushMessaging`), gatilhos |
 | `lib/features/admin` | Temporadas da liga atual (em `/leagues/{id}/seasons`, tipo de ranking e pontos por colocação) e ações de admin na partida |
-| `lib/features/tournament` | Torneio do dia (D-026 a D-028): etapas (`/stages`, `/stages/new` presença, `/stages/{id}`), placares, cartão da etapa no Ranking |
+| `lib/features/tournament` | Torneio do dia (D-026 a D-030): etapas (`/stages`, `/stages/new` presença, `/stages/{id}`), placares, cartão da etapa no Ranking |
 | `lib/features/profile` | Aba Perfil: apelido e nome completo (`NamesDialog`), "Minhas estatísticas" (todas as ligas, sem pontos), "Minhas ligas", tema e sair |
 
 Regras:
@@ -119,9 +119,11 @@ Regras:
   do conteúdo. Formulários limitados a 560 px (`NarrowBody`). Tela de carregamento no `web/index.html`.
   Em tela larga o ranking abre em tabela (com SG e %), e Partidas e Jogadores abrem o item ao lado da lista
   (`ListDetail`; os itens abrem com `openDetail`, que sem espaço faz o `push` de sempre).
-- Torneio do dia (D-026 a D-029): no Ranking de uma temporada de torneio, cartão no topo com a etapa de hoje ou,
-  num dia de jogo sem etapa, "Hoje é dia de jogo. Vai ter etapa?" só para administradores ("Hoje não" esconde até o
-  dia seguinte no aparelho) e botão "Etapas". Presença: membros + convidados, 8 a 32, par (aviso antes de enviar),
+- Torneio do dia (D-026 a D-030): no Ranking de uma temporada de torneio, num dia com etapa, alternador "Etapa de
+  hoje | Ranking" (abre na etapa; `TournamentRankingBody`); a etapa (`StageView`) mostra a linha de fases (Grupos →
+  Oitavas → Quartas → Semi → 3º lugar → Final, só as que existem), grupos por rodada (`groupRound`) com a
+  classificação, jogos em cartões e o pódio (3º e 4º). Num dia de jogo sem etapa, "Hoje é dia de jogo. Vai ter etapa?" só para administradores ("Hoje não" esconde até o
+  dia seguinte no aparelho) e botão "Etapas". Presença: membros + convidados, 8 a 64, par (aviso antes de enviar),
   formato padrão Tradicional. Placar de jogo da etapa só na etapa (partida com `stageId` não tem Corrigir/Anular, tem
   "Abrir etapa"). "Registrar partida" segue `canEnterScores` da liga (`canEnterScoresProvider`).
 - Ícone do app: raquete em contorno laranja (vazada, espessura levemente variável) com arcos de movimento laranja sobre fundo escuro em degradê (o ícone de antes do pódio, restaurado em 2026-11-06); fontes SVG em `assets/branding`.

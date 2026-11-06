@@ -1,26 +1,35 @@
 import '../matches/match_models.dart';
 
-/// Rounds of a daily tournament stage (D-027).
+/// Rounds of a daily tournament stage (D-027, D-030), in playing order.
 enum StageRound {
-  group('GROUP', 'Fase de grupos'),
-  quarterfinal('QUARTERFINAL', 'Quartas de final'),
-  semifinal('SEMIFINAL', 'Semifinais'),
-  finalRound('FINAL', 'Final');
+  group('GROUP', 'Fase de grupos', 'Grupos'),
+  roundOf16('ROUND_OF_16', 'Oitavas de final', 'Oitavas'),
+  quarterfinal('QUARTERFINAL', 'Quartas de final', 'Quartas'),
+  semifinal('SEMIFINAL', 'Semifinais', 'Semi'),
+  thirdPlace('THIRD_PLACE', 'Disputa de 3º lugar', '3º lugar'),
+  finalRound('FINAL', 'Final', 'Final');
 
-  const StageRound(this.apiValue, this.label);
+  const StageRound(this.apiValue, this.label, this.shortLabel);
 
   final String apiValue;
   final String label;
 
+  /// For the phase stepper.
+  final String shortLabel;
+
   static StageRound fromApi(String value) => values.firstWhere((r) => r.apiValue == value);
 }
 
-/// Final placement of a pair in a stage (D-028), best first.
+/// Final placement of a pair in a stage (D-028, D-030), best first.
+/// [semifinal] only in stages whose final was drawn before the 3rd place game.
 enum Placement {
   champion('CHAMPION', 'Campeões'),
   runnerUp('RUNNER_UP', 'Vice'),
+  third('THIRD', '3º lugar'),
+  fourth('FOURTH', '4º lugar'),
   semifinal('SEMIFINAL', 'Semifinal'),
   quarterfinal('QUARTERFINAL', 'Quartas de final'),
+  roundOf16('ROUND_OF_16', 'Oitavas de final'),
   groupStage('GROUP_STAGE', 'Fase de grupos');
 
   const Placement(this.apiValue, this.label);
@@ -155,6 +164,7 @@ class StageFixture {
       : number = json['number'] as int,
         round = StageRound.fromApi(json['round'] as String),
         group = json['group'] as int?,
+        groupRound = json['groupRound'] as int?,
         pairA = json['pairA'] as int,
         pairB = json['pairB'] as int,
         score = json['score'] == null ? null : FixtureScore.fromJson(json['score'] as Map<String, dynamic>);
@@ -164,6 +174,9 @@ class StageFixture {
 
   /// Null in the knockout.
   final int? group;
+
+  /// Round inside the group, from 1 (D-030); null in the knockout.
+  final int? groupRound;
   final int pairA;
   final int pairB;
 
@@ -222,6 +235,23 @@ class Stage {
   List<StageFixture> fixturesOf(StageRound round) => [for (final f in fixtures) if (f.round == round) f];
 
   List<StageFixture> groupFixtures(int group) => [for (final f in fixtures) if (f.group == group) f];
+
+  /// The rounds of the group phase, 1 first.
+  List<int> get groupRounds => ({for (final f in fixtures) ?f.groupRound}.toList()..sort());
+
+  List<StageFixture> groupRoundFixtures(int round) => [for (final f in fixtures) if (f.groupRound == round) f];
+
+  /// The rounds this stage has drawn so far, in playing order.
+  List<StageRound> get rounds => [for (final r in StageRound.values) if (fixtures.any((f) => f.round == r)) r];
+
+  /// Every game of [round] has a score.
+  bool isComplete(StageRound round) {
+    final games = fixturesOf(round);
+    return games.isNotEmpty && games.every((f) => f.score != null);
+  }
+
+  /// The round being played: the first one with a game without a score.
+  StageRound? get currentRound => rounds.where((r) => !isComplete(r)).firstOrNull;
 
   /// Pairs with [placement], once the stage is finished.
   List<StagePair> pairsWith(Placement placement) => [for (final p in pairs) if (p.placement == placement) p];
