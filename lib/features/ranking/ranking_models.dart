@@ -31,52 +31,82 @@ enum RankingType {
       values.firstWhere((t) => t.apiValue == value, orElse: () => matchPoints);
 }
 
-/// Points per final placement in a daily tournament stage (D-028).
+/// Points per final placement in a daily tournament stage (D-028, D-030).
 class PlacementPoints {
   const PlacementPoints({
     required this.champion,
     required this.runnerUp,
-    required this.semifinal,
+    required this.thirdPlace,
+    required this.fourthPlace,
     required this.quarterfinal,
+    required this.roundOf16,
     required this.groupStage,
   });
 
-  factory PlacementPoints.fromJson(Map<String, dynamic> json) => PlacementPoints(
-        champion: json['champion'] as int,
-        runnerUp: json['runnerUp'] as int,
-        semifinal: json['semifinal'] as int,
-        quarterfinal: json['quarterfinal'] as int,
-        groupStage: json['groupStage'] as int,
-      );
+  factory PlacementPoints.fromJson(Map<String, dynamic> json) {
+    // Device copies from before D-030 have a single "semifinal" value for 3rd
+    // and 4th and no round of 16: read them as the backend migrated its data.
+    final semifinal = json['semifinal'] as int?;
+    final quarterfinal = json['quarterfinal'] as int;
+    return PlacementPoints(
+      champion: json['champion'] as int,
+      runnerUp: json['runnerUp'] as int,
+      thirdPlace: json['thirdPlace'] as int? ?? semifinal!,
+      fourthPlace: json['fourthPlace'] as int? ?? semifinal!,
+      quarterfinal: quarterfinal,
+      roundOf16: json['roundOf16'] as int? ?? quarterfinal,
+      groupStage: json['groupStage'] as int,
+    );
+  }
 
-  /// The default table of D-028.
-  static const standard = PlacementPoints(champion: 100, runnerUp: 70, semifinal: 50, quarterfinal: 35, groupStage: 20);
+  /// The default table of D-030.
+  static const standard = PlacementPoints(
+    champion: 100,
+    runnerUp: 70,
+    thirdPlace: 55,
+    fourthPlace: 45,
+    quarterfinal: 35,
+    roundOf16: 25,
+    groupStage: 20,
+  );
 
   final int champion;
   final int runnerUp;
-  final int semifinal;
+  final int thirdPlace;
+  final int fourthPlace;
   final int quarterfinal;
+  final int roundOf16;
   final int groupStage;
+
+  /// Best placement first.
+  List<int> get inOrder => [champion, runnerUp, thirdPlace, fourthPlace, quarterfinal, roundOf16, groupStage];
+
+  /// No value below the next one (the backend answers INVALID_PLACEMENT_POINTS).
+  bool get isDescending {
+    final values = inOrder;
+    for (var i = 0; i < values.length - 1; i++) {
+      if (values[i] < values[i + 1]) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   Map<String, dynamic> toJson() => {
         'champion': champion,
         'runnerUp': runnerUp,
-        'semifinal': semifinal,
+        'thirdPlace': thirdPlace,
+        'fourthPlace': fourthPlace,
         'quarterfinal': quarterfinal,
+        'roundOf16': roundOf16,
         'groupStage': groupStage,
       };
 
   @override
-  bool operator ==(Object other) =>
-      other is PlacementPoints &&
-      other.champion == champion &&
-      other.runnerUp == runnerUp &&
-      other.semifinal == semifinal &&
-      other.quarterfinal == quarterfinal &&
-      other.groupStage == groupStage;
+  bool operator ==(Object other) => other is PlacementPoints && other.inOrder.join(',') == inOrder.join(',');
 
   @override
-  int get hashCode => Object.hash(champion, runnerUp, semifinal, quarterfinal, groupStage);
+  int get hashCode => Object.hashAll(inOrder);
 }
 
 class Season {

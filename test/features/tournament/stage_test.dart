@@ -25,8 +25,9 @@ import '../../helpers.dart';
 
 const _names = ['Ana', 'Beto', 'Caio', 'Dani', 'Edu', 'Fabi', 'Gil', 'Hugo'];
 
-/// 8 players, 4 pairs in one group (round robin, then the final). Pair 1
-/// (Ana and Beto) beat pair 2 in game 1.
+/// 8 players, 4 pairs in one group (round robin in rounds, then the
+/// knockout). Pair 1 (Ana and Beto) beat pair 2 in game 1 (round 1). A
+/// finished stage had semifinals, the 3rd place game and the final (D-030).
 Map<String, dynamic> stageJson({
   bool canEnterScores = true,
   bool canAdminister = false,
@@ -54,7 +55,7 @@ Map<String, dynamic> stageJson({
             'number': n,
             'group': 1,
             'players': [2 * n - 1, 2 * n],
-            'placement': finished ? const ['CHAMPION', 'RUNNER_UP', 'GROUP_STAGE', 'GROUP_STAGE'][n - 1] : null,
+            'placement': finished ? const ['CHAMPION', 'RUNNER_UP', 'THIRD', 'FOURTH'][n - 1] : null,
           },
       ],
       'groups': [
@@ -71,6 +72,7 @@ Map<String, dynamic> stageJson({
           'number': 1,
           'round': 'GROUP',
           'group': 1,
+          'groupRound': 1,
           'pairA': 1,
           'pairB': 2,
           'score': {
@@ -82,10 +84,24 @@ Map<String, dynamic> stageJson({
             'tiebreakTeamBPoints': null,
           },
         },
-        {'number': 2, 'round': 'GROUP', 'group': 1, 'pairA': 3, 'pairB': 4, 'score': null},
-        if (knockoutDrawn || finished) {'number': 7, 'round': 'FINAL', 'group': null, 'pairA': 1, 'pairB': 2, 'score': null},
+        {'number': 2, 'round': 'GROUP', 'group': 1, 'groupRound': 1, 'pairA': 3, 'pairB': 4, 'score': null},
+        {'number': 3, 'round': 'GROUP', 'group': 1, 'groupRound': 2, 'pairA': 1, 'pairB': 3, 'score': null},
+        if (finished) ...[
+          {'number': 7, 'round': 'THIRD_PLACE', 'group': null, 'groupRound': null, 'pairA': 3, 'pairB': 4, 'score': _won},
+          {'number': 8, 'round': 'FINAL', 'group': null, 'groupRound': null, 'pairA': 1, 'pairB': 2, 'score': _won},
+        ] else if (knockoutDrawn)
+          {'number': 8, 'round': 'FINAL', 'group': null, 'groupRound': null, 'pairA': 1, 'pairB': 2, 'score': null},
       ],
     };
+
+const _won = {
+  'matchId': 'm-x',
+  'matchVersion': 1,
+  'teamAGames': 6,
+  'teamBGames': 2,
+  'tiebreakTeamAPoints': null,
+  'tiebreakTeamBPoints': null,
+};
 
 /// Stages answered from memory; records every call.
 class FakeStageRepository implements StageRepository {
@@ -188,12 +204,16 @@ void main() {
   testWidgets('shows the group table and games; a member enters a score', (tester) async {
     await pump(tester, '/stages/st1');
 
-    expect(find.text('Grupo A'), findsWidgets);
-    expect(find.text('6–3'), findsOneWidget);
-    expect(find.text('Lançar placar'), findsOneWidget, reason: 'only game 2 has no score');
+    expect(find.text('Rodada 1'), findsOneWidget);
+    expect(find.text('Rodada 2'), findsOneWidget);
+    expect(find.text('Classificação'), findsOneWidget);
+    expect(find.text('Grupos'), findsOneWidget, reason: 'the phase being played');
+    expect(find.text('Mata-mata'), findsOneWidget, reason: 'what comes next');
+    expect(find.descendant(of: find.byKey(const Key('fixture-1')), matching: find.text('3')), findsOneWidget);
+    expect(find.text('Lançar placar'), findsNWidgets(2), reason: 'games 2 and 3 have no score');
     expect(find.byTooltip('Ações do placar'), findsNothing, reason: 'members do not correct scores');
 
-    await tester.tap(find.text('Lançar placar'));
+    await tester.tap(find.text('Lançar placar').first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('stage-score-a')), '6');
     await tester.enterText(find.byKey(const Key('stage-score-b')), '5');
@@ -240,7 +260,16 @@ void main() {
     await pump(tester, '/stages/st1');
 
     expect(find.text('Campeões'), findsOneWidget);
-    expect(find.text('Final'), findsOneWidget);
+    expect(find.text('3º lugar'), findsWidgets, reason: 'the podium and the phase');
+    expect(find.text('4º lugar'), findsOneWidget);
+    expect(find.byKey(const Key('phase-THIRD_PLACE')), findsOneWidget);
+    expect(find.byKey(const Key('phase-FINAL')), findsOneWidget);
+    expect(find.text('Mata-mata'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('phase-THIRD_PLACE')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('fixture-7')), findsOneWidget);
+    expect(find.byKey(const Key('fixture-1')), findsNothing, reason: 'only the games of that phase');
   });
 
   testWidgets('presence: 8 to 32 players, an even number, then the draw', (tester) async {
@@ -311,8 +340,10 @@ void main() {
     ]);
 
     expect(find.text('Etapa de hoje'), findsOneWidget);
-    await tester.tap(find.text('Etapa de hoje'));
+    expect(find.text('Rodada 1'), findsOneWidget, reason: 'the stage shows first');
+
+    await tester.tap(find.text('Ranking'));
     await tester.pumpAndSettle();
-    expect(find.text('Grupo A'), findsWidgets);
+    expect(find.text('Rodada 1'), findsNothing);
   });
 }

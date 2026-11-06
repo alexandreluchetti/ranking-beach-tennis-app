@@ -12,12 +12,12 @@ import '../sync/data_refresh.dart';
 import 'stage_repository.dart';
 
 /// Who is present today (D-027): members from the list and guests by name,
-/// 8 to 32 players, an even number; the server draws pairs and groups.
+/// 8 to 64 players, an even number (D-030); the server draws pairs and groups.
 class StageAttendanceScreen extends ConsumerStatefulWidget {
   const StageAttendanceScreen({super.key});
 
   static const minPlayers = 8;
-  static const maxPlayers = 32;
+  static const maxPlayers = 64;
 
   @override
   ConsumerState<StageAttendanceScreen> createState() => _StageAttendanceScreenState();

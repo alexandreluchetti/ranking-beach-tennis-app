@@ -39,7 +39,7 @@ class StageRepository {
 
   Future<Stage> byId(String id) => apiCall(() => _stage(_dio.get(_path('stages/$id'))));
 
-  /// 8 to 32 players, an even number; draws the pairs and the groups.
+  /// 8 to 64 players, an even number; draws the pairs and the groups.
   Future<Stage> create({required MatchFormat format, required List<StageAttendee> players, DateTime? date}) =>
       apiCall(() => _stage(_dio.post(_path('stages'), data: {
             'format': format.apiValue,

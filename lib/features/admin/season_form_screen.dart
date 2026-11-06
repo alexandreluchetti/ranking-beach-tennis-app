@@ -293,7 +293,11 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
     }
     // A season loaded without its days (unknown) can still be saved without touching them.
     final daysMissing = _days.isEmpty && (_creating || widget.season!.playingDays.isNotEmpty);
-    final problem = _datesProblem(today) ?? (daysMissing ? 'Escolha pelo menos um dia de jogo.' : null);
+    final pointsOutOfOrder =
+        _type == RankingType.dailyTournament && !_rankingLocked && !_points.value.isDescending;
+    final problem = _datesProblem(today) ??
+        (daysMissing ? 'Escolha pelo menos um dia de jogo.' : null) ??
+        (pointsOutOfOrder ? 'Cada colocação deve valer pelo menos o mesmo que a seguinte.' : null);
     if (problem != null) {
       setState(() => _error = problem);
       return;
@@ -406,43 +410,43 @@ class _SeasonFormState extends ConsumerState<_SeasonForm> {
   }
 }
 
-/// The five placement fields of a daily tournament season (D-028).
+/// The placement fields of a daily tournament season (D-028, D-030), best first.
 class _PlacementFields {
   _PlacementFields(PlacementPoints points)
-      : champion = TextEditingController(text: '${points.champion}'),
-        runnerUp = TextEditingController(text: '${points.runnerUp}'),
-        semifinal = TextEditingController(text: '${points.semifinal}'),
-        quarterfinal = TextEditingController(text: '${points.quarterfinal}'),
-        groupStage = TextEditingController(text: '${points.groupStage}');
+      : _controllers = [for (final value in points.inOrder) TextEditingController(text: '$value')];
 
-  final TextEditingController champion;
-  final TextEditingController runnerUp;
-  final TextEditingController semifinal;
-  final TextEditingController quarterfinal;
-  final TextEditingController groupStage;
+  static const _labels = [
+    ('champion', 'Campeão'),
+    ('runnerUp', 'Vice'),
+    ('thirdPlace', '3º lugar'),
+    ('fourthPlace', '4º lugar'),
+    ('quarterfinal', 'Quartas de final'),
+    ('roundOf16', 'Oitavas de final'),
+    ('groupStage', 'Fase de grupos'),
+  ];
+
+  final List<TextEditingController> _controllers;
 
   List<(String, String, TextEditingController)> get fields => [
-        ('champion', 'Campeão', champion),
-        ('runnerUp', 'Vice', runnerUp),
-        ('semifinal', 'Semifinal', semifinal),
-        ('quarterfinal', 'Quartas de final', quarterfinal),
-        ('groupStage', 'Fase de grupos', groupStage),
+        for (final (i, (key, label)) in _labels.indexed) (key, label, _controllers[i]),
       ];
 
   /// Read after the form validated them.
   PlacementPoints get value {
-    int n(TextEditingController c) => int.parse(c.text.trim());
+    final n = [for (final c in _controllers) int.parse(c.text.trim())];
     return PlacementPoints(
-      champion: n(champion),
-      runnerUp: n(runnerUp),
-      semifinal: n(semifinal),
-      quarterfinal: n(quarterfinal),
-      groupStage: n(groupStage),
+      champion: n[0],
+      runnerUp: n[1],
+      thirdPlace: n[2],
+      fourthPlace: n[3],
+      quarterfinal: n[4],
+      roundOf16: n[5],
+      groupStage: n[6],
     );
   }
 
   void dispose() {
-    for (final (_, _, controller) in fields) {
+    for (final controller in _controllers) {
       controller.dispose();
     }
   }

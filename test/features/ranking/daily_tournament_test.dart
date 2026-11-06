@@ -32,6 +32,15 @@ void main() {
     expect(copy.placementPoints, PlacementPoints.standard);
   });
 
+  test('placement points from before D-030 read like the backend migrated them', () {
+    final old = PlacementPoints.fromJson(
+        {'champion': 100, 'runnerUp': 70, 'semifinal': 50, 'quarterfinal': 35, 'groupStage': 20});
+    expect(old.inOrder, [100, 70, 50, 50, 35, 35, 20]);
+    expect(PlacementPoints.standard.inOrder, [100, 70, 55, 45, 35, 25, 20]);
+    expect(PlacementPoints.standard.isDescending, isTrue);
+    expect(PlacementPoints.fromJson({...PlacementPoints.standard.toJson(), 'fourthPlace': 60}).isDescending, isFalse);
+  });
+
   test('who records scores: missing in older answers means any member could', () {
     final json = sampleLeague.toJson()
       ..remove('scoreEntry')

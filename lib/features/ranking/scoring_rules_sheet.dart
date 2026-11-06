@@ -62,10 +62,11 @@ class ScoringRules extends StatelessWidget {
             bullet('$label: $points pontos'),
           paragraph('O ranking soma as etapas. Desempate: pontos, títulos, finais e saldo de games.'),
           title('Como é uma etapa'),
-          bullet('O administrador marca quem está presente (de 8 a 32 jogadores, em número par) e o app sorteia '
+          bullet('O administrador marca quem está presente (de 8 a 64 jogadores, em número par) e o app sorteia '
               'duplas fixas para o dia.'),
-          bullet('As duplas jogam em grupos, todos contra todos; as duas primeiras de cada grupo passam para o '
-              'mata-mata, até a final.'),
+          bullet('As duplas jogam em grupos, todos contra todos, em rodadas; as duas primeiras de cada grupo '
+              'passam para o mata-mata (oitavas, quartas, semifinais, disputa de 3º lugar e final, conforme o '
+              'número de duplas).'),
           bullet('Convidados jogam e ocupam lugar, mas não recebem pontos; o parceiro de um convidado pontua '
               'normalmente.'),
           bullet('Partidas avulsas, fora das etapas, ficam no histórico e nas estatísticas, mas não valem pontos.'),
@@ -113,8 +114,10 @@ class ScoringRules extends StatelessWidget {
 List<(String, int)> _placements(PlacementPoints p) => [
       ('Campeões', p.champion),
       ('Vice', p.runnerUp),
-      ('Semifinal', p.semifinal),
+      ('3º lugar', p.thirdPlace),
+      ('4º lugar', p.fourthPlace),
       ('Quartas de final', p.quarterfinal),
+      ('Oitavas de final', p.roundOf16),
       ('Fase de grupos', p.groupStage),
     ];
 

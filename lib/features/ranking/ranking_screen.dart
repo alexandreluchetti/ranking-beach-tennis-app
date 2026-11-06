@@ -9,7 +9,7 @@ import '../leagues/current_league.dart';
 import '../leagues/league_switcher.dart';
 import '../leagues/no_league_view.dart';
 import '../me/me_repository.dart';
-import '../tournament/today_stage_card.dart';
+import '../tournament/tournament_ranking_body.dart';
 import 'ranking_repository.dart';
 import 'ranking_view.dart';
 import 'scoring_rules_sheet.dart';
@@ -85,8 +85,8 @@ class RankingScreen extends ConsumerWidget {
             if (ranking == null || !ranking.season.isDailyTournament) {
               return content;
             }
-            // Today's stage (or the question to the administrator) above the ranking.
-            return Column(children: [TodayStageCard(season: ranking.season), Expanded(child: content)]);
+            // On a stage day, today's stage first (or the question to the administrator).
+            return TournamentRankingBody(season: ranking.season, ranking: content);
           },
         ),
       ),
