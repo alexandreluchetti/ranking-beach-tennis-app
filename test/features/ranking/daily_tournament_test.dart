@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranking_beach_tennis/core/storage/offline_cache.dart';
 import 'package:ranking_beach_tennis/features/auth/auth_repository.dart';
@@ -8,6 +9,7 @@ import 'package:ranking_beach_tennis/features/me/me_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_screen.dart';
+import 'package:ranking_beach_tennis/features/ranking/scoring_rules_sheet.dart';
 
 import '../../helpers.dart';
 
@@ -110,5 +112,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pts = pontos · E = etapas · T = títulos · F = finais'), findsOneWidget);
     expect(find.text('T'), findsOneWidget);
+  });
+
+  testWidgets('opened from a tournament season, its stages and points come first', (tester) async {
+    final season = Season.fromJson({
+      ..._tournament.toJson(),
+      'placementPoints': {...PlacementPoints.standard.toJson(), 'champion': 120},
+    });
+    await pumpScreen(tester, Scaffold(body: ScoringRules(season: season)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Torneio do dia (esta temporada)'), findsOneWidget);
+    expect(find.text('Campeões: 120 pontos'), findsOneWidget);
+    expect(find.text('Torneio do dia'), findsNothing, reason: 'not repeated at the end');
   });
 }
