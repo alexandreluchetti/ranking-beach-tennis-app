@@ -111,7 +111,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Regras de pontuação'), findsWidgets);
-    expect(find.text('Como os pontos são calculados'), findsOneWidget);
+    expect(find.text('Pontos por partida'), findsOneWidget);
     expect(find.text('7–6 (tie-break)'), findsOneWidget);
 
     final sheetList = find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable));
@@ -121,8 +121,15 @@ void main() {
       '5º  Mais games vencidos.',
       '6º  Quem chegou primeiro à pontuação atual.',
       'Correções e anulações',
+      // The other format is explained too, with the default placement points.
+      'Torneio do dia',
+      'Campeões: 100 pontos',
+      '4º lugar: 45 pontos',
+      'Mata-mata',
     ]) {
-      await tester.scrollUntilVisible(find.text(section), 200, scrollable: sheetList);
+      // Built (even just past the visible part of the sheet), then scrolled to.
+      await tester.scrollUntilVisible(find.text(section, skipOffstage: false), 200, scrollable: sheetList);
+      await tester.pump();
       expect(find.text(section), findsOneWidget);
     }
   });

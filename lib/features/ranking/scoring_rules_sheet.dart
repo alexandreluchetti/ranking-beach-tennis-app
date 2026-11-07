@@ -18,9 +18,10 @@ Future<void> showScoringRules(BuildContext context, {Season? season}) => showMod
     );
 
 /// How the ranking works, in the players' words. Only the approved rules
-/// (backend docs/decisions.md D-002 to D-006, D-013, D-014); the points
-/// themselves are always calculated by the backend. A daily tournament season
-/// (D-026 to D-028) starts with how its stages score.
+/// (backend docs/decisions.md D-002 to D-006, D-013, D-014, D-026 to D-030);
+/// the points themselves are always calculated by the backend. Both season
+/// formats are explained; opened from a daily tournament season, its stages
+/// (with that season's placement points) come first.
 class ScoringRules extends StatelessWidget {
   const ScoringRules({super.key, this.controller, this.season});
 
@@ -30,6 +31,7 @@ class ScoringRules extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tournamentFirst = season?.isDailyTournament ?? false;
     Widget title(String text) => Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 8),
           child: Text(text, style: theme.textTheme.titleMedium),
@@ -49,30 +51,56 @@ class ScoringRules extends StatelessWidget {
           ),
         );
 
+    // The daily tournament (D-026 to D-030): placement points come from
+    // [points], the season's own table or the default one.
+    List<Widget> tournament(PlacementPoints points, {required bool thisSeason}) => [
+          title(thisSeason ? 'Torneio do dia (esta temporada)' : 'Torneio do dia'),
+          paragraph('Os pontos vêm das etapas: em cada dia de jogo da temporada pode haver uma etapa, e cada '
+              'jogador recebe os pontos da colocação final da sua dupla. Partidas avulsas, fora das etapas, '
+              'ficam no histórico e nas estatísticas, mas não valem pontos.'),
+          paragraph(thisSeason
+              ? 'Pontos por colocação nesta temporada:'
+              : 'Pontos por colocação (tabela padrão; cada temporada pode ter a sua, definida antes de começar):'),
+          for (final (label, value) in _placements(points)) bullet('$label: $value pontos'),
+          paragraph('O ranking da temporada soma os pontos de todas as etapas. Desempate: mais pontos, mais '
+              'títulos, mais finais (campeão ou vice; o 3º lugar não conta como final) e melhor saldo de games.'),
+          title('Como é uma etapa'),
+          bullet('O administrador marca quem está presente: membros da liga e convidados, de 8 a 64 jogadores, '
+              'em número par.'),
+          bullet('O app sorteia duplas fixas para o dia inteiro e as divide em grupos. O sorteio pode ser refeito '
+              'até o primeiro placar.'),
+          bullet('O administrador escolhe o formato dos jogos da etapa: tradicional (até 6 games) ou curto '
+              '(até 4).'),
+          bullet('Nos grupos, todas as duplas jogam entre si, em rodadas. Na classificação do grupo vale, nesta '
+              'ordem: vitórias, saldo de games, games vencidos e a ordem do sorteio. As duas primeiras de cada grupo passam.'),
+          title('Mata-mata'),
+          paragraph('O mata-mata é sorteado quando todos os jogos dos grupos têm placar, e depende do número de '
+              'duplas:'),
+          bullet('4 ou 5 duplas: um grupo; as duas primeiras fazem a final.'),
+          bullet('6 a 8 duplas: dois grupos; semifinais, disputa de 3º lugar e final.'),
+          bullet('9 a 12 duplas: três grupos; quartas de final (os dois melhores primeiros colocados vão direto '
+              'à semifinal), semifinais, 3º lugar e final.'),
+          bullet('13 a 16 duplas: quatro grupos; quartas, semifinais, 3º lugar e final.'),
+          bullet('17 a 32 duplas: de cinco a oito grupos; o mata-mata começa nas oitavas (com menos de 16 '
+              'classificados, os melhores vão direto às quartas).'),
+          bullet('Com semifinal, os perdedores disputam o 3º lugar, sorteado junto com a final. A etapa termina '
+              'quando a final e o 3º lugar têm placar.'),
+          title('Convidados e placares da etapa'),
+          bullet('Convidados jogam e ocupam lugar, mas não recebem pontos nem entram no ranking; o parceiro de um '
+              'convidado pontua normalmente.'),
+          bullet('Os jogos da etapa contam para as estatísticas de carreira e para "Minhas estatísticas".'),
+          bullet('Os placares são lançados na própria etapa. Só os administradores corrigem ou removem um placar; '
+              'para mudar um jogo de grupo depois do sorteio do mata-mata, eles reabrem os grupos.'),
+        ];
+
     return ListView(
       controller: controller,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       children: [
         Text('Regras de pontuação', style: theme.textTheme.headlineSmall),
-        if (season case final s? when s.isDailyTournament) ...[
-          title('Torneio do dia'),
-          paragraph('Nesta temporada os pontos vêm das etapas: em cada dia de jogo pode haver uma etapa, e cada '
-              'jogador recebe os pontos da colocação final da sua dupla.'),
-          for (final (label, points) in _placements(s.placementPoints ?? PlacementPoints.standard))
-            bullet('$label: $points pontos'),
-          paragraph('O ranking soma as etapas. Desempate: pontos, títulos, finais e saldo de games.'),
-          title('Como é uma etapa'),
-          bullet('O administrador marca quem está presente (de 8 a 64 jogadores, em número par) e o app sorteia '
-              'duplas fixas para o dia.'),
-          bullet('As duplas jogam em grupos, todos contra todos, em rodadas; as duas primeiras de cada grupo '
-              'passam para o mata-mata (oitavas, quartas, semifinais, disputa de 3º lugar e final, conforme o '
-              'número de duplas).'),
-          bullet('Convidados jogam e ocupam lugar, mas não recebem pontos; o parceiro de um convidado pontua '
-              'normalmente.'),
-          bullet('Partidas avulsas, fora das etapas, ficam no histórico e nas estatísticas, mas não valem pontos.'),
-          title('Pontos por partida (outras temporadas)'),
-        ] else
-          title('Como os pontos são calculados'),
+        paragraph('Cada temporada da liga tem um de dois formatos: pontos por partida ou torneio do dia.'),
+        if (tournamentFirst) ...tournament(season!.placementPoints ?? PlacementPoints.standard, thisSeason: true),
+        title(tournamentFirst ? 'Pontos por partida (outras temporadas)' : 'Pontos por partida'),
         paragraph('Cada jogador recebe os games feitos pela sua dupla. '
             'Os vencedores ganham mais 3 pontos de bônus.'),
         const SizedBox(height: 8),
@@ -102,10 +130,14 @@ class ScoringRules extends StatelessWidget {
             'estatísticas de carreira.'),
         bullet('Uma partida registrada depois, mas jogada dentro de uma temporada já encerrada, '
             'ainda conta para ela.'),
+        title('Quem lança os placares'),
+        paragraph('Cada liga escolhe se qualquer membro ou só os administradores registram partidas e lançam os '
+            'placares das etapas.'),
         title('Correções e anulações'),
         paragraph('Os administradores da liga podem corrigir ou anular partidas. Partidas anuladas não valem pontos '
             'nem estatísticas. O ranking é sempre recalculado a partir das partidas, então os pontos '
             'nunca são contados duas vezes. Os participantes são avisados nas Notificações.'),
+        if (!tournamentFirst) ...tournament(PlacementPoints.standard, thisSeason: false),
       ],
     );
   }
