@@ -342,6 +342,24 @@ class FakeNotificationRepository implements NotificationRepository {
   }
 
   @override
+  Future<void> delete(String id) async {
+    _check('delete:$id');
+    items.removeWhere((n) => n.id == id);
+  }
+
+  @override
+  Future<void> deleteMany(List<String> ids) async {
+    _check('deleteMany:${ids.join(',')}');
+    items.removeWhere((n) => ids.contains(n.id));
+  }
+
+  @override
+  Future<void> deleteAll() async {
+    _check('deleteAll');
+    items.clear();
+  }
+
+  @override
   Future<void> registerDevice(String token, DevicePlatform platform) async =>
       _check('register:$token:${platform.name}');
 

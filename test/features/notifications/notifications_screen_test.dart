@@ -41,6 +41,81 @@ void main() {
     expect(find.byTooltip('Marcar todas como lidas'), findsNothing);
   });
 
+  Future<FakeNotificationRepository> pumpInbox(WidgetTester tester) async {
+    final repository = FakeNotificationRepository(items: [
+      sampleNotification(id: 'n1'),
+      sampleNotification(id: 'n2', read: true, type: 'MATCH_VOIDED'),
+      sampleNotification(id: 'n3', read: true, type: 'MATCH_CORRECTED'),
+    ]);
+    await pumpScreen(tester, const NotificationsScreen(), leagues: null,
+        overrides: deviceOverrides(signedIn(), MemoryLocalStore(), notifications: repository));
+    await tester.pumpAndSettle();
+    return repository;
+  }
+
+  testWidgets('swiping a notification deletes it once "Desfazer" is gone', (tester) async {
+    final repository = await pumpInbox(tester);
+
+    await tester.drag(find.byKey(const ValueKey('n1')), const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(NotificationTile), findsNWidgets(2));
+    expect(find.text('Notificação excluída.'), findsOneWidget);
+    expect(find.byIcon(Icons.circle), findsNothing, reason: 'the unread one is gone');
+    expect(repository.calls, isNot(contains('delete:n1')), reason: 'not before the undo time is over');
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(repository.calls, contains('delete:n1'));
+  });
+
+  testWidgets('"Desfazer" brings it back and deletes nothing', (tester) async {
+    final repository = await pumpInbox(tester);
+
+    await tester.drag(find.byKey(const ValueKey('n2')), const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationTile), findsNWidgets(3));
+    expect(repository.calls.where((c) => c.startsWith('delete')), isEmpty);
+  });
+
+  testWidgets('a long press selects several to delete them together', (tester) async {
+    final repository = await pumpInbox(tester);
+
+    await tester.longPress(find.byKey(const ValueKey('n1')));
+    await tester.pumpAndSettle();
+    expect(find.text('1 selecionada'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('n3')));
+    await tester.pumpAndSettle();
+    expect(find.text('2 selecionadas'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Excluir selecionadas'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 notificações excluídas.'), findsOneWidget);
+    expect(find.byType(NotificationTile), findsOneWidget);
+    expect(find.text('Notificações'), findsOneWidget, reason: 'back to the normal bar');
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(repository.calls, contains('deleteMany:n1,n3'));
+  });
+
+  testWidgets('"Excluir todas" asks first, then empties the inbox', (tester) async {
+    final repository = await pumpInbox(tester);
+
+    await tester.tap(find.byTooltip('Mais opções'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Excluir todas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Excluir todas as notificações?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Excluir todas'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, contains('deleteAll'));
+    expect(find.text('Nenhuma notificação'), findsOneWidget);
+  });
+
   testWidgets('explains when there are no notifications', (tester) async {
     await pumpScreen(tester, const NotificationsScreen(), leagues: null,
         overrides: deviceOverrides(signedIn(), MemoryLocalStore()));
