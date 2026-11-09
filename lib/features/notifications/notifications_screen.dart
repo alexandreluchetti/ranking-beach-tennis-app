@@ -16,75 +16,141 @@ import 'notification_targets.dart';
 
 /// "Notificações": most recent first, unread highlighted. Opening one marks it
 /// as read and shows what it is about (a match, a league or its requests);
-/// invitations are answered right here.
-class NotificationsScreen extends ConsumerWidget {
+/// invitations are answered right here. Notifications are deleted for good
+/// (D-032): swipe one away (with "Desfazer"), long-press to select several, or
+/// "Excluir todas" in the menu.
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  /// Ids chosen in selection mode; empty outside it.
+  final _selected = <String>{};
+
+  bool get _selecting => _selected.isNotEmpty;
+
+  void _toggle(String id) => setState(() => _selected.contains(id) ? _selected.remove(id) : _selected.add(id));
+
+  @override
+  Widget build(BuildContext context) {
     final inbox = ref.watch(notificationInboxProvider);
-    final unread = inbox.value?.unreadCount ?? 0;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notificações'),
-        actions: [
-          if (unread > 0)
-            IconButton(
-              icon: const Icon(Icons.done_all),
-              tooltip: 'Marcar todas como lidas',
-              onPressed: () => _markAllRead(context, ref),
-            ),
-        ],
-      ),
-      body: inbox.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(notificationInboxProvider)),
-        data: (state) => RefreshIndicator(
-          onRefresh: () {
-            ref.invalidate(myInvitationsProvider);
-            return ref.refresh(notificationInboxProvider.future);
-          },
-          child: state.items.isEmpty
-              ? ListView(
-                  // Scrollable so pull-to-refresh also works when empty.
-                  children: const [
-                    SizedBox(height: 120),
-                    EmptyMessage(
-                      icon: Icons.notifications_none,
-                      title: 'Nenhuma notificação',
-                      message: 'Você será avisado sobre partidas suas, convites e pedidos das suas ligas.',
-                    ),
-                  ],
-                )
-              : ListView.separated(
-                  itemCount: state.items.length + (state.hasNext ? 1 : 0),
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    if (i == state.items.length) {
-                      // Reached the end of what is loaded: fetch the next page after this frame.
-                      Future.microtask(() => ref.read(notificationInboxProvider.notifier).loadMore());
-                      return const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    final notification = state.items[i];
-                    return NotificationTile(
-                      key: ValueKey(notification.id),
-                      notification: notification,
-                      onTap: () => _open(context, ref, notification),
-                      actions: notification.type == 'LEAGUE_INVITATION_RECEIVED' && notification.invitationId != null
-                          ? _InvitationActions(notification: notification)
-                          : null,
-                    );
-                  },
+    final state = inbox.value;
+    final unread = state?.unreadCount ?? 0;
+    final items = state?.items ?? const <AppNotification>[];
+    // Notifications deleted elsewhere (or reloaded) leave the selection.
+    _selected.retainAll({for (final n in items) n.id});
+    return PopScope(
+      canPop: !_selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          setState(_selected.clear);
+        }
+      },
+      child: Scaffold(
+        appBar: _selecting
+            ? AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Cancelar seleção',
+                  onPressed: () => setState(_selected.clear),
                 ),
+                title: Text('${_selected.length} ${_selected.length == 1 ? 'selecionada' : 'selecionadas'}'),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.select_all),
+                    tooltip: 'Selecionar todas',
+                    onPressed: () => setState(() => _selected.addAll(items.map((n) => n.id))),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Excluir selecionadas',
+                    onPressed: () => _delete(Set.of(_selected)),
+                  ),
+                ],
+              )
+            : AppBar(
+                title: const Text('Notificações'),
+                actions: [
+                  if (unread > 0)
+                    IconButton(
+                      icon: const Icon(Icons.done_all),
+                      tooltip: 'Marcar todas como lidas',
+                      onPressed: _markAllRead,
+                    ),
+                  if (items.isNotEmpty)
+                    PopupMenuButton<void>(
+                      tooltip: 'Mais opções',
+                      itemBuilder: (_) => [PopupMenuItem(onTap: _deleteAll, child: const Text('Excluir todas'))],
+                    ),
+                ],
+              ),
+        body: inbox.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => ErrorRetry(error: error, onRetry: () => ref.invalidate(notificationInboxProvider)),
+          data: (state) => RefreshIndicator(
+            onRefresh: () {
+              ref.invalidate(myInvitationsProvider);
+              return ref.refresh(notificationInboxProvider.future);
+            },
+            child: state.items.isEmpty
+                ? ListView(
+                    // Scrollable so pull-to-refresh also works when empty.
+                    children: const [
+                      SizedBox(height: 120),
+                      EmptyMessage(
+                        icon: Icons.notifications_none,
+                        title: 'Nenhuma notificação',
+                        message: 'Você será avisado sobre partidas suas, convites e pedidos das suas ligas.',
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    itemCount: state.items.length + (state.hasNext ? 1 : 0),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      if (i == state.items.length) {
+                        // Reached the end of what is loaded: fetch the next page after this frame.
+                        Future.microtask(() => ref.read(notificationInboxProvider.notifier).loadMore());
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final notification = state.items[i];
+                      final tile = NotificationTile(
+                        key: ValueKey(notification.id),
+                        notification: notification,
+                        selected: _selecting ? _selected.contains(notification.id) : null,
+                        onTap: _selecting ? () => _toggle(notification.id) : () => _open(notification),
+                        onLongPress: () => _toggle(notification.id),
+                        actions: !_selecting &&
+                                notification.type == 'LEAGUE_INVITATION_RECEIVED' &&
+                                notification.invitationId != null
+                            ? _InvitationActions(notification: notification)
+                            : null,
+                      );
+                      if (_selecting) {
+                        return tile;
+                      }
+                      return Dismissible(
+                        key: ValueKey('dismiss-${notification.id}'),
+                        direction: DismissDirection.endToStart,
+                        background: const _DeleteBackground(),
+                        onDismissed: (_) => _delete({notification.id}),
+                        child: tile,
+                      );
+                    },
+                  ),
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _open(BuildContext context, WidgetRef ref, AppNotification notification) async {
+  Future<void> _open(AppNotification notification) async {
     unawaited(ref.read(notificationInboxProvider.notifier).markRead(notification.id));
     await openNotificationTarget(
       ref,
@@ -97,7 +163,64 @@ class NotificationsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _markAllRead(BuildContext context, WidgetRef ref) async {
+  /// Takes [ids] off the list at once and deletes them for good once the
+  /// "Desfazer" message is gone without being used.
+  void _delete(Set<String> ids) {
+    if (ids.isEmpty) {
+      return;
+    }
+    final inbox = ref.read(notificationInboxProvider.notifier);
+    final removed = inbox.removeLocally(ids);
+    setState(_selected.clear);
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    final message = removed.length == 1 ? 'Notificação excluída.' : '${removed.length} notificações excluídas.';
+    messenger
+        .showSnackBar(SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 4),
+          // Closes by itself (a message with an action would otherwise stay): then the delete is sent.
+          persist: false,
+          action: SnackBarAction(label: 'Desfazer', onPressed: () {}),
+        ))
+        .closed
+        .then((reason) async {
+      if (reason == SnackBarClosedReason.action) {
+        inbox.restore(removed);
+        return;
+      }
+      try {
+        await inbox.deleteOnServer(ids);
+      } on ApiException catch (e) {
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    });
+  }
+
+  Future<void> _deleteAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir todas as notificações?'),
+        content: const Text('Elas serão apagadas de vez. Convites e pedidos de entrada continuam pendentes.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Excluir todas')),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !mounted) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(notificationInboxProvider.notifier).deleteAll();
+      messenger.showSnackBar(const SnackBar(content: Text('Notificações excluídas.')));
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _markAllRead() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(notificationInboxProvider.notifier).markAllRead();
@@ -107,11 +230,45 @@ class NotificationsScreen extends ConsumerWidget {
   }
 }
 
+/// Behind a notification being swiped away.
+class _DeleteBackground extends StatelessWidget {
+  const _DeleteBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      color: scheme.errorContainer,
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Excluir', style: TextStyle(color: scheme.onErrorContainer)),
+          const SizedBox(width: 8),
+          Icon(Icons.delete_outline, color: scheme.onErrorContainer),
+        ],
+      ),
+    );
+  }
+}
+
 class NotificationTile extends StatelessWidget {
-  const NotificationTile({super.key, required this.notification, required this.onTap, this.actions});
+  const NotificationTile({
+    super.key,
+    required this.notification,
+    required this.onTap,
+    this.onLongPress,
+    this.selected,
+    this.actions,
+  });
 
   final AppNotification notification;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  /// In selection mode: whether it is chosen (a checkbox replaces the icon).
+  final bool? selected;
 
   /// Shown below the text (e.g. accept or reject an invitation).
   final Widget? actions;
@@ -135,7 +292,10 @@ class NotificationTile extends StatelessWidget {
     final unread = !notification.read;
     return ListTile(
       tileColor: unread ? scheme.primaryContainer.withValues(alpha: 0.35) : null,
-      leading: Icon(_icon(notification.type), color: unread ? scheme.primary : scheme.outline),
+      leading: selected == null
+          ? Icon(_icon(notification.type), color: unread ? scheme.primary : scheme.outline)
+          : Checkbox(value: selected, onChanged: (_) => onTap()),
+      selected: selected ?? false,
       title: Text(
         notification.title,
         style: TextStyle(fontWeight: unread ? FontWeight.bold : FontWeight.normal),
@@ -157,6 +317,7 @@ class NotificationTile extends StatelessWidget {
           : null,
       isThreeLine: true,
       onTap: onTap,
+      onLongPress: onLongPress,
     );
   }
 }
