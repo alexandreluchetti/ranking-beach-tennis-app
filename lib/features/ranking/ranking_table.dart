@@ -4,6 +4,14 @@ import 'package:intl/intl.dart';
 
 import 'ranking_models.dart';
 
+/// Gold, silver and bronze trophies for the podium.
+const podiumColors = [Color(0xFFD4AF37), Color(0xFFA8A9AD), Color(0xFFCD7F32)];
+
+/// A trophy in gold, silver or bronze for the first three places; null below.
+Widget? podiumTrophy(int position, {double size = 28}) => position >= 1 && position <= 3
+    ? Icon(Icons.emoji_events, size: size, color: podiumColors[position - 1], semanticLabel: '$positionº lugar')
+    : null;
+
 /// A difference with its sign: +3, 0, -2.
 String formatSigned(int value) => value > 0 ? '+$value' : '$value';
 
@@ -84,17 +92,22 @@ class _RankingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final podium = entry.position <= 3;
     return Material(
       color: highlighted ? scheme.primary.withValues(alpha: 0.08) : Colors.transparent,
       child: Column(
         children: [
           ListTile(
             onTap: onTap,
-            leading: CircleAvatar(
-              backgroundColor: podium ? scheme.primary : scheme.surfaceContainerHighest,
-              foregroundColor: podium ? scheme.onPrimary : scheme.onSurface,
-              child: Text('${entry.position}º'),
+            leading: SizedBox.square(
+              dimension: 40,
+              child: Center(
+                child: podiumTrophy(entry.position, size: 32) ??
+                    CircleAvatar(
+                      backgroundColor: scheme.surfaceContainerHighest,
+                      foregroundColor: scheme.onSurface,
+                      child: Text('${entry.position}º'),
+                    ),
+              ),
             ),
             title: Text(entry.displayName, style: TextStyle(fontWeight: highlighted ? FontWeight.bold : null)),
             subtitle: Text(

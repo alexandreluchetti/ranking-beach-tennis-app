@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 
 /// In-app notification about a match or a league. Title and body come written
 /// in pt-BR by the backend, identical to the push message.
@@ -99,6 +100,32 @@ class NotificationRepository {
   Future<void> markRead(String id) => apiCall(() => _dio.post<void>('/api/notifications/$id/read'));
 
   Future<void> markAllRead() => apiCall(() => _dio.post<void>('/api/notifications/read-all'));
+
+  /// Deletes one notification for good (D-032). Already gone (e.g. resent after
+  /// a network failure) counts as done.
+  Future<void> delete(String id) async {
+    try {
+      await apiCall(() => _dio.delete<void>('/api/notifications/$id'));
+    } on ApiException catch (e) {
+      if (e.code != 'NOTIFICATION_NOT_FOUND') {
+        rethrow;
+      }
+    }
+  }
+
+  /// Deletes several, up to [batchSize] per request; unknown ids are ignored.
+  Future<void> deleteMany(List<String> ids) async {
+    for (var i = 0; i < ids.length; i += batchSize) {
+      final batch = ids.sublist(i, i + batchSize > ids.length ? ids.length : i + batchSize);
+      await apiCall(() => _dio.post<void>('/api/notifications/delete', data: {'ids': batch}));
+    }
+  }
+
+  /// Deletes every notification of the user.
+  Future<void> deleteAll() => apiCall(() => _dio.delete<void>('/api/notifications'));
+
+  /// The most ids the backend takes in one batch delete.
+  static const batchSize = 100;
 
   /// Registers (or moves to the signed-in player) this device's push token.
   Future<void> registerDevice(String token, DevicePlatform platform) => apiCall(

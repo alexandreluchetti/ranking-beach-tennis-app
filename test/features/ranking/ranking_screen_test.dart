@@ -9,8 +9,13 @@ import 'package:ranking_beach_tennis/features/me/me_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_models.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_repository.dart';
 import 'package:ranking_beach_tennis/features/ranking/ranking_screen.dart';
+import 'package:ranking_beach_tennis/features/ranking/ranking_table.dart';
 
 import '../../helpers.dart';
+
+/// The gold (0), silver (1) or bronze (2) trophy of the podium.
+Finder trophy(int place) => find.byWidgetPredicate(
+    (w) => w is Icon && w.icon == Icons.emoji_events && w.color == podiumColors[place]);
 
 void main() {
   testWidgets('shows the active season ranking with shared positions', (tester) async {
@@ -25,7 +30,9 @@ void main() {
     expect(find.text('19 pts'), findsOneWidget);
     expect(find.text('2 V · 0 D · 2 J · saldo de games +3'), findsOneWidget);
     expect(find.text('1 V · 1 D · 2 J · saldo de games -1'), findsNWidgets(2));
-    expect(find.text('2º'), findsNWidgets(2));
+    expect(trophy(0), findsOneWidget, reason: 'gold for the 1st');
+    expect(trophy(1), findsNWidgets(2), reason: 'silver for both 2nd places');
+    expect(trophy(2), findsNothing, reason: 'the next one is 4th');
     expect(find.text('4º'), findsOneWidget);
   });
 
@@ -187,7 +194,7 @@ void main() {
     expect(find.text('Jogador'), findsOneWidget);
     expect(find.text('Pts = pontos · J = jogos · V = vitórias · D = derrotas'), findsOneWidget);
     expect(find.text('19'), findsOneWidget, reason: "Beto's points");
-    expect(find.text('2º'), findsNWidgets(2), reason: 'shared position');
+    expect(trophy(1), findsNWidgets(2), reason: 'shared position');
     expect(find.text('19 pts'), findsNothing);
 
     await tester.tap(find.byTooltip('Ver em lista'));

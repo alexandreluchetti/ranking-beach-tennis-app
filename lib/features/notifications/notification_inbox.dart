@@ -113,6 +113,59 @@ class NotificationInbox extends AsyncNotifier<InboxState> {
     ));
   }
 
+  /// Takes [ids] off the list at once (the server is told later, see
+  /// [deleteOnServer], so the user can still undo) and returns what was removed.
+  List<AppNotification> removeLocally(Set<String> ids) {
+    final current = state.value;
+    if (current == null) {
+      return const [];
+    }
+    final removed = [for (final n in current.items) if (ids.contains(n.id)) n];
+    final unreadRemoved = removed.where((n) => !n.read).length;
+    state = AsyncData(current.copyWith(
+      items: [for (final n in current.items) if (!ids.contains(n.id)) n],
+      unreadCount: (current.unreadCount - unreadRemoved).clamp(0, current.unreadCount),
+    ));
+    return removed;
+  }
+
+  /// "Desfazer": puts back what [removeLocally] took off, in date order.
+  void restore(List<AppNotification> removed) {
+    final current = state.value;
+    if (current == null || removed.isEmpty) {
+      return;
+    }
+    final known = {for (final n in current.items) n.id};
+    final back = [for (final n in removed) if (!known.contains(n.id)) n];
+    state = AsyncData(current.copyWith(
+      items: [...current.items, ...back]..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+      unreadCount: current.unreadCount + back.where((n) => !n.read).length,
+    ));
+  }
+
+  /// Deletes [ids] for good (D-032). On failure the list reloads from the
+  /// server and the [ApiException] is rethrown for the screen.
+  Future<void> deleteOnServer(Set<String> ids) async {
+    final repository = ref.read(notificationRepositoryProvider);
+    try {
+      if (ids.length == 1) {
+        await repository.delete(ids.single);
+      } else {
+        await repository.deleteMany(ids.toList());
+      }
+    } catch (_) {
+      ref.invalidateSelf();
+      rethrow;
+    }
+  }
+
+  /// Deletes every notification. Throws [ApiException] so the screen can tell
+  /// the user it failed.
+  Future<void> deleteAll() async {
+    await ref.read(notificationRepositoryProvider).deleteAll();
+    state = const AsyncData(InboxState.empty);
+  }
+
   /// Throws [ApiException] so the screen can tell the user it failed.
   Future<void> markAllRead() async {
     await ref.read(notificationRepositoryProvider).markAllRead();
