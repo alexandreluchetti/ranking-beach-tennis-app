@@ -82,6 +82,7 @@ class RankingGrid extends StatelessWidget {
 
     Widget row({
       required String position,
+      int? rank,
       required String name,
       required List<String> numbers,
       TextStyle? style,
@@ -97,7 +98,10 @@ class RankingGrid extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
               child: Row(
                 children: [
-                  SizedBox(width: 36, child: Text(position, style: style, textAlign: TextAlign.center)),
+                  SizedBox(
+                    width: 36,
+                    child: podiumTrophy(rank ?? 0, size: 22) ?? Text(position, style: style, textAlign: TextAlign.center),
+                  ),
                   const SizedBox(width: 4),
                   Expanded(child: Text(name, style: style, overflow: TextOverflow.ellipsis)),
                   for (final (i, number) in numbers.indexed)
@@ -149,6 +153,7 @@ class RankingGrid extends StatelessWidget {
         for (final (i, entry) in ranking.entries.indexed)
           row(
             position: '${entry.position}º',
+            rank: entry.position,
             name: entry.displayName,
             numbers: tournament
                 ? [
